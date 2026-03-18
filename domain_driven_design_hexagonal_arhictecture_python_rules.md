@@ -143,6 +143,7 @@ class UserRepository(ABC):
 - Events should contain all necessary data to handle the event
 - Use `@dataclass(frozen=True)` for events
 - Events should be raised by aggregates, not external code
+- Domain event names MUST use ubiquitous language from the business domain only — no technology-specific or external-system terms (e.g., no vendor names like "Auth0", "Clerk", "Stripe"; no infrastructure terms like "SQL", "SQS", "Lambda", "DynamoDB"). The event name should be meaningful to a domain expert who knows nothing about the implementation. For example: `UserCreated` is correct, `Auth0UserCreated` is wrong; `PaymentProcessed` is correct, `StripePaymentProcessed` is wrong.
 - **Inheritance caveat**: When using a `DomainEvent` base class with a default field (e.g., `occurred_at: datetime = field(default_factory=...)`), all subclass fields MUST also have defaults. Python dataclass inheritance does not allow non-default fields to follow default fields from a parent class. Use empty-value defaults (e.g., `user_id: str = ""`) or make the base class field non-default and always pass it explicitly.
 
 ```python
