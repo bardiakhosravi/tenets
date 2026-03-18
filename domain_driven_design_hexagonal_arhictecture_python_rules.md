@@ -4,14 +4,14 @@
 
 ### 1. Entity Rules
 - Entities MUST have a unique identity that persists throughout their lifecycle
-- Use `@dataclass` with `frozen=False` for mutable entities
+- Use `@dataclass(eq=False)` for mutable entities — the `eq=False` prevents Python from generating `__eq__` and `__hash__` based on all fields, which would override the identity-based equality that entities require
 - Identity should be immutable once set (use `field(init=False)` for auto-generated IDs)
 - Implement `__eq__` and `__hash__` based solely on identity, not attributes
 - Entities MUST contain business logic as methods, not just data
 - Avoid anemic domain models - entities should have behavior
 
 ```python
-@dataclass
+@dataclass(eq=False)
 class User:
     id: UserId = field(init=False)
     email: Email
@@ -54,19 +54,26 @@ class Email:
 - Aggregate boundaries should align with transaction boundaries
 - Use factory methods on aggregates for complex creation logic
 - Aggregates should be small and focused
+- Cross-child invariants (rules that span multiple child entities within an aggregate) MUST be enforced by the aggregate root's methods, not by repositories or use cases. If two things must be consistent within the same transaction, they belong in the same aggregate.
+
+**Aggregate persistence rules:**
+- Child entities within an aggregate (e.g., line items in an order, assignments in a staff record) are persisted in **separate database tables** for normalization and queryability
+- The aggregate root's **single repository** loads and saves all child entities in one transaction — no separate repositories for child entities
+- The aggregate is a **domain concept**, not a persistence concept. How it is stored is an infrastructure detail
+- At small volumes (< 100 child entities), eagerly load the full aggregate on every operation. Consider lazy loading only when child collections grow to hundreds or thousands of items.
 
 ```python
-@dataclass
+@dataclass(eq=False)
 class Order:  # Aggregate Root
     id: OrderId
     customer_id: CustomerId
     _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
-    
+
     def add_line_item(self, product_id: ProductId, quantity: int) -> None:
         # Business rules and validation
         line_item = OrderLineItem(product_id, quantity)
         self._line_items.append(line_item)
-    
+
     @property
     def line_items(self) -> tuple[OrderLineItem, ...]:
         return tuple(self._line_items)  # Return immutable view
@@ -97,6 +104,7 @@ class PricingService:
 - Use domain-specific query methods, not generic CRUD
 - Return domain objects, never DTOs or database models
 - Should throw domain exceptions, not infrastructure exceptions
+- Query methods (`find_by_id`, `find_by_email`, etc.) return `None` when the entity is not found — absence is a normal query outcome, not an exception. The **use case** decides whether absence is an error and raises the appropriate domain exception (e.g., `UserNotFoundError`). Repositories never raise "not found" exceptions.
 
 ```python
 # Domain Layer - domain/repositories/user_repository.py
@@ -135,14 +143,20 @@ class UserRepository(ABC):
 - Events should contain all necessary data to handle the event
 - Use `@dataclass(frozen=True)` for events
 - Events should be raised by aggregates, not external code
+- **Inheritance caveat**: When using a `DomainEvent` base class with a default field (e.g., `occurred_at: datetime = field(default_factory=...)`), all subclass fields MUST also have defaults. Python dataclass inheritance does not allow non-default fields to follow default fields from a parent class. Use empty-value defaults (e.g., `user_id: str = ""`) or make the base class field non-default and always pass it explicitly.
 
 ```python
 @dataclass(frozen=True)
-class UserEmailChanged:
-    user_id: UserId
-    old_email: Email
-    new_email: Email
-    occurred_at: datetime
+class DomainEvent:
+    """Base class — has a default field."""
+    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
+
+@dataclass(frozen=True)
+class UserEmailChanged(DomainEvent):
+    """Subclass fields MUST have defaults because parent has occurred_at with a default."""
+    user_id: str = ""
+    old_email: str = ""
+    new_email: str = ""
 ```
 
 ### 8. Event Handling Rules
@@ -160,7 +174,7 @@ class UserEmailChanged:
 - Use cases orchestrate domain objects but contain no business logic
 - Should be stateless and focused on a single responsibility
 - Handle cross-cutting concerns (transactions, events, etc.)
-- Should not return domain objects directly - use DTOs
+- Use cases return **domain objects** (entities, aggregates). The primary adapter (controller) is responsible for mapping domain objects to external representations (e.g., Pydantic response models, JSON). This follows hexagonal architecture — adapters are the translation layer, not use cases. (Note: Clean Architecture prescribes response DTOs from use cases, but in hexagonal architecture the adapter handles this translation.)
 - Name use cases after business operations using domain language
 
 ```python
@@ -460,15 +474,39 @@ class DIContainer:
 - **Configuration layer**: Cross-cutting concerns that wire all layers together
 - Domain and application layers should only depend on their respective port interfaces
 - Infrastructure layer contains all adapter implementations
+- **One class per file** — each entity, value object, port, use case, and adapter should be in its own file. This makes classes easy to find and prevents large files.
+- **No implementation code in `__init__.py`** — `__init__.py` files should be empty or contain only re-exports. Public interfaces, services, and classes must be in dedicated files.
+
+**Domain layer organization** — two valid approaches (pick one and be consistent within a module):
+
+**Option A: Organize by subdomain** (group related entities and value objects together):
+```
+domain/
+├── model/
+│   ├── user/
+│   │   ├── user.py              # Entity
+│   │   └── email.py             # Value Object
+│   └── order/
+```
+
+**Option B: Organize by type** (group all entities together, all value objects together):
+```
+domain/
+├── entities/
+│   ├── user.py
+│   └── order.py
+├── value_objects/
+│   ├── email.py
+│   ├── user_id.py
+│   └── order_id.py
+```
+
+Both approaches MUST keep ports, events, and exceptions in their own directories regardless:
 
 ```
 src/
 ├── domain/
-│   ├── model/
-│   │   ├── user/
-│   │   │   ├── user.py              # Entity
-│   │   │   └── email.py             # Value Object
-│   │   └── order/
+│   ├── ... (entities and value objects per chosen option above)
 │   ├── ports/                       # Domain Ports (Secondary)
 │   │   ├── user_repository.py       # Repository interface (domain concept)
 │   │   ├── order_repository.py
@@ -670,6 +708,47 @@ class SqlUserRepository(UserRepository):
         pass
 ```
 
+## Cross-Bounded Context Communication Rules
+
+### 20. In-Process Cross-Context Communication (Modular Monolith)
+
+When one bounded context module needs data from another module in the same monolith:
+
+- The consuming module defines its own **port** (ABC) in its domain layer describing what it needs
+- The providing module exposes a **public query service** as a dedicated file — the only thing other modules may import
+- An **adapter** in the consuming module's infrastructure layer wraps the query service behind the port
+- The consuming module's domain and application layers MUST NOT import the providing module's internal code (entities, repositories, value objects)
+- This enables extraction to microservices later — swap the in-process adapter for an HTTP adapter with zero domain changes
+
+```python
+# Providing module exposes a public query service
+class InventoryQueryService:
+    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+
+# Consuming module defines its own port
+class InventoryPort(ABC):
+    @abstractmethod
+    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+
+# Consuming module's adapter wraps the query service
+class InProcessInventoryAdapter(InventoryPort):
+    def __init__(self, service: InventoryQueryService):
+        self._service = service
+
+    def check_availability(self, product_id: str, quantity: int) -> bool:
+        return self._service.check_availability(product_id, quantity)
+```
+
+### 21. Cross-Service Communication (Different Processes)
+
+When a bounded context needs to call an external service or a context running as a separate service:
+
+- The consuming module defines a **port** (ABC) in its domain layer
+- An **HTTP adapter** in infrastructure implements the port using an HTTP client
+- Only the bounded context that **owns** an external system should talk to it directly — other modules call that context's API through their own port + adapter
+- Service-to-service authentication should use dedicated service account credentials, not user tokens
+- The adapter maps HTTP errors to domain or adapter exceptions — the domain layer never sees HTTP status codes
+
 ## Validation and Error Handling Rules
 - Test domain logic in isolation without any adapters
 - Test primary adapters by mocking primary ports
@@ -706,30 +785,41 @@ class InMemoryUserRepository(UserRepository):
         return next((u for u in self._users.values() if u.email == email), None)
 ```
 
-### 21. Validation and Error Handling Rules
+### 22. Validation and Error Handling Rules
 - Domain validation should happen in domain objects (entities, value objects)
-- Use domain exceptions that extend a base domain exception
 - Validation should be explicit and fail fast
 - Input validation in application services should be minimal
 - Use factory methods for complex validation scenarios
+- Use **two exception hierarchies** defined in the shared kernel:
+  - `DomainException` — raised by entities, value objects, and use cases for business rule violations (e.g., invalid email, entity not found, constraint violated)
+  - `AdapterException` — raised by infrastructure adapters when external systems fail (e.g., database unreachable, HTTP call failed). Adapters MUST wrap infrastructure-specific errors (e.g., `asyncpg.PostgresError`) in an `AdapterException` — the domain layer should never see infrastructure error types.
+- Primary adapters (controllers) should catch both hierarchies and map to appropriate responses (e.g., `DomainException` → 400/404/409, `AdapterException` → 502)
 
 ```python
 class DomainException(Exception):
+    """Base for all domain/business rule violations."""
+    pass
+
+class AdapterException(Exception):
+    """Base for all infrastructure/adapter failures."""
     pass
 
 class InvalidEmailError(DomainException):
     pass
 
+class PersistenceError(AdapterException):
+    pass
+
 @dataclass(frozen=True)
 class Email:
     value: str
-    
+
     def __post_init__(self):
         if not self._is_valid_email(self.value):
             raise InvalidEmailError(f"Invalid email: {self.value}")
 ```
 
-### 22. Naming Convention Rules
+### 23. Naming Convention Rules
 - Use domain language (Ubiquitous Language) for all class and method names
 - Avoid technical terms in domain layer (no "Manager", "Helper", "Util")  
 - Use intention-revealing names for methods
@@ -887,5 +977,232 @@ class TestMongoUserRepository:
         assert saved_user is not None
         assert saved_user.email == user.email
 ```
+
+## Architecture Guardrails
+
+### 25. Infrastructure Replaceability Rules
+- Every external dependency (database, message broker, email provider, cache) MUST be accessed through a port interface
+- Swapping an infrastructure component should require ONLY a new adapter implementation and a DI container change — zero domain or application layer modifications
+- No adapter-specific types (e.g., SQLAlchemy `Session`, MongoDB `Collection`) may appear outside the infrastructure layer
+- Validate replaceability by ensuring all adapter implementations pass the same contract tests for their port
+
+```python
+# Good: DI container is the only place that knows which adapter is active
+class DIContainer:
+    def user_repository(self) -> UserRepository:
+        # Switch from SQL to Mongo by changing this single line
+        return SqlUserRepository(self._sql_session)
+        # return MongoUserRepository(self._mongo_client)
+```
+
+### 26. API Must Not Leak Persistence Models Rules
+- Primary adapters (controllers) MUST return response DTOs, never domain entities or persistence models
+- Request/response schemas (e.g., Pydantic `BaseModel`) live in the primary adapter layer
+- Persistence models (e.g., SQLAlchemy `Model`, MongoDB schemas) live exclusively in secondary adapter packages
+- Domain objects may pass through use cases but MUST be mapped to DTOs before crossing the adapter boundary
+- No ORM-managed object or database-specific annotation should ever appear in an API response
+
+```python
+# BAD: leaking domain entity or persistence model
+@router.get("/{user_id}")
+async def get_user(user_id: str) -> User:  # Domain entity in response
+    ...
+
+# BAD: leaking persistence model
+@router.get("/{user_id}")
+async def get_user(user_id: str) -> UserModel:  # SQLAlchemy model in response
+    ...
+
+# GOOD: dedicated response DTO
+class GetUserResponse(BaseModel):
+    user_id: str
+    email: str
+    name: str
+
+@router.get("/{user_id}", response_model=GetUserResponse)
+async def get_user(user_id: str, use_case: GetUserPort = Depends()) -> GetUserResponse:
+    result = use_case.execute(GetUserQuery(user_id=UserId(user_id)))
+    return GetUserResponse(user_id=result.user_id, email=result.email, name=result.name)
+```
+
+### 27. Asynchronous Workflow Idempotency Rules
+- All asynchronous operations (event handlers, message consumers, background tasks) MUST be idempotent
+- Use idempotency keys or natural deduplication identifiers for every async operation
+- Design handlers so that processing the same message twice produces the same outcome as processing it once
+- Store processing status to detect and skip duplicate executions
+- Never rely on message delivery guarantees alone — always code for at-least-once delivery
+
+```python
+@dataclass(frozen=True)
+class IdempotencyKey:
+    value: str
+
+class SendWelcomeEmailHandler:
+    def __init__(
+        self,
+        email_service: EmailNotificationPort,
+        idempotency_store: IdempotencyStorePort
+    ):
+        self._email_service = email_service
+        self._idempotency_store = idempotency_store
+
+    def handle(self, event: UserCreated) -> None:
+        key = IdempotencyKey(f"welcome_email:{event.user_id.value}")
+        if self._idempotency_store.has_been_processed(key):
+            return  # Already handled — skip
+        self._email_service.send_welcome_email(event.email, event.name)
+        self._idempotency_store.mark_processed(key)
+```
+
+### 28. Bounded Context Rules
+- Each bounded context represents a distinct area of the business with its own ubiquitous language
+- A bounded context MUST have its own domain model — never share entities across contexts
+- Communication between bounded contexts should use domain events or an Anti-Corruption Layer (ACL)
+- Shared concepts between contexts should be expressed as separate value objects in each context, not shared classes
+- Define context maps to document relationships between bounded contexts (e.g., Upstream/Downstream, Conformist, Customer-Supplier)
+- Each bounded context may have its own package structure following the hexagonal layout
+
+```python
+# Context Map Example:
+# [Identity Context] --domain events--> [Notification Context]
+# [Order Context] --ACL--> [Inventory Context]
+
+# BAD: sharing a User entity between contexts
+from identity.domain.model.user import User  # Don't import across contexts
+
+# GOOD: each context defines its own representation
+# identity/domain/model/user.py
+@dataclass
+class User:
+    id: UserId
+    email: Email
+    credentials: HashedPassword
+
+# ordering/domain/model/customer.py — separate concept, same real-world person
+@dataclass(frozen=True)
+class CustomerId:
+    value: str
+
+@dataclass
+class Customer:
+    id: CustomerId
+    name: str
+    shipping_address: Address
+
+# Anti-Corruption Layer translates between contexts
+class IdentityContextACL:
+    """Translates Identity context concepts into Ordering context concepts."""
+    def __init__(self, identity_api: IdentityQueryPort):
+        self._identity_api = identity_api
+
+    def resolve_customer(self, user_id: str) -> Customer:
+        user_data = self._identity_api.get_user(user_id)
+        return Customer(
+            id=CustomerId(user_data.user_id),
+            name=user_data.name,
+            shipping_address=Address(user_data.default_address)
+        )
+```
+
+### 29. Ubiquitous Language Rules
+- Every class, method, variable, and event name in the domain layer MUST use terms from the business domain
+- Maintain a glossary of domain terms per bounded context — developers and domain experts must agree on definitions
+- If a term is ambiguous across contexts, it belongs in separate bounded contexts with context-specific definitions
+- Code reviews should flag technical jargon in the domain layer (e.g., "Manager", "Processor", "Handler", "Helper", "Util")
+- Refactor immediately when the team discovers a better domain term — language drift erodes the model
+
+```python
+# BAD: technical jargon in domain layer
+class OrderProcessor:
+    def process_order(self, data: dict) -> None: ...
+
+class UserDataManager:
+    def handle_user_update(self, payload: dict) -> None: ...
+
+# GOOD: ubiquitous language from the domain
+class OrderFulfillment:
+    def fulfill(self, order: Order) -> Shipment: ...
+
+class Enrollment:
+    def enroll_child(self, child: Child, program: Program) -> EnrollmentConfirmation: ...
+```
+
+### 30. Aggregate Consistency Rules
+- Each aggregate defines a transactional consistency boundary — all invariants within an aggregate are enforced in a single transaction
+- Only ONE aggregate may be modified per transaction — cross-aggregate changes must use eventual consistency via domain events
+- Aggregates reference other aggregates by identity (ID), never by direct object reference
+- Keep aggregates small — large aggregates cause contention and performance issues
+- Aggregate roots are responsible for enforcing all invariants of their internal entities
+- Use optimistic concurrency (version field) to detect conflicting modifications
+
+```python
+@dataclass
+class Order:  # Aggregate Root
+    id: OrderId
+    customer_id: CustomerId  # Reference by ID, not Customer object
+    version: int = 0
+    _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
+    _status: OrderStatus = field(default=OrderStatus.DRAFT, init=False)
+
+    def add_line_item(self, product_id: ProductId, quantity: Quantity, price: Money) -> None:
+        if self._status != OrderStatus.DRAFT:
+            raise OrderNotEditableError(self.id)
+        if len(self._line_items) >= 50:
+            raise OrderLineLimitExceededError(self.id, max_items=50)
+        self._line_items.append(OrderLineItem(product_id, quantity, price))
+
+    def submit(self) -> list[DomainEvent]:
+        if not self._line_items:
+            raise EmptyOrderError(self.id)
+        self._status = OrderStatus.SUBMITTED
+        return [OrderSubmitted(order_id=self.id, customer_id=self.customer_id)]
+
+    # Cross-aggregate side effects happen via events, not direct modification
+    # e.g., OrderSubmitted → InventoryReservationHandler reserves stock
+```
+
+### 31. Event Naming and Structure Convention Rules
+- Event names MUST use past tense to indicate something that already happened
+- Follow the pattern: `{AggregateRoot}{WhatHappened}` (e.g., `OrderSubmitted`, `UserEmailChanged`)
+- Events MUST be immutable (`@dataclass(frozen=True)`)
+- Events MUST include: the aggregate ID, all relevant data needed by handlers, and a timestamp
+- Events SHOULD include a unique event ID for deduplication and traceability
+- Events MUST NOT contain domain objects — use primitive types or value object values only
+- Version events when their schema changes (e.g., `UserCreatedV2`)
+
+```python
+@dataclass(frozen=True)
+class DomainEvent:
+    """Base class for all domain events."""
+    event_id: EventId
+    occurred_at: datetime
+
+@dataclass(frozen=True)
+class OrderSubmitted(DomainEvent):
+    order_id: str          # Primitive, not OrderId — events cross context boundaries
+    customer_id: str
+    total_amount_cents: int
+    line_item_count: int
+
+@dataclass(frozen=True)
+class ChildEnrolledInProgram(DomainEvent):
+    child_id: str
+    program_id: str
+    enrollment_date: str   # ISO 8601 string, not date object
+    guardian_id: str
+
+# BAD event names
+class ProcessOrder(DomainEvent): ...     # Imperative — sounds like a command
+class OrderEvent(DomainEvent): ...       # Too vague
+class OrderData(DomainEvent): ...        # Not an event name
+```
+
+### 32. Architecture Decision Records (ADR) Rules
+- Record significant architectural decisions in `docs/ADR/` using a numbered format (e.g., `0001-use-hexagonal-architecture.md`)
+- An ADR is required when: choosing or changing a framework, database, messaging system, or architectural pattern; deviating from established conventions; making trade-offs that affect multiple bounded contexts
+- Each ADR MUST include: Title, Status (Proposed/Accepted/Deprecated/Superseded), Context, Decision, Consequences
+- ADRs are immutable once accepted — supersede rather than edit
+- Reference ADRs in code comments when a design choice might otherwise seem arbitrary
+- See `docs/ADR/` for all recorded decisions
 
 These integrated rules ensure that Domain Driven Design and Ports & Adapters (Hexagonal Architecture) work together seamlessly in Python implementations. The combination provides clean separation of concerns, testability, and flexibility while maintaining domain focus and proper dependency management.
