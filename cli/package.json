@@ -2,6 +2,12 @@
   "name": "tenets",
   "version": "0.1.0",
   "description": "Install DDD + Hexagonal Architecture rules into your AI coding tool's config",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bardiakhosravi/tenets.git",
+    "directory": "cli"
+  },
+  "homepage": "https://github.com/bardiakhosravi/tenets",
   "bin": {
     "tenets": "./bin/tenets.js"
   },
