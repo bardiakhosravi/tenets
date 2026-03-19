@@ -1,98 +1,126 @@
-# Agent Context Kit
+# Tenets
 
-Coding standards context for AI agents building backend services with Domain Driven Design and Hexagonal Architecture. 
+The tenets of writing quality backend code -- starting with Hexagonal Architecture and Domain-Driven Design.
+
+**Tenets** provides opinionated, battle-tested rules that your AI coding agents follow when building backend services. Install them with a single command and your agent immediately knows how to structure domains, ports, adapters, and everything in between.
 
 ## 🤖 Why This Exists
 
-AI coding agents like Claude Code, Cursor, and Windsurf can generate incredible amounts of code quickly. But **I still care about the code quality**. We're not at the point where we can be completely hands-off—I constantly review, iterate, and guide these tools toward better implementations.
+AI coding agents like Claude Code, Cursor, and GitHub Copilot can generate incredible amounts of code quickly. But **code quality still matters**. We're not at the point where we can be completely hands-off -- we constantly review, iterate, and guide these tools toward better implementations.
 
 For effective code review and collaboration with AI agents, we need **predictable design patterns**. This is even more crucial with AI-generated code since these tools can produce entire features at once, making architectural consistency vital for maintainability.
 
+Tenets solves this by giving your coding agents the context and rules they need upfront, so every generated line of code follows the same architectural principles your team agreed on.
+
+## 🚀 Quick Start
+
+### Install with the CLI
+
+```bash
+npx tenets init --claude
+```
+
+That's it. The DDD + Hexagonal Architecture tenets are now in your project's `CLAUDE.md`, ready for Claude Code to follow.
+
+### Pick Your Tool
+
+```bash
+npx tenets init --cursor        # writes to .cursorrules
+npx tenets init --copilot       # writes to .github/copilot-instructions.md
+npx tenets init --agents        # writes to AGENTS.md
+npx tenets init --claude        # writes to CLAUDE.md
+```
+
+| Flag | Tool | Target File |
+|------|------|-------------|
+| `--claude` | Claude Code | `CLAUDE.md` |
+| `--cursor` | Cursor | `.cursorrules` |
+| `--copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
+| `--agents` | AGENTS.md | `AGENTS.md` |
+
+### Interactive Mode
+
+Not sure which tool? Just run it without flags and follow the prompts:
+
+```bash
+npx tenets init
+```
+
+The CLI will walk you through selecting your tool and confirming the install.
+
+### Keeping Tenets Up to Date
+
+As Tenets evolves with new patterns and learnings, update your project to the latest version:
+
+```bash
+npx tenets update
+```
+
+This pulls the latest rules and updates the files that were previously installed in your project.
+
 ## 🏗️ What's Inside
 
-These rules are based on years of building backend services using:
+These tenets are based on years of building backend services using:
 
-- **Domain Driven Design (DDD)** - Rich domain models, ubiquitous language, clear boundaries
-- **Hexagonal Architecture (Ports & Adapters)** - Separation of concerns, testability, technology independence
-- **Python Best Practices** - Leveraging Python's strengths while maintaining clean architecture
+- **Domain-Driven Design (DDD)** -- Rich domain models, ubiquitous language, clear bounded contexts
+- **Hexagonal Architecture (Ports & Adapters)** -- Separation of concerns, testability, technology independence
+- **Practical Patterns** -- Aggregate design, domain events, application services, repository contracts, and more
 
-## 🚀 How to Use With AI Agents
+Tenets covers the full spectrum of backend service development:
 
-### Option 1: Direct Context
-Copy the rules into your AI agent's context when starting a new project or feature:
-
-```
-Please follow the architectural rules in this repository when implementing backend services.
-Focus on DDD and Hexagonal Architecture patterns as outlined in the guidelines.
-```
-
-### Option 2: Project-Specific Rules
-Add these rules to your project's documentation and reference them:
-
-```
-Implement this feature following our backend standards: 
-[link to relevant rule sections]
-```
-
-### Option 3: Tool Integration
-Many AI coding tools support project-specific context files:
-- Copy rules to `.cursorrules` for Cursor
-- Add as project context in Claude Code
-- Reference in Windsurf workspace settings
-
+1. **Getting started** with a new service from scratch
+2. **Evolving** an existing service with new features and capabilities
+3. **Building multiple services** that interact with each other
 
 ## 🎯 Language Support
 
-This repository currently focuses on Python implementations, providing concrete examples and patterns optimized for Python's language features and ecosystem.
+Tenets currently focuses on Python implementations, providing concrete examples and patterns optimized for Python's language features and ecosystem.
 
-However, I'd love to collaborate with experts in other languages to expand this into a comprehensive reference for all major backend languages. If you're experienced with Java, C#, Go, TypeScript, or other languages, I welcome contributions that translate these architectural principles into language-specific implementations.
-
-The goal is to make this the go-to reference for backend development standards across the entire ecosystem.
+We'd love to collaborate with experts in other languages to expand coverage. If you're experienced with Java, C#, Go, TypeScript, or other languages, contributions that translate these architectural rules into language-specific implementations are welcome.
 
 ## 🤝 Contributing
 
-This is a living document based on real-world experience, but there's always room for improvement! 
+This is a living set of tenets based on real-world experience, and there's always room for improvement.
 
 ### How to Contribute
 
-1. **Open an Issue** - Propose new rules, improvements, or discuss existing ones
-2. **Submit a PR** - Add new patterns, fix examples, or improve clarity
-3. **Share Examples** - Real-world implementations that follow these patterns
-4. **Language Adaptations** - Help translate patterns to other languages
+1. **Open an Issue** -- Propose new tenets, improvements, or discuss existing ones
+2. **Submit a PR** -- Add new patterns, fix examples, or improve clarity
+3. **Share Examples** -- Real-world implementations that follow Tenets rules
+4. **Language Adaptations** -- Help translate tenets to other languages
 
 ### What We're Looking For
 
-- 🔍 **Uncovered Scenarios** - Backend development situations not yet addressed by the current rules
-- 🎨 **Missing Design Patterns** - Additional patterns that complement DDD and Hexagonal Architecture
-- 🛠️ **Implementation Strategies** - Better approaches for complex scenarios like distributed systems, event sourcing, or CQRS
-- 🧪 **Advanced Testing Patterns** - Testing strategies for complex domain logic and integration scenarios
-- 📊 **Real-World Examples** - Case studies showing these patterns in production systems
+- 🔍 **Uncovered Scenarios** -- Backend development situations not yet addressed by the current tenets
+- 🎨 **Missing Design Patterns** -- Additional patterns that complement DDD and Hexagonal Architecture
+- 🛠️ **Implementation Strategies** -- Better approaches for distributed systems, event sourcing, or CQRS
+- 🧪 **Advanced Testing Patterns** -- Testing strategies for complex domain logic and integration scenarios
+- 📊 **Real-World Examples** -- Case studies showing Tenets rules applied in production systems
 
 ## 🧠 Philosophy
 
-> "I think of AI coding agents as another developer on my team—I expect them to follow the same best practices."
+> "I think of AI coding agents as another developer on my team -- I expect them to follow the same best practices."
 
-These standards ensure that:
+These tenets ensure that:
 
-- **Code is reviewable** - Predictable patterns make AI-generated code easier to understand
-- **Architecture is consistent** - Clear rules prevent architectural drift
-- **Teams can collaborate** - Shared standards improve team efficiency
-- **Systems remain maintainable** - Good architecture scales with your codebase
+- **Code is reviewable** -- Predictable patterns make AI-generated code easier to understand
+- **Architecture is consistent** -- Clear tenets prevent architectural drift across features and services
+- **Teams can collaborate** -- Shared tenets improve team efficiency, whether the author is human or AI
+- **Systems remain maintainable** -- Good architecture scales with your codebase
 
 ## 📚 Additional Resources
 
-- [Medium Article: Why I Still Care About Code Quality with AI Agents](link-to-your-article)
-- [Domain Driven Design by Eric Evans](https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215)
+- [Domain-Driven Design by Eric Evans](https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215)
 - [Hexagonal Architecture by Alistair Cockburn](https://alistair.cockburn.us/hexagonal-architecture/)
 - [Clean Architecture by Robert Martin](https://www.amazon.com/Clean-Architecture-Craftsmans-Software-Structure/dp/0134494164)
 
 ## 📄 License
 
-MIT License - see [LICENSE](LICENSE) file for details.
+MIT License -- see [LICENSE](LICENSE) file for details.
 
 ## ⭐ Support
 
-If these standards help you build better backend services with AI agents, please:
+If Tenets helps you build better backend services with AI agents, please:
 
 - ⭐ Star this repository
 - 🔗 Share with your team
@@ -101,4 +129,4 @@ If these standards help you build better backend services with AI agents, please
 
 ---
 
-*Let's build better backend services together, one AI-generated feature at a time.*
+*Tenets for better backend services -- one rule at a time.*
