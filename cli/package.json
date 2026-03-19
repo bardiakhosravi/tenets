@@ -1,6 +1,6 @@
 {
   "name": "tenets",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Install DDD + Hexagonal Architecture rules into your AI coding tool's config",
   "repository": {
     "type": "git",

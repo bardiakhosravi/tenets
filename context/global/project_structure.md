@@ -13,17 +13,42 @@ This document defines the standard folder structure for Python backend services 
 - **Configuration layer**: Cross-cutting concerns that wire all layers together
 - Domain and application layers should only depend on their respective port interfaces
 - Adapters layer contains all adapter implementations
+- **One class per file** — each entity, value object, port, use case, and adapter should be in its own file. This makes classes easy to find and prevents large files.
+- **No implementation code in `__init__.py`** — `__init__.py` files should be empty or contain only re-exports. Public interfaces, services, and classes must be in dedicated files.
+
+**Domain layer organization** — two valid approaches (pick one and be consistent within a module):
+
+**Option A: Organize by subdomain** (group related entities and value objects together):
+```
+domain/
+├── model/
+│   ├── user/
+│   │   ├── user.py              # Entity
+│   │   └── email.py             # Value Object
+│   └── order/
+```
+
+**Option B: Organize by type** (group all entities together, all value objects together):
+```
+domain/
+├── entities/
+│   ├── user.py
+│   └── order.py
+├── value_objects/
+│   ├── email.py
+│   ├── user_id.py
+│   └── order_id.py
+```
+
+Both approaches MUST keep ports, events, and exceptions in their own directories regardless.
 
 ## Standard Structure
 
 ```
 src/
 ├── domain/
-│   ├── model/
-│   │   ├── user/
-│   │   │   ├── user.py              # Entity
-│   │   │   └── email.py             # Value Object
-│   │   └── order/
+│   ├── ... (entities and value objects per chosen option above)
+│   │   # Option A example shown below:
 │   ├── ports/                       # Domain Ports (Secondary)
 │   │   ├── user_repository.py       # Repository interface (domain concept)
 │   │   ├── order_repository.py

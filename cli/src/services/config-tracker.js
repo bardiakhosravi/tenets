@@ -23,13 +23,12 @@ function writeConfig(config) {
   fs.writeFileSync(configPath(), JSON.stringify(config, null, 2) + '\n', 'utf-8');
 }
 
-function updateToolEntry(toolKey, targetFile, contentHash, mode) {
+function updateToolEntry(toolKey, targetDir, contentHash) {
   const config = readConfig() || { tools: {} };
 
   config.tools[toolKey] = {
-    targetFile,
+    targetDir,
     contentHash,
-    mode,
     installedAt: config.tools[toolKey]?.installedAt || new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   };

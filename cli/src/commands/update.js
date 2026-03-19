@@ -1,7 +1,8 @@
 const path = require('node:path');
+const { TOOLS } = require('../constants');
 const { readConfig, updateToolEntry } = require('../services/config-tracker');
 const { fetchContent, assembleContent, computeHash } = require('../services/content-fetcher');
-const { writeFile, replaceMarkedContent } = require('../services/file-writer');
+const { writeSeparateFiles } = require('../services/file-writer');
 const { logger } = require('../ui/logger');
 
 async function updateCommand() {
@@ -15,30 +16,29 @@ async function updateCommand() {
     return;
   }
 
-  const { rules, contextFiles } = await fetchContent();
-  const assembled = assembleContent(rules, contextFiles);
+  const content = await fetchContent();
+  const assembled = assembleContent(content);
   const newHash = computeHash(assembled);
 
   let updatedCount = 0;
 
   for (const [toolKey, entry] of Object.entries(config.tools)) {
-    const targetPath = path.resolve(process.cwd(), entry.targetFile);
-
     if (entry.contentHash === newHash) {
-      logger.success(`${entry.targetFile} — already up to date.`);
+      logger.success(`${entry.targetDir} — already up to date.`);
       continue;
     }
 
-    const replaced = replaceMarkedContent(targetPath, assembled);
-
-    if (replaced) {
-      logger.success(`${entry.targetFile} — updated (marker replacement).`);
-    } else {
-      writeFile(targetPath, assembled, entry.mode || 'replace');
-      logger.success(`${entry.targetFile} — updated (full ${entry.mode || 'replace'}).`);
+    const tool = TOOLS[toolKey];
+    if (!tool) {
+      logger.warn(`Unknown tool "${toolKey}" in config, skipping.`);
+      continue;
     }
 
-    updateToolEntry(toolKey, entry.targetFile, newHash, entry.mode || 'replace');
+    const targetDir = path.resolve(process.cwd(), entry.targetDir);
+    writeSeparateFiles(targetDir, content, tool.fileExtension);
+    updateToolEntry(toolKey, entry.targetDir, newHash);
+
+    logger.success(`${entry.targetDir}/ — updated.`);
     updatedCount++;
   }
 
@@ -46,7 +46,7 @@ async function updateCommand() {
   if (updatedCount === 0) {
     logger.info('All tools are up to date.');
   } else {
-    logger.success(`Updated ${updatedCount} file(s).`);
+    logger.success(`Updated ${updatedCount} tool(s).`);
   }
 }
 

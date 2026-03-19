@@ -1,8 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { TOOLS } = require('../constants');
-const { fetchContent, assembleContent, computeHash } = require('../services/content-fetcher');
-const { writeFile } = require('../services/file-writer');
+const { fetchContent, computeHash, assembleContent } = require('../services/content-fetcher');
+const { writeSeparateFiles } = require('../services/file-writer');
 const { updateToolEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
@@ -29,29 +29,34 @@ async function initCommand(args) {
   }
 
   const tool = TOOLS[toolKey];
-  const targetPath = path.resolve(process.cwd(), tool.targetFile);
+  const targetDir = path.resolve(process.cwd(), tool.targetDir);
 
-  let mode = 'replace';
-  if (fs.existsSync(targetPath)) {
-    mode = await promptFileConflict(targetPath);
+  if (fs.existsSync(targetDir)) {
+    const mode = await promptFileConflict(targetDir);
     if (mode === 'cancel') {
       logger.info('Cancelled.');
       return;
     }
   }
 
-  const { rules, contextFiles } = await fetchContent();
-  const assembled = assembleContent(rules, contextFiles);
-  const hash = computeHash(assembled);
+  const content = await fetchContent();
+  const writtenFiles = writeSeparateFiles(targetDir, content, tool.fileExtension);
 
-  writeFile(targetPath, assembled, mode);
-  updateToolEntry(toolKey, tool.targetFile, hash, mode);
+  const assembled = assembleContent(content);
+  const hash = computeHash(assembled);
+  updateToolEntry(toolKey, tool.targetDir, hash);
 
   logger.blank();
-  logger.success(`Rules installed to ${tool.targetFile}`);
+  logger.success(`Rules installed to ${tool.targetDir}/`);
   logger.dim(`  Tool: ${tool.name}`);
-  logger.dim(`  Mode: ${mode}`);
-  logger.dim(`  Run \`npx tenets update\` to update later.`);
+  logger.dim(`  ${tool.description}`);
+  logger.blank();
+  logger.info(`${writtenFiles.length} files written:`);
+  for (const file of writtenFiles) {
+    logger.dim(`  ${tool.targetDir}/${file}`);
+  }
+  logger.blank();
+  logger.dim('Run `npx tenets update` to update later.');
 }
 
 module.exports = { initCommand };

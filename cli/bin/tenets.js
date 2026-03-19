@@ -39,10 +39,10 @@ Commands:
   update            Update all installed rules to latest
 
 Init options:
-  --claude          Write to CLAUDE.md
-  --cursor          Write to .cursorrules
-  --copilot         Write to .github/copilot-instructions.md
-  --agents          Write to AGENTS.md
+  --claude          Write to .claude/docs/tenets/
+  --cursor          Write to .cursor/rules/tenets/
+  --copilot         Write to .github/instructions/tenets/
+  --agents          Write to .agents/tenets/
 
 Examples:
   npx tenets init --claude

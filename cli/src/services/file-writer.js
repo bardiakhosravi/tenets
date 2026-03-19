@@ -1,46 +1,40 @@
 const fs = require('node:fs');
 const path = require('node:path');
-const { MARKERS } = require('../constants');
 
-function ensureDir(filePath) {
-  const dir = path.dirname(filePath);
-  if (!fs.existsSync(dir)) {
-    fs.mkdirSync(dir, { recursive: true });
+function ensureDir(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
   }
 }
 
-function writeFile(filePath, content, mode) {
-  ensureDir(filePath);
-
-  if (mode === 'append') {
-    const existing = fs.existsSync(filePath)
-      ? fs.readFileSync(filePath, 'utf-8')
-      : '';
-    const separator = existing.length > 0 && !existing.endsWith('\n') ? '\n\n' : '\n';
-    fs.writeFileSync(filePath, existing + separator + content, 'utf-8');
-  } else {
-    fs.writeFileSync(filePath, content, 'utf-8');
-  }
+function slugify(title) {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '');
 }
 
-function replaceMarkedContent(filePath, newContent) {
-  if (!fs.existsSync(filePath)) {
-    return false;
+function writeSeparateFiles(targetDir, { introduction, sections }, fileExtension) {
+  ensureDir(targetDir);
+
+  const introName = `00-introduction${fileExtension}`;
+  fs.writeFileSync(path.join(targetDir, introName), introduction, 'utf-8');
+
+  const writtenFiles = [introName];
+
+  for (const section of sections) {
+    const sectionDir = path.join(targetDir, section.section.toLowerCase());
+    ensureDir(sectionDir);
+
+    for (const file of section.files) {
+      const fileName = slugify(file.title) + fileExtension;
+      const filePath = path.join(sectionDir, fileName);
+      fs.writeFileSync(filePath, file.content, 'utf-8');
+      writtenFiles.push(`${section.section.toLowerCase()}/${fileName}`);
+    }
   }
 
-  const existing = fs.readFileSync(filePath, 'utf-8');
-  const startIdx = existing.indexOf(MARKERS.start);
-  const endIdx = existing.indexOf(MARKERS.end);
-
-  if (startIdx === -1 || endIdx === -1) {
-    return false;
-  }
-
-  const before = existing.substring(0, startIdx);
-  const after = existing.substring(endIdx + MARKERS.end.length);
-
-  fs.writeFileSync(filePath, before + newContent.trimEnd() + after, 'utf-8');
-  return true;
+  return writtenFiles;
 }
 
-module.exports = { writeFile, replaceMarkedContent };
+module.exports = { writeSeparateFiles };
