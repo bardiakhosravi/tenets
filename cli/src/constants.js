@@ -1,23 +1,59 @@
 const GITHUB_RAW_BASE =
   'https://raw.githubusercontent.com/bardiakhosravi/tenets/main';
 
-const GITHUB_URLS = {
-  rules: `${GITHUB_RAW_BASE}/domain_driven_design_hexagonal_arhictecture_python_rules.md`,
-  context: [
-    {
-      url: `${GITHUB_RAW_BASE}/context/architecture/01-hexagonal-primer.md`,
-      title: 'Hexagonal Architecture Primer',
-    },
-    {
-      url: `${GITHUB_RAW_BASE}/context/architecture/02-components.md`,
-      title: 'Components',
-    },
-    {
-      url: `${GITHUB_RAW_BASE}/context/global/project_structure.md`,
-      title: 'Project Structure',
-    },
-  ],
-};
+const INTRODUCTION_FILE = { path: 'context/00-introduction.md', title: 'Introduction' };
+
+const CONTENT_SECTIONS = [
+  {
+    section: 'Architecture',
+    files: [
+      { path: 'context/architecture/01-hexagonal-primer.md', title: 'Hexagonal Architecture Primer' },
+      { path: 'context/architecture/02-components.md', title: 'Components' },
+      { path: 'context/architecture/03-ports.md', title: 'Ports' },
+      { path: 'context/architecture/04-primary-adapters.md', title: 'Primary Adapters' },
+      { path: 'context/architecture/05-secondary-adapters.md', title: 'Secondary Adapters' },
+      { path: 'context/architecture/06-adapter-configuration.md', title: 'Adapter Configuration' },
+      { path: 'context/architecture/07-integration-flow.md', title: 'Integration Flow' },
+      { path: 'context/architecture/08-infrastructure-replaceability.md', title: 'Infrastructure Replaceability' },
+      { path: 'context/architecture/09-api-boundaries.md', title: 'API Boundaries' },
+    ],
+  },
+  {
+    section: 'Domain',
+    files: [
+      { path: 'context/domain/01-entities.md', title: 'Entities' },
+      { path: 'context/domain/02-value-objects.md', title: 'Value Objects' },
+      { path: 'context/domain/03-aggregates.md', title: 'Aggregates' },
+      { path: 'context/domain/04-domain-services.md', title: 'Domain Services' },
+      { path: 'context/domain/05-repositories.md', title: 'Repositories' },
+      { path: 'context/domain/06-domain-events.md', title: 'Domain Events' },
+      { path: 'context/domain/07-bounded-contexts.md', title: 'Bounded Contexts' },
+      { path: 'context/domain/08-ubiquitous-language.md', title: 'Ubiquitous Language' },
+    ],
+  },
+  {
+    section: 'Application',
+    files: [
+      { path: 'context/application/01-use-cases.md', title: 'Use Cases' },
+      { path: 'context/application/02-synergy-rules.md', title: 'DDD + Hexagonal Synergy' },
+      { path: 'context/application/03-event-integration.md', title: 'Event Integration' },
+      { path: 'context/application/04-cross-context-communication.md', title: 'Cross-Context Communication' },
+    ],
+  },
+  {
+    section: 'Global',
+    files: [
+      { path: 'context/global/project_structure.md', title: 'Project Structure' },
+      { path: 'context/global/cross-cutting-concerns.md', title: 'Cross-Cutting Concerns' },
+      { path: 'context/global/validation-error-handling.md', title: 'Validation and Error Handling' },
+      { path: 'context/global/naming-conventions.md', title: 'Naming Conventions' },
+      { path: 'context/global/dependency-rules.md', title: 'Dependency Rules' },
+      { path: 'context/global/testing.md', title: 'Testing' },
+      { path: 'context/global/async-idempotency.md', title: 'Async Idempotency' },
+      { path: 'context/global/architecture-decision-records.md', title: 'Architecture Decision Records' },
+    ],
+  },
+];
 
 const TOOLS = {
   claude: {
@@ -52,39 +88,32 @@ const MARKERS = {
 
 /**
  * Claude Code rule files with glob-based auto-loading.
- * Each rule file gets frontmatter with globs so Claude Code injects
- * the right rules when working on matching files.
+ * Each rule maps to a content section directory.
  */
 const CLAUDE_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-domain.md',
-    description: 'DDD domain layer rules: entities, value objects, aggregates, domain services, repositories, domain events',
+    description: 'DDD domain layer rules: entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts',
     globs: '**/domain/**',
-    contentSections: ['Core Domain Model Rules', 'Domain Event Rules'],
+    contentSection: 'Domain',
   },
   {
     fileName: 'tenets-application.md',
-    description: 'Application layer rules: use cases, ports, orchestration, event handling',
+    description: 'Application layer rules: use cases, DDD+hexagonal synergy, event integration, cross-context communication',
     globs: '**/application/**,**/use_cases/**,**/handlers/**',
-    contentSections: ['Application Service Rules'],
+    contentSection: 'Application',
   },
   {
-    fileName: 'tenets-ports-adapters.md',
-    description: 'Hexagonal architecture rules: ports, primary adapters, secondary adapters, adapter configuration',
+    fileName: 'tenets-architecture.md',
+    description: 'Hexagonal architecture rules: ports, primary adapters, secondary adapters, adapter configuration, integration flow',
     globs: '**/adapters/**,**/infrastructure/**,**/ports/**',
-    contentSections: ['Ports & Adapters (Hexagonal Architecture) Rules'],
+    contentSection: 'Architecture',
   },
   {
-    fileName: 'tenets-structure.md',
-    description: 'Project structure, dependency direction, and integration flow rules for hexagonal architecture',
+    fileName: 'tenets-global.md',
+    description: 'Cross-cutting rules: project structure, dependency direction, testing, naming, validation, error handling',
     globs: '**/src/**',
-    contentSections: ['Integrated Project Structure Rules'],
-  },
-  {
-    fileName: 'tenets-synergy.md',
-    description: 'DDD + Hexagonal synergy: repository-as-port, use-case-as-port, event integration, cross-cutting concerns',
-    globs: '**/domain/**,**/application/**,**/infrastructure/**',
-    contentSections: ['Synergy Rules for DDD + Ports & Adapters'],
+    contentSection: 'Global',
   },
 ];
 
@@ -188,10 +217,6 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
 /**
  * PostToolUse hook for tenets architecture monitoring.
  * Fires after Edit/Write tool calls to remind Claude about architecture rules.
- *
- * Reads the tool input from stdin and checks if the edited file is in a
- * layer that has specific rules. Outputs a brief reminder to stdout which
- * gets injected into Claude's context.
  */
 
 const LAYER_RULES = {
@@ -217,7 +242,7 @@ process.stdin.on('end', () => {
       }
     }
   } catch {
-    // Silently ignore parse errors — don't block the tool
+    // Silently ignore parse errors
   }
   process.exit(0);
 });
@@ -225,7 +250,8 @@ process.stdin.on('end', () => {
 
 module.exports = {
   GITHUB_RAW_BASE,
-  GITHUB_URLS,
+  INTRODUCTION_FILE,
+  CONTENT_SECTIONS,
   TOOLS,
   CONFIG_FILE,
   MARKERS,

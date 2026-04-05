@@ -10,7 +10,6 @@ const path = require('node:path');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
 const BUNDLED_DIR = path.resolve(__dirname, '..', 'bundled');
-const BUNDLED_CONTEXT_DIR = path.join(BUNDLED_DIR, 'context');
 
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
@@ -20,34 +19,40 @@ function ensureDir(dir) {
 
 function copyFile(src, dest) {
   const content = fs.readFileSync(src, 'utf-8');
+  ensureDir(path.dirname(dest));
   fs.writeFileSync(dest, content, 'utf-8');
   console.log(`  ${path.relative(REPO_ROOT, src)} -> ${path.relative(REPO_ROOT, dest)}`);
 }
 
 console.log('Bundling content for offline fallback...\n');
 
+// Clean bundled directory
+if (fs.existsSync(BUNDLED_DIR)) {
+  fs.rmSync(BUNDLED_DIR, { recursive: true });
+}
 ensureDir(BUNDLED_DIR);
-ensureDir(BUNDLED_CONTEXT_DIR);
 
-copyFile(
-  path.join(REPO_ROOT, 'domain_driven_design_hexagonal_arhictecture_python_rules.md'),
-  path.join(BUNDLED_DIR, 'rules.md')
-);
+// Copy introduction
+const introSrc = path.join(REPO_ROOT, 'context', '00-introduction.md');
+if (fs.existsSync(introSrc)) {
+  copyFile(introSrc, path.join(BUNDLED_DIR, '00-introduction.md'));
+}
 
-const contextFiles = [
-  'context/architecture/01-hexagonal-primer.md',
-  'context/architecture/02-components.md',
-  'context/global/project_structure.md',
-];
+// Copy all section directories
+const sections = ['architecture', 'domain', 'application', 'global'];
 
-for (const file of contextFiles) {
-  const src = path.join(REPO_ROOT, file);
-  const dest = path.join(BUNDLED_CONTEXT_DIR, path.basename(file));
+for (const section of sections) {
+  const srcDir = path.join(REPO_ROOT, 'context', section);
+  if (!fs.existsSync(srcDir)) {
+    console.log(`  SKIP: context/${section}/ (not found)`);
+    continue;
+  }
 
-  if (fs.existsSync(src)) {
-    copyFile(src, dest);
-  } else {
-    console.log(`  SKIP: ${file} (not found)`);
+  const destDir = path.join(BUNDLED_DIR, 'context', section);
+
+  const files = fs.readdirSync(srcDir).filter((f) => f.endsWith('.md'));
+  for (const file of files) {
+    copyFile(path.join(srcDir, file), path.join(destDir, file));
   }
 }
 

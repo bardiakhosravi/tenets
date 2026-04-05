@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { GITHUB_URLS, MARKERS } = require('../constants');
+const { GITHUB_RAW_BASE, INTRODUCTION_FILE, CONTENT_SECTIONS, MARKERS } = require('../constants');
 const { logger } = require('../ui/logger');
 
 const BUNDLED_DIR = path.join(__dirname, '..', '..', 'bundled');
@@ -24,49 +24,48 @@ async function fetchUrl(url) {
 async function fetchFromGitHub() {
   logger.info('Fetching latest rules from GitHub...');
 
-  const rules = await fetchUrl(GITHUB_URLS.rules);
+  const introduction = await fetchUrl(`${GITHUB_RAW_BASE}/${INTRODUCTION_FILE.path}`);
 
-  const contextFiles = [];
-  for (const entry of GITHUB_URLS.context) {
-    const content = await fetchUrl(entry.url);
-    contextFiles.push({ title: entry.title, content });
+  const sections = [];
+  for (const section of CONTENT_SECTIONS) {
+    const files = [];
+    for (const entry of section.files) {
+      const content = await fetchUrl(`${GITHUB_RAW_BASE}/${entry.path}`);
+      files.push({ title: entry.title, content });
+    }
+    sections.push({ section: section.section, files });
   }
 
-  return { rules, contextFiles };
+  return { introduction, sections };
 }
 
 function loadBundled() {
   logger.info('Using bundled content (offline fallback)...');
 
-  const rulesPath = path.join(BUNDLED_DIR, 'rules.md');
-  if (!fs.existsSync(rulesPath)) {
-    throw new Error(
-      'Bundled rules not found. Please reinstall the package.'
-    );
-  }
+  const introPath = path.join(BUNDLED_DIR, '00-introduction.md');
+  const introduction = fs.existsSync(introPath)
+    ? fs.readFileSync(introPath, 'utf-8')
+    : '';
 
-  const rules = fs.readFileSync(rulesPath, 'utf-8');
+  const sections = [];
+  for (const section of CONTENT_SECTIONS) {
+    const files = [];
+    for (const entry of section.files) {
+      const fileName = path.basename(entry.path);
+      const sectionDir = section.section.toLowerCase();
+      const filePath = path.join(BUNDLED_DIR, 'context', sectionDir, fileName);
 
-  const contextDir = path.join(BUNDLED_DIR, 'context');
-  const contextFiles = [];
-
-  const contextEntries = [
-    { file: '01-hexagonal-primer.md', title: 'Hexagonal Architecture Primer' },
-    { file: '02-components.md', title: 'Components' },
-    { file: 'project_structure.md', title: 'Project Structure' },
-  ];
-
-  for (const entry of contextEntries) {
-    const filePath = path.join(contextDir, entry.file);
-    if (fs.existsSync(filePath)) {
-      contextFiles.push({
-        title: entry.title,
-        content: fs.readFileSync(filePath, 'utf-8'),
-      });
+      if (fs.existsSync(filePath)) {
+        files.push({
+          title: entry.title,
+          content: fs.readFileSync(filePath, 'utf-8'),
+        });
+      }
     }
+    sections.push({ section: section.section, files });
   }
 
-  return { rules, contextFiles };
+  return { introduction, sections };
 }
 
 async function fetchContent() {
@@ -78,22 +77,25 @@ async function fetchContent() {
   }
 }
 
-function assembleContent(rules, contextFiles) {
+/**
+ * Assemble all content into a single string for single-file tools
+ * (Cursor, Copilot, AGENTS.md).
+ */
+function assembleContent({ introduction, sections }) {
   const parts = [
     MARKERS.start,
-    '# DDD + Hexagonal Architecture Rules',
+    introduction.trim(),
     '',
-    '> Installed by tenets. Run `npx tenets update` to update.',
-    '',
-    rules.trim(),
   ];
 
-  for (const ctx of contextFiles) {
-    parts.push('', '---', `## Appendix: ${ctx.title}`, '', ctx.content.trim());
+  for (const section of sections) {
+    parts.push(`---`, '', `# ${section.section}`, '');
+    for (const file of section.files) {
+      parts.push(file.content.trim(), '');
+    }
   }
 
-  parts.push('', MARKERS.end, '');
-
+  parts.push(MARKERS.end, '');
   return parts.join('\n');
 }
 

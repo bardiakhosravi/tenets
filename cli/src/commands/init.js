@@ -31,12 +31,12 @@ async function initCommand(args) {
 
   const tool = TOOLS[toolKey];
 
-  const { rules, contextFiles } = await fetchContent();
-  const assembled = assembleContent(rules, contextFiles);
+  const content = await fetchContent();
+  const assembled = assembleContent(content);
   const hash = computeHash(assembled);
 
   if (tool.multiOutput) {
-    await initClaudeMultiOutput(args, toolKey, tool, rules, hash);
+    await initClaudeMultiOutput(args, toolKey, tool, content, hash);
   } else {
     await initSingleFile(toolKey, tool, assembled, hash);
   }
@@ -45,7 +45,7 @@ async function initCommand(args) {
 /**
  * Claude Code: writes rules files, CLAUDE.md snippet, skill, and optionally hook config.
  */
-async function initClaudeMultiOutput(args, toolKey, tool, rulesContent, hash) {
+async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   const projectRoot = process.cwd();
   const rulesDir = path.resolve(projectRoot, '.claude', 'rules');
 
@@ -57,7 +57,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, rulesContent, hash) {
     }
   }
 
-  const { writtenFiles } = writeClaudeIntegration(projectRoot, rulesContent);
+  const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
 
   // Offer to install the continuous monitoring hook
   const installHook = args.includes('--with-hook') || await promptYesNo(

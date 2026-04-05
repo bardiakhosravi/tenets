@@ -18,8 +18,8 @@ async function updateCommand() {
     return;
   }
 
-  const { rules, contextFiles } = await fetchContent();
-  const assembled = assembleContent(rules, contextFiles);
+  const content = await fetchContent();
+  const assembled = assembleContent(content);
   const newHash = computeHash(assembled);
 
   let updatedCount = 0;
@@ -29,7 +29,7 @@ async function updateCommand() {
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
-      const migrated = await handleClaudeMigration(toolKey, entry, tool, rules, newHash);
+      const migrated = await handleClaudeMigration(toolKey, entry, tool, content, newHash);
       if (migrated) {
         updatedCount++;
       }
@@ -43,7 +43,7 @@ async function updateCommand() {
 
     if (tool?.multiOutput) {
       const projectRoot = process.cwd();
-      const { writtenFiles } = writeClaudeIntegration(projectRoot, rules);
+      const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
       logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
       for (const file of writtenFiles) {
         logger.dim(`  ${file}`);
@@ -76,7 +76,7 @@ async function updateCommand() {
  * Guide the user through migrating from v1 (single CLAUDE.md dump) to
  * v2 (rules files + skill + hook + concise CLAUDE.md snippet).
  */
-async function handleClaudeMigration(toolKey, entry, tool, rulesContent, newHash) {
+async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   logger.blank();
   logger.warn('Migration required: Claude Code integration has changed.');
   logger.blank();
@@ -103,7 +103,7 @@ async function handleClaudeMigration(toolKey, entry, tool, rulesContent, newHash
   const projectRoot = process.cwd();
 
   // Write the new multi-output files (this also replaces the CLAUDE.md markers block)
-  const { writtenFiles } = writeClaudeIntegration(projectRoot, rulesContent);
+  const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
 
   // Commit the config update immediately — the core migration is done.
   // The hook prompt below is optional and shouldn't block config persistence.
