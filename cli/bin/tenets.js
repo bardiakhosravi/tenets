@@ -39,13 +39,17 @@ Commands:
   update            Update all installed rules to latest
 
 Init options:
-  --claude          Write to CLAUDE.md
+  --claude          Claude Code (rules + skill + hook integration)
   --cursor          Write to .cursorrules
   --copilot         Write to .github/copilot-instructions.md
   --agents          Write to AGENTS.md
 
+Claude-specific options:
+  --with-hook       Auto-install PostToolUse monitoring hook (skip prompt)
+
 Examples:
   npx tenets init --claude
+  npx tenets init --claude --with-hook
   npx tenets init --cursor
   npx tenets update`);
 }
