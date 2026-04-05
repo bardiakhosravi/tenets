@@ -1,6 +1,6 @@
 {
   "name": "tenets",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Install DDD + Hexagonal Architecture rules into your AI coding tool's config",
   "bin": {
     "tenets": "./bin/tenets.js"
@@ -18,6 +18,11 @@
     "cursor",
     "copilot"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/bardiakhosravi/tenets.git",
+    "directory": "cli"
+  },
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"

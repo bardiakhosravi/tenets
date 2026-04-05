@@ -1,5 +1,5 @@
 const GITHUB_RAW_BASE =
-  'https://raw.githubusercontent.com/bardiakhosravi/ai-agent-backend-standards/main';
+  'https://raw.githubusercontent.com/bardiakhosravi/tenets/main';
 
 const GITHUB_URLS = {
   rules: `${GITHUB_RAW_BASE}/domain_driven_design_hexagonal_arhictecture_python_rules.md`,
