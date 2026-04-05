@@ -140,16 +140,16 @@ Rules auto-load based on what you're editing:
 - Editing \`application/\` files -> use case & orchestration rules load
 
 ### Automatic architecture review
-After completing any feature implementation, bug fix, or refactoring that touches domain, application, or infrastructure code, you MUST run \`/review-architecture\` to verify compliance before presenting the work as done. Do not skip this step.
+After completing any feature implementation, bug fix, or refactoring that touches domain, application, or infrastructure code, you MUST run \`/tenets-review-architecture\` to verify compliance before presenting the work as done. Do not skip this step.
 
 ### On-demand review
-You or the user can also run \`/review-architecture\` at any time for a full compliance audit.
+You or the user can also run \`/tenets-review-architecture\` at any time for a full compliance audit.
 
 Detailed rules: \`.claude/rules/tenets-*.md\`
 ${MARKERS.end}`;
 
 const CLAUDE_SKILL_CONTENT = `---
-name: review-architecture
+name: tenets-review-architecture
 description: Review code for Hexagonal Architecture and DDD compliance. Use when the user asks to check architecture, review DDD compliance, or validate code structure.
 allowed-tools: Read Grep Glob
 ---

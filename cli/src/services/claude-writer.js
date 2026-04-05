@@ -43,7 +43,7 @@ function buildRuleFile(definition, sections) {
  * Write all Claude Code integration files:
  * 1. .claude/rules/tenets-*.md  — glob-based auto-loading rules
  * 2. CLAUDE.md snippet          — top-level principles (appended/replaced)
- * 3. .claude/skills/review-architecture/SKILL.md — on-demand review command
+ * 3. .claude/skills/tenets-review-architecture/SKILL.md — on-demand review command
  * 4. .claude/hooks/check-architecture.js — continuous monitoring hook
  */
 function writeClaudeIntegration(projectRoot, content) {
@@ -67,11 +67,11 @@ function writeClaudeIntegration(projectRoot, content) {
   writtenFiles.push('CLAUDE.md');
 
   // --- Layer 3: Skill file ---
-  const skillDir = path.join(projectRoot, '.claude', 'skills', 'review-architecture');
+  const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
   ensureDir(skillDir);
   const skillPath = path.join(skillDir, 'SKILL.md');
   fs.writeFileSync(skillPath, CLAUDE_SKILL_CONTENT, 'utf-8');
-  writtenFiles.push('.claude/skills/review-architecture/SKILL.md');
+  writtenFiles.push('.claude/skills/tenets-review-architecture/SKILL.md');
 
   // --- Layer 4: Hook script ---
   const hookDir = path.join(projectRoot, '.claude', 'hooks');

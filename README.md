@@ -63,9 +63,9 @@ No manual referencing needed. The right rules appear at the right time.
 
 A concise block appended to your project's `CLAUDE.md` with the 8 non-negotiable principles. Always in context, every conversation.
 
-### Layer 3: `/review-architecture` Skill
+### Layer 3: `/tenets-review-architecture` Skill
 
-An on-demand architecture review command. Run `/review-architecture` (or `/review-architecture src/domain/`) and the agent reads all tenets rules, analyzes your codebase, and reports violations grouped by severity:
+An on-demand architecture review command. Run `/tenets-review-architecture` (or `/tenets-review-architecture src/domain/`) and the agent reads all tenets rules, analyzes your codebase, and reports violations grouped by severity:
 
 - **Critical**: Dependency direction violations, domain layer impurity
 - **Major**: Business logic in wrong layer, missing port abstractions

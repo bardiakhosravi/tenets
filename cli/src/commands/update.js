@@ -88,7 +88,7 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   logger.blank();
   logger.dim('  1. .claude/rules/tenets-*.md    Auto-load rules by file path (glob-based)');
   logger.dim('  2. CLAUDE.md snippet             Concise top-level principles (always loaded)');
-  logger.dim('  3. .claude/skills/...            /review-architecture on-demand review');
+  logger.dim('  3. .claude/skills/...            /tenets-review-architecture on-demand review');
   logger.dim('  4. .claude/hooks/...             Continuous architecture monitoring');
   logger.blank();
   logger.info('Your existing CLAUDE.md tenets block will be replaced with a concise snippet.');
@@ -131,7 +131,7 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   logger.blank();
   logger.info('Usage:');
   logger.dim('  Edit any file — rules auto-load based on the layer you\'re working in');
-  logger.dim('  Run /review-architecture for a full compliance review');
+  logger.dim('  Run /tenets-review-architecture for a full compliance review');
 
   return true;
 }

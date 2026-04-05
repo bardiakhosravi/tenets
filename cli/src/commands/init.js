@@ -83,7 +83,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   logger.info('What was installed:');
   logger.dim('  .claude/rules/tenets-*.md    Context-aware rules (auto-load by file path)');
   logger.dim('  CLAUDE.md                    Top-level principles (always loaded)');
-  logger.dim('  .claude/skills/...           /review-architecture command');
+  logger.dim('  .claude/skills/...           /tenets-review-architecture command');
   if (installHook) {
     logger.dim('  .claude/hooks/...            Continuous monitoring hook');
     logger.dim('  .claude/settings.json        Hook configuration');
@@ -91,7 +91,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   logger.blank();
   logger.info('Usage:');
   logger.dim('  Edit any file — rules auto-load based on the layer you\'re working in');
-  logger.dim('  Run /review-architecture for a full compliance review');
+  logger.dim('  Run /tenets-review-architecture for a full compliance review');
   logger.dim('  Run `npx tenets update` to update rules later');
 }
 
