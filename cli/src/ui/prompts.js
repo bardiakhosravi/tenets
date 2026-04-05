@@ -65,4 +65,15 @@ async function promptFileConflict(filePath) {
   }
 }
 
-module.exports = { promptToolSelection, promptFileConflict };
+async function promptYesNo(question) {
+  const rl = createInterface();
+
+  try {
+    const answer = await ask(rl, `${question} (y/N): `);
+    return answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes';
+  } finally {
+    rl.close();
+  }
+}
+
+module.exports = { promptToolSelection, promptFileConflict, promptYesNo };

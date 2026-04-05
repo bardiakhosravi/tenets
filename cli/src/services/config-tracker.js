@@ -2,6 +2,14 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { CONFIG_FILE } = require('../constants');
 
+/**
+ * Schema version tracks the config format.
+ *   v1 (0.1.x): single assembled file per tool (CLAUDE.md, .cursorrules, etc.)
+ *   v2 (0.2.x): claude gets multi-output (rules/ + skill + hook + CLAUDE.md snippet),
+ *               other tools unchanged.
+ */
+const SCHEMA_VERSION = 2;
+
 function configPath() {
   return path.resolve(process.cwd(), CONFIG_FILE);
 }
@@ -24,7 +32,9 @@ function writeConfig(config) {
 }
 
 function updateToolEntry(toolKey, targetFile, contentHash, mode) {
-  const config = readConfig() || { tools: {} };
+  const config = readConfig() || { schemaVersion: SCHEMA_VERSION, tools: {} };
+
+  config.schemaVersion = SCHEMA_VERSION;
 
   config.tools[toolKey] = {
     targetFile,
@@ -37,4 +47,25 @@ function updateToolEntry(toolKey, targetFile, contentHash, mode) {
   writeConfig(config);
 }
 
-module.exports = { readConfig, writeConfig, updateToolEntry };
+/**
+ * Detect whether a tool entry needs migration from v1 -> v2.
+ * Returns true if the config was written by v1 (no schemaVersion or schemaVersion < 2)
+ * and the tool is now a multi-output tool.
+ */
+function needsMigration(config, toolKey) {
+  const configVersion = config?.schemaVersion || 1;
+  if (configVersion >= SCHEMA_VERSION) {
+    return false;
+  }
+
+  const entry = config?.tools?.[toolKey];
+  if (!entry) {
+    return false;
+  }
+
+  // v1 claude entries have mode: "replace" or "append" (single-file)
+  // v2 claude entries have mode: "multi"
+  return entry.mode !== 'multi';
+}
+
+module.exports = { readConfig, writeConfig, updateToolEntry, needsMigration, SCHEMA_VERSION };
