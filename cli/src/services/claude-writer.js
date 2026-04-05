@@ -61,6 +61,15 @@ function writeClaudeIntegration(projectRoot, content) {
     writtenFiles.push(`.claude/rules/${definition.fileName}`);
   }
 
+  // Clean up stale rule files from pre-0.4.0 installs
+  const staleRuleFiles = ['tenets-synergy.md', 'tenets-ports-adapters.md', 'tenets-structure.md'];
+  for (const stale of staleRuleFiles) {
+    const stalePath = path.join(rulesDir, stale);
+    if (fs.existsSync(stalePath)) {
+      fs.unlinkSync(stalePath);
+    }
+  }
+
   // --- Layer 2: CLAUDE.md snippet ---
   const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
   writeClaudeMdSnippet(claudeMdPath);
@@ -72,6 +81,12 @@ function writeClaudeIntegration(projectRoot, content) {
   const skillPath = path.join(skillDir, 'SKILL.md');
   fs.writeFileSync(skillPath, CLAUDE_SKILL_CONTENT, 'utf-8');
   writtenFiles.push('.claude/skills/tenets-review-architecture/SKILL.md');
+
+  // Clean up old skill directory from pre-0.4.2 installs
+  const oldSkillDir = path.join(projectRoot, '.claude', 'skills', 'review-architecture');
+  if (fs.existsSync(oldSkillDir)) {
+    fs.rmSync(oldSkillDir, { recursive: true });
+  }
 
   // --- Layer 4: Hook script ---
   const hookDir = path.join(projectRoot, '.claude', 'hooks');
