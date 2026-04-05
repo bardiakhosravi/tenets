@@ -103,4 +103,16 @@ function computeHash(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
 
-module.exports = { fetchContent, assembleContent, computeHash };
+/**
+ * Compute a hash that covers both fetched content AND CLI templates
+ * (CLAUDE.md snippet, skill, hook). This ensures that when we release
+ * a new CLI version with updated templates, `npx tenets update` detects
+ * the change even if the rule content hasn't changed.
+ */
+function computeClaudeHash(assembled) {
+  const { CLAUDE_MD_SNIPPET, CLAUDE_SKILL_CONTENT, CLAUDE_HOOK_SCRIPT } = require('../constants');
+  const combined = assembled + '\n---CLI_TEMPLATES---\n' + CLAUDE_MD_SNIPPET + CLAUDE_SKILL_CONTENT + CLAUDE_HOOK_SCRIPT;
+  return computeHash(combined);
+}
+
+module.exports = { fetchContent, assembleContent, computeHash, computeClaudeHash };

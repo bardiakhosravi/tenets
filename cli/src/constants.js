@@ -139,8 +139,11 @@ Rules auto-load based on what you're editing:
 - Editing \`adapters/\` or \`infrastructure/\` files -> port & adapter rules load
 - Editing \`application/\` files -> use case & orchestration rules load
 
+### Automatic architecture review
+After completing any feature implementation, bug fix, or refactoring that touches domain, application, or infrastructure code, you MUST run \`/review-architecture\` to verify compliance before presenting the work as done. Do not skip this step.
+
 ### On-demand review
-Run \`/review-architecture\` to get a full compliance review against all tenets.
+You or the user can also run \`/review-architecture\` at any time for a full compliance audit.
 
 Detailed rules: \`.claude/rules/tenets-*.md\`
 ${MARKERS.end}`;

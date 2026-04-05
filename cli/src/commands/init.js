@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { TOOLS } = require('../constants');
-const { fetchContent, assembleContent, computeHash } = require('../services/content-fetcher');
+const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
 const { writeFile } = require('../services/file-writer');
 const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
 const { updateToolEntry } = require('../services/config-tracker');
@@ -33,11 +33,12 @@ async function initCommand(args) {
 
   const content = await fetchContent();
   const assembled = assembleContent(content);
-  const hash = computeHash(assembled);
 
   if (tool.multiOutput) {
+    const hash = computeClaudeHash(assembled);
     await initClaudeMultiOutput(args, toolKey, tool, content, hash);
   } else {
+    const hash = computeHash(assembled);
     await initSingleFile(toolKey, tool, assembled, hash);
   }
 }

@@ -1,7 +1,7 @@
 const path = require('node:path');
 const { TOOLS } = require('../constants');
 const { readConfig, updateToolEntry, needsMigration } = require('../services/config-tracker');
-const { fetchContent, assembleContent, computeHash } = require('../services/content-fetcher');
+const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
 const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
 const { promptYesNo } = require('../ui/prompts');
@@ -20,12 +20,14 @@ async function updateCommand() {
 
   const content = await fetchContent();
   const assembled = assembleContent(content);
-  const newHash = computeHash(assembled);
+  const baseHash = computeHash(assembled);
+  const claudeHash = computeClaudeHash(assembled);
 
   let updatedCount = 0;
 
   for (const [toolKey, entry] of Object.entries(config.tools)) {
     const tool = TOOLS[toolKey];
+    const newHash = tool?.multiOutput ? claudeHash : baseHash;
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
