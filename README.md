@@ -12,6 +12,14 @@ For effective code review and collaboration with AI agents, we need **predictabl
 
 Tenets solves this by giving your coding agents the context and rules they need upfront, so every generated line of code follows the same architectural principles your team agreed on.
 
+### Architecture starts at the spec, not the code
+
+Most teams adopt spec-driven development (SDD) to plan features before building them -- writing specs, data models, and implementation plans that agents then execute. But without architectural guardrails baked into those planning artifacts, you end up with well-specified features that violate domain boundaries, leak infrastructure concerns into business logic, or skip the port/adapter structure entirely.
+
+Tenets bridges this gap by extending SDD frameworks with DDD and Hexagonal Architecture practices at the planning stage. When you spec a feature, you're prompted to define the ubiquitous language, declare the bounded context, identify candidate aggregates and entities, and check against your architecture constitution -- before a single line of code is written. By the time implementation begins, the agent already knows the domain model, the correct layer for each concept, and the boundaries it must not cross.
+
+We currently provide a [Spec-Kit](https://github.com/github/spec-kit) preset, with support for other spec-driven frameworks to follow. The goal is the same regardless of the tool: **make DDD and Hexagonal Architecture the default, not an afterthought.**
+
 ## Quick Start
 
 ### Install with the CLI
