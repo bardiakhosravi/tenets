@@ -36,13 +36,71 @@ npx tenets init --agents        # writes to AGENTS.md
 | `--copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
 | `--agents` | AGENTS.md | `AGENTS.md` |
 
+Flags are composable — install multiple integrations in one step:
+
+```bash
+npx tenets init --claude --speckit
+```
+
 ### Keeping Up to Date
 
 ```bash
 npx tenets update
 ```
 
-This pulls the latest rules and updates the files previously installed. If you're upgrading from an older version, the CLI will detect this and walk you through the migration.
+This pulls the latest rules and updates all previously installed files — including the Spec-Kit preset if you installed it. If you're upgrading from an older version, the CLI will detect this and walk you through the migration.
+
+---
+
+## Using Tenets with Spec-Kit
+
+If you use [Spec-Kit](https://github.com/github/spec-kit) for spec-driven development, Tenets can extend your planning templates with DDD and Hexagonal Architecture sections — without overwriting your existing customizations.
+
+### How It Works
+
+Spec-Kit resolves templates through a priority stack. Tenets installs a **preset** at layer 2, below your own overrides:
+
+```
+.specify/templates/overrides/   ← your customizations (always wins)
+.specify/presets/tenets-ddd/    ← Tenets DDD preset (layer 2)
+.specify/extensions/.../        ← other extensions
+.specify/templates/             ← Spec-Kit core templates
+```
+
+Your files are never touched. If you have custom templates in `.specify/templates/overrides/`, they take priority over everything.
+
+### Setup
+
+**Prerequisites**: Spec-Kit must already be initialized in your project (`specify init`).
+
+```bash
+npx tenets init --speckit
+```
+
+Or combine with your AI tool in one step:
+
+```bash
+npx tenets init --claude --speckit
+```
+
+### What Gets Added
+
+| Template | DDD additions |
+|----------|--------------|
+| `spec-template` | **Domain Language** glossary table, **Bounded Context** decision with relationship mapping, **Candidate Domain Concepts** section |
+| `plan-template` | **Constitution Check** gate (hexagonal architecture compliance), **Complexity Tracking** table for justified violations |
+| `tasks-template` | DDD-aware phase structure (domain model → use cases → adapters), **BDD test-first** mandate, parallel execution `[P]` markers |
+| `checklist-template` | DDD/hexagonal checklist items covering domain model, application layer, adapters, and testing |
+
+### Keeping the Preset Up to Date
+
+```bash
+npx tenets update
+```
+
+This updates both your AI tool rules and the Spec-Kit preset in one command.
+
+---
 
 ## Claude Code Integration
 
