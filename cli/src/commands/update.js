@@ -1,20 +1,86 @@
+const fs = require('node:fs');
 const path = require('node:path');
+const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
-const { readConfig, updateToolEntry, needsMigration } = require('../services/config-tracker');
+const { readConfig, updateToolEntry, updateSpeckitEntry, getSpeckitEntries, needsMigration } = require('../services/config-tracker');
 const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
 const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
+const SPECKIT_PRESET_RELEASE_URL =
+  'https://github.com/bardiakhosravi/ai-agent-backend-standards/releases/latest/download/tenets-speckit-preset.zip';
+
+function isCommandAvailable(cmd) {
+  try {
+    execSync(`${cmd} --version`, { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function copyDirRecursive(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirRecursive(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
+  }
+}
+
+async function updateSpeckitPresets(config) {
+  const entries = getSpeckitEntries(config);
+  const presetIds = Object.keys(entries);
+  if (presetIds.length === 0) return;
+
+  const specifyDir = path.resolve(process.cwd(), '.specify');
+  if (!fs.existsSync(specifyDir)) return;
+
+  for (const presetId of presetIds) {
+    if (isCommandAvailable('specify')) {
+      try {
+        execSync(`specify preset update ${presetId}`, { stdio: 'inherit' });
+        updateSpeckitEntry(presetId);
+        logger.success(`speckit:${presetId} — updated via specify CLI.`);
+        continue;
+      } catch {
+        logger.warn(`specify CLI update failed for ${presetId}. Falling back to bundled update...`);
+      }
+    }
+
+    // Fallback: overwrite from bundled files
+    const bundledPresetDir = path.resolve(__dirname, '..', '..', 'bundled', 'speckit-preset');
+    const presetDir = path.resolve(specifyDir, 'presets', presetId);
+    copyDirRecursive(bundledPresetDir, presetDir);
+    updateSpeckitEntry(presetId);
+    logger.success(`speckit:${presetId} — updated from bundled files.`);
+  }
+}
+
 async function updateCommand() {
   const config = readConfig();
 
-  if (!config || !config.tools || Object.keys(config.tools).length === 0) {
+  if (!config || (!config.tools && !config.speckit) ||
+      (Object.keys(config.tools || {}).length === 0 && Object.keys(config.speckit || {}).length === 0)) {
     logger.error(
       'No tools configured. Run `npx tenets init` first.'
     );
     process.exitCode = 1;
+    return;
+  }
+
+  // Update speckit presets first (independent of tool content hash)
+  await updateSpeckitPresets(config);
+
+  if (!config.tools || Object.keys(config.tools).length === 0) {
     return;
   }
 

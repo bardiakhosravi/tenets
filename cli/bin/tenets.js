@@ -43,6 +43,7 @@ Init options:
   --cursor          Write to .cursorrules
   --copilot         Write to .github/copilot-instructions.md
   --agents          Write to AGENTS.md
+  --speckit         Install DDD preset into an existing Spec-Kit project
 
 Claude-specific options:
   --with-hook       Auto-install PostToolUse monitoring hook (skip prompt)
@@ -51,6 +52,8 @@ Examples:
   npx tenets init --claude
   npx tenets init --claude --with-hook
   npx tenets init --cursor
+  npx tenets init --speckit
+  npx tenets init --claude --speckit
   npx tenets update`);
 }
 

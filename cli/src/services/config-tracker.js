@@ -68,4 +68,29 @@ function needsMigration(config, toolKey) {
   return entry.mode !== 'multi';
 }
 
-module.exports = { readConfig, writeConfig, updateToolEntry, needsMigration, SCHEMA_VERSION };
+function updateSpeckitEntry(presetId) {
+  const config = readConfig() || { schemaVersion: SCHEMA_VERSION, tools: {}, speckit: {} };
+  config.schemaVersion = SCHEMA_VERSION;
+  if (!config.speckit) config.speckit = {};
+
+  config.speckit[presetId] = {
+    installedAt: config.speckit[presetId]?.installedAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  writeConfig(config);
+}
+
+function getSpeckitEntries(config) {
+  return config?.speckit || {};
+}
+
+module.exports = {
+  readConfig,
+  writeConfig,
+  updateToolEntry,
+  updateSpeckitEntry,
+  getSpeckitEntries,
+  needsMigration,
+  SCHEMA_VERSION,
+};

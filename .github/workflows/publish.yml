@@ -5,7 +5,7 @@ on:
     types: [published]
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
 jobs:
@@ -32,6 +32,17 @@ jobs:
             echo "::error::Package version ($PACKAGE_VERSION) does not match release tag (${{ github.event.release.tag_name }})"
             exit 1
           fi
+
+      - name: Package Spec-Kit preset
+        working-directory: ${{ github.workspace }}
+        run: |
+          cd speckit-preset
+          zip -r ../tenets-speckit-preset.zip .
+
+      - name: Upload preset to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: tenets-speckit-preset.zip
 
       - name: Publish to npm
         run: npm publish --provenance --access public

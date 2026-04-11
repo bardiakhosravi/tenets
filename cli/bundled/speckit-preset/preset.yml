@@ -1,0 +1,21 @@
+id: tenets-ddd
+name: "Tenets DDD + Hexagonal Architecture"
+version: "1.0.0"
+description: >
+  Extends Spec-Kit templates with Domain-Driven Design and Hexagonal Architecture
+  sections — ubiquitous language, bounded context decisions, candidate domain concept
+  identification, and test-first task organization.
+priority: 10
+templates:
+  - name: spec-template
+    path: templates/spec-template.md
+    type: template
+  - name: plan-template
+    path: templates/plan-template.md
+    type: template
+  - name: tasks-template
+    path: templates/tasks-template.md
+    type: template
+  - name: checklist-template
+    path: templates/checklist-template.md
+    type: template
