@@ -1,6 +1,6 @@
 {
   "name": "tenets",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "Install DDD + Hexagonal Architecture rules into your AI coding tool's config",
   "bin": {
     "tenets": "./bin/tenets.js"

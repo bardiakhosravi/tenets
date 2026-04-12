@@ -79,10 +79,10 @@ async function initSpeckit() {
 
   if (!fs.existsSync(specifyDir)) {
     logger.blank();
-    logger.error('Spec-Kit not initialized in this project.');
-    logger.dim('  Run `npx speckit init` first, then re-run `npx tenets init --speckit`');
+    logger.warn('--speckit skipped: Spec-Kit is not initialized in this project.');
+    logger.dim('  To install the DDD preset, run `specify init` first,');
+    logger.dim('  then re-run `npx tenets init --speckit`.');
     logger.blank();
-    process.exitCode = 1;
     return;
   }
 
@@ -192,8 +192,15 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
 
   // Offer to install the continuous monitoring hook
+  logger.blank();
+  logger.info('Optional: Continuous architecture monitoring hook');
+  logger.dim('  After every file edit, Claude checks whether the change respects');
+  logger.dim('  DDD and Hexagonal Architecture rules for the layer you\'re working in.');
+  logger.dim('  Yes  → adds a hook to .claude/settings.json (reversible: delete that file to remove)');
+  logger.dim('  No   → skip for now; re-run `npx tenets init --claude` any time to add it later');
+  logger.blank();
   const installHook = args.includes('--with-hook') || await promptYesNo(
-    'Install PostToolUse hook for continuous architecture monitoring?'
+    'Install continuous monitoring hook?'
   );
 
   if (installHook) {
