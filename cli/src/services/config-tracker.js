@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { CONFIG_FILE } = require('../constants');
+const { logger } = require('../ui/logger');
 
 /**
  * Schema version tracks the config format.
@@ -23,6 +24,8 @@ function readConfig() {
   try {
     return JSON.parse(fs.readFileSync(p, 'utf-8'));
   } catch {
+    logger.warn(`Could not read ${CONFIG_FILE} — treating as fresh install.`);
+    logger.dim(`  The file may be corrupted. Delete it and re-run \`npx tenets init\` if needed.`);
     return null;
   }
 }
@@ -85,6 +88,25 @@ function getSpeckitEntries(config) {
   return config?.speckit || {};
 }
 
+/**
+ * Record that the user declined the v1→v2 migration so we don't prompt again.
+ */
+function markMigrationDeclined(toolKey) {
+  const config = readConfig() || { schemaVersion: SCHEMA_VERSION, tools: {} };
+  config.schemaVersion = SCHEMA_VERSION;
+  if (!config.tools) config.tools = {};
+  if (!config.tools[toolKey]) config.tools[toolKey] = {};
+  config.tools[toolKey].migrationDeclinedAt = new Date().toISOString();
+  writeConfig(config);
+}
+
+/**
+ * Returns true if the user previously declined the v1→v2 migration for this tool.
+ */
+function isMigrationDeclined(config, toolKey) {
+  return Boolean(config?.tools?.[toolKey]?.migrationDeclinedAt);
+}
+
 module.exports = {
   readConfig,
   writeConfig,
@@ -92,5 +114,7 @@ module.exports = {
   updateSpeckitEntry,
   getSpeckitEntries,
   needsMigration,
+  markMigrationDeclined,
+  isMigrationDeclined,
   SCHEMA_VERSION,
 };

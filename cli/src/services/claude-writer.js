@@ -72,15 +72,21 @@ function writeClaudeIntegration(projectRoot, content) {
 
   // --- Layer 2: CLAUDE.md snippet ---
   const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
-  writeClaudeMdSnippet(claudeMdPath);
+  const claudeMdAction = writeClaudeMdSnippet(claudeMdPath);
   writtenFiles.push('CLAUDE.md');
 
   // --- Layer 3: Skill file ---
   const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
   ensureDir(skillDir);
-  const skillPath = path.join(skillDir, 'SKILL.md');
+  const skillPath = path.join(skillDir, 'TENETS-SKILL.md');
   fs.writeFileSync(skillPath, CLAUDE_SKILL_CONTENT, 'utf-8');
-  writtenFiles.push('.claude/skills/tenets-review-architecture/SKILL.md');
+  writtenFiles.push('.claude/skills/tenets-review-architecture/TENETS-SKILL.md');
+
+  // Clean up old skill files from pre-0.6.0 installs (renamed from SKILL.md to TENETS-SKILL.md)
+  const oldSkillPath = path.join(skillDir, 'SKILL.md');
+  if (fs.existsSync(oldSkillPath)) {
+    fs.unlinkSync(oldSkillPath);
+  }
 
   // Clean up old skill directory from pre-0.4.2 installs
   const oldSkillDir = path.join(projectRoot, '.claude', 'skills', 'review-architecture');
@@ -96,11 +102,12 @@ function writeClaudeIntegration(projectRoot, content) {
   fs.chmodSync(hookPath, 0o755);
   writtenFiles.push('.claude/hooks/check-architecture.js');
 
-  return { writtenFiles };
+  return { writtenFiles, claudeMdAction };
 }
 
 /**
  * Append or replace the tenets block in CLAUDE.md.
+ * Returns 'created' | 'appended' | 'replaced' to let callers log what happened.
  */
 function writeClaudeMdSnippet(claudeMdPath) {
   if (fs.existsSync(claudeMdPath)) {
@@ -112,13 +119,16 @@ function writeClaudeMdSnippet(claudeMdPath) {
       const before = existing.substring(0, startIdx);
       const after = existing.substring(endIdx + MARKERS.end.length);
       fs.writeFileSync(claudeMdPath, before + CLAUDE_MD_SNIPPET + after, 'utf-8');
+      return 'replaced';
     } else {
       const separator = existing.endsWith('\n') ? '\n' : '\n\n';
       fs.writeFileSync(claudeMdPath, existing + separator + CLAUDE_MD_SNIPPET + '\n', 'utf-8');
+      return 'appended';
     }
   } else {
     const content = ['# CLAUDE.md', '', CLAUDE_MD_SNIPPET, ''].join('\n');
     fs.writeFileSync(claudeMdPath, content, 'utf-8');
+    return 'created';
   }
 }
 

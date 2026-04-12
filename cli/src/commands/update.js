@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
-const { readConfig, updateToolEntry, updateSpeckitEntry, getSpeckitEntries, needsMigration } = require('../services/config-tracker');
+const { readConfig, updateToolEntry, updateSpeckitEntry, getSpeckitEntries, needsMigration, markMigrationDeclined, isMigrationDeclined } = require('../services/config-tracker');
 const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
 const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
@@ -81,6 +81,8 @@ async function updateCommand() {
   await updateSpeckitPresets(config);
 
   if (!config.tools || Object.keys(config.tools).length === 0) {
+    logger.blank();
+    logger.info('All up to date.');
     return;
   }
 
@@ -97,6 +99,12 @@ async function updateCommand() {
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
+      // Skip if user already declined migration to avoid prompting on every update run.
+      if (isMigrationDeclined(config, toolKey)) {
+        logger.info(`${toolKey} — migration to v2 format was previously declined.`);
+        logger.dim('  Run `npx tenets init --claude` any time to migrate.');
+        continue;
+      }
       const migrated = await handleClaudeMigration(toolKey, entry, tool, content, newHash);
       if (migrated) {
         updatedCount++;
@@ -111,7 +119,10 @@ async function updateCommand() {
 
     if (tool?.multiOutput) {
       const projectRoot = process.cwd();
-      const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
+      const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content);
+      if (claudeMdAction === 'appended') {
+        logger.info('Appending Tenets block to existing CLAUDE.md.');
+      }
       logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
       for (const file of writtenFiles) {
         logger.dim(`  ${file}`);
@@ -164,6 +175,7 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   const proceed = await promptYesNo('Migrate to the new format?');
 
   if (!proceed) {
+    markMigrationDeclined(toolKey);
     logger.info('Skipped. You can migrate later with `npx tenets init --claude`.');
     return false;
   }
@@ -171,7 +183,10 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   const projectRoot = process.cwd();
 
   // Write the new multi-output files (this also replaces the CLAUDE.md markers block)
-  const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
+  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content);
+  if (claudeMdAction === 'appended') {
+    logger.info('Appending Tenets block to existing CLAUDE.md.');
+  }
 
   // Commit the config update immediately — the core migration is done.
   // The hook prompt below is optional and shouldn't block config persistence.

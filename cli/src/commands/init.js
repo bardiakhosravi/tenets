@@ -78,12 +78,25 @@ async function initSpeckit() {
   const specifyDir = path.resolve(projectRoot, '.specify');
 
   if (!fs.existsSync(specifyDir)) {
+    if (!isCommandAvailable('specify')) {
+      logger.blank();
+      logger.warn('Spec-Kit is not installed. Install it first:');
+      logger.dim('  npm install -g @github/spec-kit   (or check https://github.com/github/spec-kit)');
+      logger.dim('  Then re-run `npx tenets init --speckit`.');
+      logger.blank();
+      return;
+    }
+
     logger.blank();
-    logger.warn('--speckit skipped: Spec-Kit is not initialized in this project.');
-    logger.dim('  To install the DDD preset, run `specify init` first,');
-    logger.dim('  then re-run `npx tenets init --speckit`.');
+    logger.info('Spec-Kit is not initialized in this project. Initializing now...');
     logger.blank();
-    return;
+    try {
+      execSync('specify init', { stdio: 'inherit' });
+    } catch {
+      logger.error('`specify init` failed. Fix the error above and re-run `npx tenets init --speckit`.');
+      process.exitCode = 1;
+      return;
+    }
   }
 
   const presetDir = path.resolve(specifyDir, 'presets', SPECKIT_PRESET_ID);
@@ -94,6 +107,8 @@ async function initSpeckit() {
       `Tenets DDD preset already installed at .specify/presets/${SPECKIT_PRESET_ID}/. Reinstall?`
     );
     if (!overwrite) {
+      // Still write the config entry so `tenets update` knows the preset is installed.
+      updateSpeckitEntry(SPECKIT_PRESET_ID);
       logger.info('Skipped.');
       return;
     }
@@ -182,14 +197,20 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   const rulesDir = path.resolve(projectRoot, '.claude', 'rules');
 
   if (fs.existsSync(rulesDir)) {
-    const mode = await promptFileConflict(rulesDir);
-    if (mode === 'cancel') {
+    const overwrite = await promptYesNo(
+      `.claude/rules/ already exists. Overwrite existing rules?`
+    );
+    if (!overwrite) {
       logger.info('Cancelled.');
       return;
     }
   }
 
-  const { writtenFiles } = writeClaudeIntegration(projectRoot, content);
+  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content);
+
+  if (claudeMdAction === 'appended') {
+    logger.info('Appending Tenets block to existing CLAUDE.md.');
+  }
 
   // Offer to install the continuous monitoring hook
   logger.blank();
