@@ -56,4 +56,26 @@ for (const section of sections) {
   }
 }
 
+// Copy speckit-preset for --speckit offline installs
+const speckitSrc = path.join(REPO_ROOT, 'speckit-preset');
+const speckitDest = path.join(BUNDLED_DIR, 'speckit-preset');
+
+if (fs.existsSync(speckitSrc)) {
+  function copyDirRecursive(src, dest) {
+    ensureDir(dest);
+    for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+      const srcPath = path.join(src, entry.name);
+      const destPath = path.join(dest, entry.name);
+      if (entry.isDirectory()) {
+        copyDirRecursive(srcPath, destPath);
+      } else {
+        copyFile(srcPath, destPath);
+      }
+    }
+  }
+  copyDirRecursive(speckitSrc, speckitDest);
+} else {
+  console.log('  SKIP: speckit-preset/ (not found)');
+}
+
 console.log('\nDone. Bundled content is ready.');
