@@ -79,17 +79,18 @@ async function initSpeckit() {
 
   if (!fs.existsSync(specifyDir)) {
     logger.blank();
-    logger.info('Spec-Kit is not initialized in this project. Initializing now...');
+    logger.warn('Spec-Kit is not initialized in this project.');
     logger.blank();
-    // Use the global CLI if available, otherwise fall back to npx so no global install is needed.
-    const specifyCmd = isCommandAvailable('specify') ? 'specify init' : 'npx @spec-kit/cli init';
-    try {
-      execSync(specifyCmd, { stdio: 'inherit' });
-    } catch {
-      logger.error('Spec-Kit initialization failed. Fix the error above and re-run `npx tenets init --speckit`.');
-      process.exitCode = 1;
-      return;
+    logger.info('Set it up first:');
+    if (isCommandAvailable('specify')) {
+      logger.dim('  specify init');
+    } else {
+      logger.dim('  1. Install Spec-Kit: https://github.com/github/spec-kit');
+      logger.dim('  2. Run: specify init');
     }
+    logger.dim('  3. Then re-run: npx tenets init --speckit');
+    logger.blank();
+    return;
   }
 
   const presetDir = path.resolve(specifyDir, 'presets', SPECKIT_PRESET_ID);
