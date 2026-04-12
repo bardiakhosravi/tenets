@@ -82,7 +82,7 @@ async function initSpeckit() {
     logger.info('Spec-Kit is not initialized in this project. Initializing now...');
     logger.blank();
     // Use the global CLI if available, otherwise fall back to npx so no global install is needed.
-    const specifyCmd = isCommandAvailable('specify') ? 'specify init' : 'npx @github/spec-kit init';
+    const specifyCmd = isCommandAvailable('specify') ? 'specify init' : 'npx @spec-kit/cli init';
     try {
       execSync(specifyCmd, { stdio: 'inherit' });
     } catch {
