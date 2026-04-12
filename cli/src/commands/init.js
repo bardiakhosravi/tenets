@@ -79,18 +79,53 @@ async function initSpeckit() {
 
   if (!fs.existsSync(specifyDir)) {
     logger.blank();
-    logger.warn('Spec-Kit is not initialized in this project.');
-    logger.blank();
-    logger.info('Set it up first:');
+
     if (isCommandAvailable('specify')) {
-      logger.dim('  specify init');
+      logger.info('Initializing Spec-Kit in this project...');
+      logger.blank();
+      try {
+        execSync('specify init --here', { stdio: 'inherit' });
+      } catch {
+        logger.error('`specify init --here` failed. Fix the error above and re-run `npx tenets init --speckit`.');
+        process.exitCode = 1;
+        return;
+      }
+    } else if (isCommandAvailable('uvx')) {
+      logger.info('Initializing Spec-Kit via uvx (no install required)...');
+      logger.blank();
+      try {
+        execSync('uvx --from git+https://github.com/github/spec-kit.git specify init --here', { stdio: 'inherit' });
+      } catch {
+        logger.error('Spec-Kit init via uvx failed. Fix the error above and re-run `npx tenets init --speckit`.');
+        process.exitCode = 1;
+        return;
+      }
+    } else if (isCommandAvailable('uv')) {
+      logger.info('Installing Spec-Kit and initializing...');
+      logger.blank();
+      try {
+        execSync('uv tool install specify-cli --from git+https://github.com/github/spec-kit.git', { stdio: 'inherit' });
+        execSync('specify init --here', { stdio: 'inherit' });
+      } catch {
+        logger.error('Spec-Kit install failed. Fix the error above and re-run `npx tenets init --speckit`.');
+        process.exitCode = 1;
+        return;
+      }
     } else {
-      logger.dim('  1. Install Spec-Kit: https://github.com/github/spec-kit');
-      logger.dim('  2. Run: specify init');
+      logger.warn('Spec-Kit is not installed. Install it first:');
+      logger.blank();
+      logger.dim('  # Install uv (https://docs.astral.sh/uv/getting-started/installation/)');
+      logger.dim('  curl -LsSf https://astral.sh/uv/install.sh | sh');
+      logger.blank();
+      logger.dim('  # Then install Spec-Kit');
+      logger.dim('  uv tool install specify-cli --from git+https://github.com/github/spec-kit.git');
+      logger.dim('  specify init --here');
+      logger.blank();
+      logger.dim('  # Then re-run');
+      logger.dim('  npx tenets init --speckit');
+      logger.blank();
+      return;
     }
-    logger.dim('  3. Then re-run: npx tenets init --speckit');
-    logger.blank();
-    return;
   }
 
   const presetDir = path.resolve(specifyDir, 'presets', SPECKIT_PRESET_ID);
