@@ -24,7 +24,7 @@ function resolveToolFromFlags(args) {
 
 function isCommandAvailable(cmd) {
   try {
-    execSync(`${cmd} --version`, { stdio: 'ignore' });
+    execSync(`${cmd} --version`, { stdio: 'ignore', env: process.env });
     return true;
   } catch {
     return false;
@@ -84,9 +84,9 @@ async function initSpeckit() {
       logger.info('Initializing Spec-Kit in this project...');
       logger.blank();
       try {
-        execSync('specify init --here', { stdio: 'inherit' });
+        execSync('specify init --here --ai claude', { stdio: 'inherit', env: process.env });
       } catch {
-        logger.error('`specify init --here` failed. Fix the error above and re-run `npx tenets init --speckit`.');
+        logger.error('`specify init --here --ai claude` failed. Fix the error above and re-run `npx tenets init --speckit`.');
         process.exitCode = 1;
         return;
       }
@@ -94,7 +94,7 @@ async function initSpeckit() {
       logger.info('Initializing Spec-Kit via uvx (no install required)...');
       logger.blank();
       try {
-        execSync('uvx --from git+https://github.com/github/spec-kit.git specify init --here', { stdio: 'inherit' });
+        execSync('uvx --from git+https://github.com/github/spec-kit.git specify init --here --ai claude', { stdio: 'inherit', env: process.env });
       } catch {
         logger.error('Spec-Kit init via uvx failed. Fix the error above and re-run `npx tenets init --speckit`.');
         process.exitCode = 1;
@@ -104,8 +104,8 @@ async function initSpeckit() {
       logger.info('Installing Spec-Kit and initializing...');
       logger.blank();
       try {
-        execSync('uv tool install specify-cli --from git+https://github.com/github/spec-kit.git', { stdio: 'inherit' });
-        execSync('specify init --here', { stdio: 'inherit' });
+        execSync('uv tool install specify-cli --from git+https://github.com/github/spec-kit.git', { stdio: 'inherit', env: process.env });
+        execSync('specify init --here --ai claude', { stdio: 'inherit', env: process.env });
       } catch {
         logger.error('Spec-Kit install failed. Fix the error above and re-run `npx tenets init --speckit`.');
         process.exitCode = 1;
@@ -119,7 +119,7 @@ async function initSpeckit() {
       logger.blank();
       logger.dim('  # Then install Spec-Kit');
       logger.dim('  uv tool install specify-cli --from git+https://github.com/github/spec-kit.git');
-      logger.dim('  specify init --here');
+      logger.dim('  specify init --here --ai claude');
       logger.blank();
       logger.dim('  # Then re-run');
       logger.dim('  npx tenets init --speckit');
@@ -147,7 +147,7 @@ async function initSpeckit() {
   if (isCommandAvailable('specify')) {
     logger.info('Installing via specify CLI...');
     try {
-      execSync(`specify preset add --from ${SPECKIT_PRESET_RELEASE_URL}`, { stdio: 'inherit' });
+      execSync(`specify preset add --from ${SPECKIT_PRESET_RELEASE_URL}`, { stdio: 'inherit', env: process.env });
       updateSpeckitEntry(SPECKIT_PRESET_ID);
       logger.blank();
       logger.success('Spec-Kit DDD preset installed via specify CLI!');
