@@ -78,22 +78,15 @@ async function initSpeckit() {
   const specifyDir = path.resolve(projectRoot, '.specify');
 
   if (!fs.existsSync(specifyDir)) {
-    if (!isCommandAvailable('specify')) {
-      logger.blank();
-      logger.warn('Spec-Kit is not installed. Install it first:');
-      logger.dim('  npm install -g @github/spec-kit   (or check https://github.com/github/spec-kit)');
-      logger.dim('  Then re-run `npx tenets init --speckit`.');
-      logger.blank();
-      return;
-    }
-
     logger.blank();
     logger.info('Spec-Kit is not initialized in this project. Initializing now...');
     logger.blank();
+    // Use the global CLI if available, otherwise fall back to npx so no global install is needed.
+    const specifyCmd = isCommandAvailable('specify') ? 'specify init' : 'npx @github/spec-kit init';
     try {
-      execSync('specify init', { stdio: 'inherit' });
+      execSync(specifyCmd, { stdio: 'inherit' });
     } catch {
-      logger.error('`specify init` failed. Fix the error above and re-run `npx tenets init --speckit`.');
+      logger.error('Spec-Kit initialization failed. Fix the error above and re-run `npx tenets init --speckit`.');
       process.exitCode = 1;
       return;
     }
