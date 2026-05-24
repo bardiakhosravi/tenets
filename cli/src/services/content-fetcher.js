@@ -1,10 +1,21 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { GITHUB_RAW_BASE, INTRODUCTION_FILE, CONTENT_SECTIONS, MARKERS } = require('../constants');
+const {
+  GITHUB_RAW_BASE,
+  INTRODUCTION_FILE,
+  CONTENT_SECTIONS,
+  MARKERS,
+  CODE_REVIEW_AGENT_TEMPLATE,
+} = require('../constants');
 const { logger } = require('../ui/logger');
 
 const BUNDLED_DIR = path.join(__dirname, '..', '..', 'bundled');
+const CLI_ROOT = path.join(__dirname, '..', '..');
+
+function readCliFile(relativePath) {
+  return fs.readFileSync(path.join(CLI_ROOT, relativePath), 'utf-8');
+}
 
 async function fetchUrl(url) {
   const controller = new AbortController();
@@ -99,6 +110,25 @@ function assembleContent({ introduction, sections }) {
   return parts.join('\n');
 }
 
+function stripTenetsMarkers(content) {
+  return content
+    .replace(MARKERS.start, '')
+    .replace(MARKERS.end, '')
+    .trim();
+}
+
+/**
+ * Assemble a standalone prompt for a repository-installed code review agent.
+ * This file is intentionally tool-agnostic: any local or remote parent agent can
+ * load it as the review agent's system/project instructions.
+ */
+function assembleCodeReviewAgentContent(assembledRules) {
+  const rulebook = stripTenetsMarkers(assembledRules);
+  const template = readCliFile(CODE_REVIEW_AGENT_TEMPLATE);
+
+  return `${MARKERS.start}\n${template.replace('{{TENETS_RULEBOOK}}', rulebook).trim()}\n${MARKERS.end}\n`;
+}
+
 function computeHash(content) {
   return crypto.createHash('sha256').update(content).digest('hex');
 }
@@ -110,9 +140,30 @@ function computeHash(content) {
  * the change even if the rule content hasn't changed.
  */
 function computeClaudeHash(assembled) {
-  const { CLAUDE_MD_SNIPPET, CLAUDE_SKILL_CONTENT, CLAUDE_HOOK_SCRIPT } = require('../constants');
-  const combined = assembled + '\n---CLI_TEMPLATES---\n' + CLAUDE_MD_SNIPPET + CLAUDE_SKILL_CONTENT + CLAUDE_HOOK_SCRIPT;
+  const {
+    CLAUDE_MD_SNIPPET,
+    CLAUDE_SKILL_CONTENT,
+    CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
+    CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
+    CLAUDE_HOOK_SCRIPT,
+  } = require('../constants');
+  const codeReviewAgentTemplate = readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE);
+  const codeReviewHookPromptTemplate = readCliFile(CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE);
+  const combined =
+    assembled +
+    '\n---CLI_TEMPLATES---\n' +
+    CLAUDE_MD_SNIPPET +
+    CLAUDE_SKILL_CONTENT +
+    codeReviewAgentTemplate +
+    codeReviewHookPromptTemplate +
+    CLAUDE_HOOK_SCRIPT;
   return computeHash(combined);
 }
 
-module.exports = { fetchContent, assembleContent, computeHash, computeClaudeHash };
+module.exports = {
+  fetchContent,
+  assembleContent,
+  assembleCodeReviewAgentContent,
+  computeHash,
+  computeClaudeHash,
+};

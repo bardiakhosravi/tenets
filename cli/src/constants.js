@@ -72,6 +72,12 @@ const TOOLS = {
     flag: '--copilot',
     targetFile: '.github/copilot-instructions.md',
   },
+  codeReviewAgent: {
+    name: 'Tenets Code Review Agent',
+    flag: '--code-review-agent',
+    targetFile: '.tenets/agents/code-review-agent.md',
+    codeReviewAgent: true,
+  },
   agents: {
     name: 'AGENTS.md',
     flag: '--agents',
@@ -216,6 +222,11 @@ Group violations by severity:
 If no violations are found, confirm the code is compliant and note any particularly well-implemented patterns.
 `;
 
+const CODE_REVIEW_AGENT_NAME = 'code-review-agent';
+const CODE_REVIEW_AGENT_TEMPLATE = 'templates/agents/code-review-agent.md';
+const CLAUDE_CODE_REVIEW_AGENT_TEMPLATE = 'templates/claude/agents/code-review-agent.md';
+const CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE = 'templates/claude/hooks/code-review-agent-prompt.md';
+
 const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
 /**
  * PostToolUse hook for tenets architecture monitoring.
@@ -261,5 +272,9 @@ module.exports = {
   CLAUDE_RULE_DEFINITIONS,
   CLAUDE_MD_SNIPPET,
   CLAUDE_SKILL_CONTENT,
+  CODE_REVIEW_AGENT_NAME,
+  CODE_REVIEW_AGENT_TEMPLATE,
+  CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
+  CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
   CLAUDE_HOOK_SCRIPT,
 };
