@@ -34,6 +34,7 @@ npx tenets init --claude
 npx tenets init --claude        # Claude Code (multi-layer integration)
 npx tenets init --cursor        # writes to .cursorrules
 npx tenets init --copilot       # writes to .github/copilot-instructions.md
+npx tenets init --code-review-agent  # writes a code review agent prompt
 npx tenets init --agents        # writes to AGENTS.md
 ```
 
@@ -42,6 +43,7 @@ npx tenets init --agents        # writes to AGENTS.md
 | `--claude` | Claude Code | Rules, skill, hook, CLAUDE.md snippet (see below) |
 | `--cursor` | Cursor | `.cursorrules` |
 | `--copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
+| `--code-review-agent` | Code review agent | `.tenets/agents/code-review-agent.md` |
 | `--agents` | AGENTS.md | `AGENTS.md` |
 
 Flags are composable — install multiple integrations in one step:
@@ -57,6 +59,38 @@ npx tenets update
 ```
 
 This pulls the latest rules and updates all previously installed files — including the Spec-Kit preset if you installed it. If you're upgrading from an older version, the CLI will detect this and walk you through the migration.
+
+---
+
+## Code Review Agent
+
+Tenets can install a repository-local code review agent prompt:
+
+```bash
+npx tenets init --code-review-agent
+```
+
+This writes `.tenets/agents/code-review-agent.md`, a standalone reviewer contract that a parent agent can load after it writes code. The code review agent is instructed to inspect the diff, classify changed files by architectural layer, check the implementation against the Tenets rulebook, and return feedback in a structured format:
+
+- `pass` when no blocking architecture issues are found
+- `changes_requested` when the parent agent should revise the code
+- `blocked` when required context is missing or the boundary cannot be reviewed responsibly
+
+The generated prompt embeds the full DDD and Hexagonal Architecture rules so it works even when the review runner has no local Tenets CLI available at review time. `npx tenets update` refreshes this agent prompt along with any other installed integrations.
+
+For Claude Code, install it together with the Claude integration:
+
+```bash
+npx tenets init --claude --code-review-agent
+```
+
+This also writes `.claude/agents/code-review-agent.md` and adds a `PostToolUse` agent hook to `.claude/settings.json`. After Claude edits a file with `Edit`, `MultiEdit`, or `Write`, Claude Code runs the Tenets code review verifier and feeds any `changes_requested` feedback back to Claude so it can revise the code before continuing.
+
+To confirm Claude Code can see it:
+
+- Run `/agents` and look for `code-review-agent`
+- Inspect `.claude/settings.json` for a `PostToolUse` hook with `type: "agent"`
+- Start Claude Code with `claude --debug` or `claude --debug-file <path>` and edit a file; the debug log will show the `PostToolUse` hook firing
 
 ---
 

@@ -2,9 +2,19 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
-const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
+const {
+  fetchContent,
+  assembleContent,
+  assembleCodeReviewAgentContent,
+  computeHash,
+  computeClaudeHash,
+} = require('../services/content-fetcher');
 const { writeFile } = require('../services/file-writer');
-const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
+const {
+  writeClaudeIntegration,
+  writeHookSettings,
+  writeCodeReviewAgentHookSettings,
+} = require('../services/claude-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
@@ -13,13 +23,10 @@ const SPECKIT_PRESET_ID = 'tenets-ddd';
 const SPECKIT_PRESET_RELEASE_URL =
   'https://github.com/bardiakhosravi/ai-agent-backend-standards/releases/latest/download/tenets-speckit-preset.zip';
 
-function resolveToolFromFlags(args) {
-  for (const [key, tool] of Object.entries(TOOLS)) {
-    if (args.includes(tool.flag)) {
-      return key;
-    }
-  }
-  return null;
+function resolveToolsFromFlags(args) {
+  return Object.entries(TOOLS)
+    .filter(([, tool]) => args.includes(tool.flag))
+    .map(([key]) => key);
 }
 
 function isCommandAvailable(cmd) {
@@ -193,35 +200,47 @@ async function initCommand(args) {
     if (!hasToolFlag) return;
   }
 
-  let toolKey = resolveToolFromFlags(args);
+  let toolKeys = resolveToolsFromFlags(args);
 
-  if (!toolKey) {
-    toolKey = await promptToolSelection(TOOLS);
+  if (toolKeys.length === 0) {
+    const toolKey = await promptToolSelection(TOOLS);
     if (!toolKey) {
       logger.error('Invalid selection. Aborting.');
       process.exitCode = 1;
       return;
     }
+    toolKeys = [toolKey];
   }
-
-  const tool = TOOLS[toolKey];
 
   const content = await fetchContent();
   const assembled = assembleContent(content);
 
-  if (tool.multiOutput) {
-    const hash = computeClaudeHash(assembled);
-    await initClaudeMultiOutput(args, toolKey, tool, content, hash);
-  } else {
-    const hash = computeHash(assembled);
-    await initSingleFile(toolKey, tool, assembled, hash);
+  const installCodeReviewAgentForClaude =
+    toolKeys.includes('claude') && toolKeys.includes('codeReviewAgent');
+
+  for (const toolKey of toolKeys) {
+    const tool = TOOLS[toolKey];
+
+    if (tool.codeReviewAgent) {
+      const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
+      const hash = computeHash(codeReviewAgentContent);
+      await initSingleFile(toolKey, tool, codeReviewAgentContent, hash);
+    } else if (tool.multiOutput) {
+      const hash = computeClaudeHash(assembled);
+      await initClaudeMultiOutput(args, toolKey, tool, content, hash, {
+        installCodeReviewAgent: installCodeReviewAgentForClaude,
+      });
+    } else {
+      const hash = computeHash(assembled);
+      await initSingleFile(toolKey, tool, assembled, hash);
+    }
   }
 }
 
 /**
  * Claude Code: writes rules files, CLAUDE.md snippet, skill, and optionally hook config.
  */
-async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
+async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options = {}) {
   const projectRoot = process.cwd();
   const rulesDir = path.resolve(projectRoot, '.claude', 'rules');
 
@@ -235,7 +254,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
     }
   }
 
-  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content);
+  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content, options);
 
   if (claudeMdAction === 'appended') {
     logger.info('Appending Tenets block to existing CLAUDE.md.');
@@ -258,6 +277,13 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
     writtenFiles.push(settingsFile);
   }
 
+  if (options.installCodeReviewAgent) {
+    const settingsFile = writeCodeReviewAgentHookSettings(projectRoot);
+    if (!writtenFiles.includes(settingsFile)) {
+      writtenFiles.push(settingsFile);
+    }
+  }
+
   updateToolEntry(toolKey, tool.targetFile, hash, 'multi');
 
   logger.blank();
@@ -275,6 +301,10 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash) {
   if (installHook) {
     logger.dim('  .claude/hooks/...            Continuous monitoring hook');
     logger.dim('  .claude/settings.json        Hook configuration');
+  }
+  if (options.installCodeReviewAgent) {
+    logger.dim('  .claude/agents/code-review-agent.md  Automatic Tenets code review subagent');
+    logger.dim('  .claude/settings.json              PostToolUse agent hook for code review feedback');
   }
   logger.blank();
   logger.info('Usage:');

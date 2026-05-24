@@ -42,6 +42,8 @@ Init options:
   --claude          Claude Code (rules + skill + hook integration)
   --cursor          Write to .cursorrules
   --copilot         Write to .github/copilot-instructions.md
+  --code-review-agent
+                    Write a code review agent prompt
   --agents          Write to AGENTS.md
   --speckit         Install DDD preset into an existing Spec-Kit project
 
@@ -51,6 +53,8 @@ Claude-specific options:
 Examples:
   npx tenets init --claude
   npx tenets init --claude --with-hook
+  npx tenets init --claude --code-review-agent
+  npx tenets init --code-review-agent
   npx tenets init --cursor
   npx tenets init --speckit
   npx tenets init --claude --speckit

@@ -5,8 +5,17 @@ const {
   CLAUDE_RULE_DEFINITIONS,
   CLAUDE_MD_SNIPPET,
   CLAUDE_SKILL_CONTENT,
+  CODE_REVIEW_AGENT_NAME,
+  CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
+  CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
   CLAUDE_HOOK_SCRIPT,
 } = require('../constants');
+
+const CLI_ROOT = path.join(__dirname, '..', '..');
+
+function readCliFile(relativePath) {
+  return fs.readFileSync(path.join(CLI_ROOT, relativePath), 'utf-8');
+}
 
 function ensureDir(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -45,9 +54,11 @@ function buildRuleFile(definition, sections) {
  * 2. CLAUDE.md snippet          — top-level principles (appended/replaced)
  * 3. .claude/skills/tenets-review-architecture/SKILL.md — on-demand review command
  * 4. .claude/hooks/check-architecture.js — continuous monitoring hook
+ * 5. .claude/agents/code-review-agent.md — optional Claude Code subagent
  */
-function writeClaudeIntegration(projectRoot, content) {
+function writeClaudeIntegration(projectRoot, content, options = {}) {
   const { sections } = content;
+  const { installCodeReviewAgent = false } = options;
   const writtenFiles = [];
 
   // --- Layer 1: Rule files ---
@@ -92,6 +103,14 @@ function writeClaudeIntegration(projectRoot, content) {
   const oldSkillDir = path.join(projectRoot, '.claude', 'skills', 'review-architecture');
   if (fs.existsSync(oldSkillDir)) {
     fs.rmSync(oldSkillDir, { recursive: true });
+  }
+
+  if (installCodeReviewAgent) {
+    const agentDir = path.join(projectRoot, '.claude', 'agents');
+    ensureDir(agentDir);
+    const agentPath = path.join(agentDir, `${CODE_REVIEW_AGENT_NAME}.md`);
+    fs.writeFileSync(agentPath, readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE), 'utf-8');
+    writtenFiles.push(`.claude/agents/${CODE_REVIEW_AGENT_NAME}.md`);
   }
 
   // --- Layer 4: Hook script ---
@@ -177,4 +196,48 @@ function writeHookSettings(projectRoot) {
   return '.claude/settings.json';
 }
 
-module.exports = { writeClaudeIntegration, writeHookSettings };
+function writeCodeReviewAgentHookSettings(projectRoot) {
+  const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
+
+  let settings = {};
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    } catch {
+      settings = {};
+    }
+  }
+
+  if (!settings.hooks) {
+    settings.hooks = {};
+  }
+
+  if (!settings.hooks.PostToolUse) {
+    settings.hooks.PostToolUse = [];
+  }
+
+  const tenetsCodeReviewHookExists = settings.hooks.PostToolUse.some((entry) =>
+    entry.hooks?.some((h) => h.type === 'agent' && h.prompt?.includes('Tenets code review agent'))
+  );
+
+  if (!tenetsCodeReviewHookExists) {
+    settings.hooks.PostToolUse.push({
+      matcher: 'Edit|MultiEdit|Write',
+      hooks: [
+        {
+          type: 'agent',
+          prompt: readCliFile(CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE).trim(),
+          timeout: 120,
+          continueOnBlock: true,
+        },
+      ],
+    });
+  }
+
+  ensureDir(path.dirname(settingsPath));
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n', 'utf-8');
+
+  return '.claude/settings.json';
+}
+
+module.exports = { writeClaudeIntegration, writeHookSettings, writeCodeReviewAgentHookSettings };

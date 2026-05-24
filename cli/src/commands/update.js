@@ -3,9 +3,19 @@ const path = require('node:path');
 const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
 const { readConfig, updateToolEntry, updateSpeckitEntry, getSpeckitEntries, needsMigration, markMigrationDeclined, isMigrationDeclined } = require('../services/config-tracker');
-const { fetchContent, assembleContent, computeHash, computeClaudeHash } = require('../services/content-fetcher');
+const {
+  fetchContent,
+  assembleContent,
+  assembleCodeReviewAgentContent,
+  computeHash,
+  computeClaudeHash,
+} = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
-const { writeClaudeIntegration, writeHookSettings } = require('../services/claude-writer');
+const {
+  writeClaudeIntegration,
+  writeHookSettings,
+  writeCodeReviewAgentHookSettings,
+} = require('../services/claude-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
@@ -88,14 +98,16 @@ async function updateCommand() {
 
   const content = await fetchContent();
   const assembled = assembleContent(content);
+  const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
   const baseHash = computeHash(assembled);
+  const codeReviewAgentHash = computeHash(codeReviewAgentContent);
   const claudeHash = computeClaudeHash(assembled);
 
   let updatedCount = 0;
 
   for (const [toolKey, entry] of Object.entries(config.tools)) {
     const tool = TOOLS[toolKey];
-    const newHash = tool?.multiOutput ? claudeHash : baseHash;
+    const newHash = tool?.codeReviewAgent ? codeReviewAgentHash : tool?.multiOutput ? claudeHash : baseHash;
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
@@ -117,9 +129,29 @@ async function updateCommand() {
       continue;
     }
 
-    if (tool?.multiOutput) {
+    if (tool?.codeReviewAgent) {
+      const targetFile = entry.targetFile || tool.targetFile;
+      const targetPath = path.resolve(process.cwd(), targetFile);
+      const replaced = replaceMarkedContent(targetPath, codeReviewAgentContent);
+
+      if (replaced) {
+        logger.success(`${targetFile} — updated (marker replacement).`);
+      } else {
+        writeFile(targetPath, codeReviewAgentContent, entry.mode || 'replace');
+        logger.success(`${targetFile} — updated (full ${entry.mode || 'replace'}).`);
+      }
+    } else if (tool?.multiOutput) {
       const projectRoot = process.cwd();
-      const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content);
+      const installCodeReviewAgent = Boolean(config.tools.codeReviewAgent);
+      const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content, {
+        installCodeReviewAgent,
+      });
+      if (installCodeReviewAgent) {
+        const settingsFile = writeCodeReviewAgentHookSettings(projectRoot);
+        if (!writtenFiles.includes(settingsFile)) {
+          writtenFiles.push(settingsFile);
+        }
+      }
       if (claudeMdAction === 'appended') {
         logger.info('Appending Tenets block to existing CLAUDE.md.');
       }
