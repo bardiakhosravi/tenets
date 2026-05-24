@@ -28,32 +28,38 @@
 - [ ] CHK004 Domain events use past tense and ubiquitous language (no vendor terms)
 - [ ] CHK005 Repository interfaces declared in domain layer (not infrastructure)
 
+## Bounded Context Boundaries
+
+- [ ] CHK006 Cross-context relationships store foreign IDs as local reference value objects or generic ID primitives
+- [ ] CHK007 No bounded context imports another context's domain value objects, entities, aggregates, or repositories
+- [ ] CHK008 Referenced external entities are validated through the owning context's public contract before persistence
+
 ## Application Layer
 
-- [ ] CHK006 Each use case implements exactly one business workflow
-- [ ] CHK007 Use cases contain no business logic (delegated to domain)
-- [ ] CHK008 All external dependencies injected through port interfaces
-- [ ] CHK009 Primary ports defined in `application/ports/primary/`
-- [ ] CHK010 Infrastructure ports defined in `application/ports/secondary/`
+- [ ] CHK009 Each use case implements exactly one business workflow
+- [ ] CHK010 Use cases contain no business logic (delegated to domain)
+- [ ] CHK011 All external dependencies injected through port interfaces
+- [ ] CHK012 Primary ports defined in `application/ports/primary/`
+- [ ] CHK013 Infrastructure ports defined in `application/ports/secondary/`
 
 ## Adapters
 
-- [ ] CHK011 Primary adapters (controllers) contain no business logic
-- [ ] CHK012 API responses use DTOs, not domain entities or persistence models
-- [ ] CHK013 Secondary adapters wrap all infrastructure errors in `AdapterException`
-- [ ] CHK014 DI container is the only place that knows which adapter is active
+- [ ] CHK014 Primary adapters (controllers) contain no business logic
+- [ ] CHK015 API responses use DTOs, not domain entities or persistence models
+- [ ] CHK016 Secondary adapters wrap all infrastructure errors in `AdapterException`
+- [ ] CHK017 DI container is the only place that knows which adapter is active
 
 ## Testing
 
-- [ ] CHK015 BDD tests written BEFORE implementation and verified to fail first
-- [ ] CHK016 Domain logic tested without mocking domain objects
-- [ ] CHK017 Use case tests mock secondary ports, not domain objects
-- [ ] CHK018 Each user story independently testable from acceptance scenarios in spec
+- [ ] CHK018 BDD tests written BEFORE implementation and verified to fail first
+- [ ] CHK019 Domain logic tested without mocking domain objects
+- [ ] CHK020 Use case tests mock secondary ports, not domain objects
+- [ ] CHK021 Each user story independently testable from acceptance scenarios in spec
 
 ## [Category 4]
 
-- [ ] CHK019 [Additional project-specific item]
-- [ ] CHK020 [Additional project-specific item]
+- [ ] CHK022 [Additional project-specific item]
+- [ ] CHK023 [Additional project-specific item]
 
 ## Notes
 

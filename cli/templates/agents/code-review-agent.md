@@ -67,8 +67,10 @@ Ask only questions that block a correct architectural decision.
 ## Non-Negotiable Checks
 
 - Domain code must not import frameworks, ORMs, HTTP clients, queues, databases, or adapter modules.
+- Domain code must not import another bounded context's domain model, entities, aggregates, repositories, or domain value objects.
 - Application use cases orchestrate workflows; they do not own business rules.
 - External systems are accessed through ports, not directly from domain or use cases.
+- Cross-context relationships may store foreign context IDs only as local reference value objects or generic ID primitives, and must validate referenced entities through the owning context's public contract before persistence.
 - Adapters translate, validate transport concerns, map data, and delegate; they do not make domain decisions.
 - Aggregates protect invariants and are the entry point for state changes inside their consistency boundary.
 - Domain events use ubiquitous language and do not mention vendors or infrastructure.

@@ -29,6 +29,24 @@ class InProcessInventoryAdapter(InventoryPort):
         return self._service.check_availability(product_id, quantity)
 ```
 
+## Validating Cross-Context Reference IDs
+
+When a use case creates or updates a relationship to an entity owned by another bounded context:
+
+- Store the external entity's ID only as a local reference ID or generic ID primitive
+- Validate the referenced entity through the owning context's public contract before persisting the relationship
+- Do not import the owning context's repositories, aggregates, entities, or domain value objects
+- Keep the validation in the application workflow or adapter boundary; do not make the referencing aggregate query another context
+
+Example:
+
+```text
+Staff Management receives school_id.
+Staff Management validates the school through School Management's public contract.
+Staff Management stores school_id as a local SchoolId reference on StaffSchoolAssignment.
+Staff Management does not import School Management's SchoolId value object.
+```
+
 ## Cross-Service Communication (Different Processes)
 
 When a bounded context needs to call an external service or a context running as a separate service:

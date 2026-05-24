@@ -64,6 +64,25 @@
 |-------------|---------------|---------|------------|-----------|
 | [e.g., "Publishes enrollment events"] | [e.g., Billing] | [e.g., Published Language] | [e.g., ChildEnrolled event] | [Upstream/Downstream] |
 
+### Cross-Context References
+
+<!--
+  Fill this in when this feature stores an ID that points to an entity owned by
+  another bounded context. These are cross-context reference IDs.
+
+  Rule:
+  - The referencing context may store the external ID as a local reference value
+    object or generic ID primitive.
+  - The referencing context MUST NOT import the owning context's domain value
+    object just to reuse an ID type.
+  - The referenced entity must be validated through the owning context's public
+    contract before the relationship is persisted.
+-->
+
+| Referencing Context | Local Relationship | Referenced Entity | Owning Context | Validation Contract |
+|---------------------|--------------------|-------------------|----------------|---------------------|
+| [e.g., Staff Management] | [e.g., StaffSchoolAssignment.school_id] | [e.g., School] | [e.g., School Management] | [e.g., SchoolAssignmentTargetPort] |
+
 ## User Scenarios & Testing *(mandatory)*
 
 <!--

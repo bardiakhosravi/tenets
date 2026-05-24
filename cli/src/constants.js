@@ -29,6 +29,7 @@ const CONTENT_SECTIONS = [
       { path: 'context/domain/06-domain-events.md', title: 'Domain Events' },
       { path: 'context/domain/07-bounded-contexts.md', title: 'Bounded Contexts' },
       { path: 'context/domain/08-ubiquitous-language.md', title: 'Ubiquitous Language' },
+      { path: 'context/domain/09-bounded-context-boundary-rules.md', title: 'Bounded Context Boundary Rules' },
     ],
   },
   {
@@ -176,8 +177,10 @@ For each file, verify:
 
 ### Domain layer (\`**/domain/**\`)
 - No imports from application, infrastructure, or adapter layers
+- No imports from another bounded context's domain model or domain value objects
 - Entities use identity-based equality, not attribute-based
 - Value objects are immutable
+- Cross-context IDs are local reference value objects or generic ID primitives, not reused owner-context types
 - Aggregates enforce invariants — no logic leaking to use cases or repositories
 - Repository interfaces are abstract (ABC) and use domain language
 - Domain events are immutable and use ubiquitous language only (no vendor/tech names)
@@ -187,6 +190,7 @@ For each file, verify:
 - Each use case handles exactly one business workflow
 - Use cases depend on port interfaces, never on concrete adapters
 - Primary ports define the application boundary
+- Cross-context reference IDs are validated through the owning context's public contract before persistence
 
 ### Infrastructure/Adapter layer (\`**/infrastructure/**\`, \`**/adapters/**\`)
 - Secondary adapters implement port interfaces from domain/application layers

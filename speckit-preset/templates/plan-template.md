@@ -38,6 +38,10 @@
   - No business logic leaks into adapters or use cases
   - Aggregates are the only mutation entry points within their boundary
   - New bounded context relationships are explicit and documented in spec.md
+  - Cross-context reference IDs use local reference value objects or generic ID
+    primitives, not imported owner-context domain types
+  - Referenced external entities are validated through the owning context's
+    public contract before relationships are persisted
   Document any justified violations in the Complexity Tracking table below.
 -->
 
@@ -48,6 +52,7 @@
 | Use cases contain no business logic | [ ] Pass / [ ] Violation | |
 | Aggregates own their mutations | [ ] Pass / [ ] Violation | |
 | Bounded context relationships documented | [ ] Pass / [ ] Violation | |
+| Cross-context reference IDs preserve ownership boundaries | [ ] Pass / [ ] Violation | |
 
 ## Project Structure
 

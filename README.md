@@ -185,13 +185,13 @@ Or skip and add it later by re-running `init`.
 
 ## What's Inside
 
-30 rule files organized into four sections:
+31 rule files organized into four sections:
 
 ### Architecture (9 files)
 Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries.
 
-### Domain (8 files)
-Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language.
+### Domain (9 files)
+Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules.
 
 ### Application (4 files)
 Use cases, DDD + hexagonal synergy, event integration, cross-context communication.
