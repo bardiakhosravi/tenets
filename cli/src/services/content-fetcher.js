@@ -160,10 +160,16 @@ function computeClaudeHash(assembled) {
   return computeHash(combined);
 }
 
+function computeAugmentHash(assembled) {
+  const { AUGMENT_RULE_DEFINITIONS } = require('../constants');
+  return computeHash(`${assembled}\n---AUGMENT_RULES---\n${JSON.stringify(AUGMENT_RULE_DEFINITIONS)}`);
+}
+
 module.exports = {
   fetchContent,
   assembleContent,
   assembleCodeReviewAgentContent,
   computeHash,
   computeClaudeHash,
+  computeAugmentHash,
 };

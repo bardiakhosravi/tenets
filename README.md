@@ -6,7 +6,7 @@ The tenets of writing quality backend code -- starting with Hexagonal Architectu
 
 ## Why This Exists
 
-AI coding agents like Claude Code, Cursor, and GitHub Copilot can generate incredible amounts of code quickly. But **code quality still matters**. We're not at the point where we can be completely hands-off -- we constantly review, iterate, and guide these tools toward better implementations.
+AI coding agents like Claude Code, Cursor, Augment, and GitHub Copilot can generate incredible amounts of code quickly. But **code quality still matters**. We're not at the point where we can be completely hands-off -- we constantly review, iterate, and guide these tools toward better implementations.
 
 For effective code review and collaboration with AI agents, we need **predictable design patterns**. This is even more crucial with AI-generated code since these tools can produce entire features at once, making architectural consistency vital for maintainability.
 
@@ -33,6 +33,7 @@ npx tenets init --claude
 ```bash
 npx tenets init --claude        # Claude Code (multi-layer integration)
 npx tenets init --cursor        # writes to .cursorrules
+npx tenets init --augment       # writes context-aware rules to .augment/rules/
 npx tenets init --copilot       # writes to .github/copilot-instructions.md
 npx tenets init --code-review-agent  # writes a code review agent prompt
 npx tenets init --agents        # writes to AGENTS.md
@@ -42,6 +43,7 @@ npx tenets init --agents        # writes to AGENTS.md
 |------|------|----------------|
 | `--claude` | Claude Code | Rules, skill, hook, CLAUDE.md snippet (see below) |
 | `--cursor` | Cursor | `.cursorrules` |
+| `--augment` | Augment | `.augment/rules/tenets-*.md` |
 | `--copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
 | `--code-review-agent` | Code review agent | `.tenets/agents/code-review-agent.md` |
 | `--agents` | AGENTS.md | `AGENTS.md` |
@@ -51,6 +53,11 @@ Flags are composable — install multiple integrations in one step:
 ```bash
 npx tenets init --claude --speckit
 ```
+
+Augment receives four repository-local rules. Global rules always apply, while
+architecture, domain, and application rules are loaded by Augment when relevant.
+Re-running `npx tenets init --augment` can replace an existing generated Tenets
+rule set; `npx tenets update` refreshes it alongside every other installed integration.
 
 ### Keeping Up to Date
 
@@ -185,7 +192,7 @@ Or skip and add it later by re-running `init`.
 
 ## What's Inside
 
-31 rule files organized into four sections:
+32 rule files organized into four sections:
 
 ### Architecture (9 files)
 Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries.
@@ -193,8 +200,8 @@ Hexagonal primer, components, ports, primary adapters, secondary adapters, adapt
 ### Domain (9 files)
 Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules.
 
-### Application (4 files)
-Use cases, DDD + hexagonal synergy, event integration, cross-context communication.
+### Application (5 files)
+Use cases, DDD + hexagonal synergy, event integration, cross-context communication, secondary port data flow.
 
 ### Global (8 files)
 Project structure, cross-cutting concerns, validation and error handling, naming conventions, dependency rules, testing, async idempotency, architecture decision records.

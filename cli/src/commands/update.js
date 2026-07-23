@@ -9,6 +9,7 @@ const {
   assembleCodeReviewAgentContent,
   computeHash,
   computeClaudeHash,
+  computeAugmentHash,
 } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
 const {
@@ -16,6 +17,7 @@ const {
   writeHookSettings,
   writeCodeReviewAgentHookSettings,
 } = require('../services/claude-writer');
+const { writeAugmentIntegration } = require('../services/augment-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
@@ -102,12 +104,19 @@ async function updateCommand() {
   const baseHash = computeHash(assembled);
   const codeReviewAgentHash = computeHash(codeReviewAgentContent);
   const claudeHash = computeClaudeHash(assembled);
+  const augmentHash = computeAugmentHash(assembled);
 
   let updatedCount = 0;
 
   for (const [toolKey, entry] of Object.entries(config.tools)) {
     const tool = TOOLS[toolKey];
-    const newHash = tool?.codeReviewAgent ? codeReviewAgentHash : tool?.multiOutput ? claudeHash : baseHash;
+    const newHash = tool?.codeReviewAgent
+      ? codeReviewAgentHash
+      : tool?.multiOutput
+        ? claudeHash
+        : tool?.augmentMultiOutput
+          ? augmentHash
+          : baseHash;
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
@@ -156,6 +165,12 @@ async function updateCommand() {
         logger.info('Appending Tenets block to existing CLAUDE.md.');
       }
       logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
+      for (const file of writtenFiles) {
+        logger.dim(`  ${file}`);
+      }
+    } else if (tool?.augmentMultiOutput) {
+      const writtenFiles = writeAugmentIntegration(process.cwd(), content);
+      logger.success(`${toolKey} — updated ${writtenFiles.length} rules.`);
       for (const file of writtenFiles) {
         logger.dim(`  ${file}`);
       }

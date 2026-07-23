@@ -8,6 +8,7 @@ const {
   assembleCodeReviewAgentContent,
   computeHash,
   computeClaudeHash,
+  computeAugmentHash,
 } = require('../services/content-fetcher');
 const { writeFile } = require('../services/file-writer');
 const {
@@ -15,6 +16,10 @@ const {
   writeHookSettings,
   writeCodeReviewAgentHookSettings,
 } = require('../services/claude-writer');
+const {
+  writeAugmentIntegration,
+  augmentRulesExist,
+} = require('../services/augment-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
@@ -230,11 +235,44 @@ async function initCommand(args) {
       await initClaudeMultiOutput(args, toolKey, tool, content, hash, {
         installCodeReviewAgent: installCodeReviewAgentForClaude,
       });
+    } else if (tool.augmentMultiOutput) {
+      await initAugmentMultiOutput(
+        toolKey,
+        tool,
+        content,
+        computeAugmentHash(assembled)
+      );
     } else {
       const hash = computeHash(assembled);
       await initSingleFile(toolKey, tool, assembled, hash);
     }
   }
+}
+
+async function initAugmentMultiOutput(toolKey, tool, content, hash) {
+  const projectRoot = process.cwd();
+
+  if (augmentRulesExist(projectRoot)) {
+    const overwrite = await promptYesNo(
+      'Tenets Augment rules already exist. Update the generated rules?'
+    );
+    if (!overwrite) {
+      logger.info('Cancelled.');
+      return;
+    }
+  }
+
+  const writtenFiles = writeAugmentIntegration(projectRoot, content);
+  updateToolEntry(toolKey, tool.targetFile, hash, 'augment-multi');
+
+  logger.blank();
+  logger.success('Augment integration installed!');
+  logger.info(`${writtenFiles.length} rules written:`);
+  for (const file of writtenFiles) {
+    logger.dim(`  ${file}`);
+  }
+  logger.dim('  Global rules always apply; layer rules load when relevant.');
+  logger.dim('  Run `npx tenets update` to update rules later.');
 }
 
 /**
@@ -314,7 +352,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
 }
 
 /**
- * Other tools (Cursor, Copilot, AGENTS.md): single assembled file.
+ * Single-file tools (Cursor, Copilot, AGENTS.md): one assembled rule file.
  */
 async function initSingleFile(toolKey, tool, assembled, hash) {
   const targetPath = path.resolve(process.cwd(), tool.targetFile);

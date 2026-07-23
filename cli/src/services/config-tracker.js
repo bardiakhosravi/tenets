@@ -7,7 +7,7 @@ const { logger } = require('../ui/logger');
  * Schema version tracks the config format.
  *   v1 (0.1.x): single assembled file per tool (CLAUDE.md, .cursorrules, etc.)
  *   v2 (0.2.x): claude gets multi-output (rules/ + skill + hook + CLAUDE.md snippet),
- *               other tools unchanged.
+ *               augment uses repository-local rules, and other tools remain single-file.
  */
 const SCHEMA_VERSION = 2;
 

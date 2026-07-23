@@ -213,6 +213,56 @@ class ChangeUserEmailUseCase:
             self._user_repository.save(user)
 ```
 
+### 9A. Secondary Port Data Flow Rules
+- Use cases orchestrate workflows, repositories retrieve domain models, and secondary ports execute outbound capabilities.
+- Repositories are dependencies of use cases, not dependencies of secondary ports.
+- Secondary ports MUST NOT receive repository instances.
+- Secondary port implementations MUST NOT call repositories internally.
+- Use cases MUST load all domain objects required to complete the workflow before invoking a secondary port.
+- If a secondary port needs more data, add that data to the port contract and have the use case supply it.
+- Secondary ports should receive rich domain objects when the outbound capability requires domain state.
+- Do not pass persistence entities, ORM models, database records, query result rows, or adapter-specific DTOs into secondary ports.
+- Do not pass primitive IDs when the full domain object is already required by the outbound capability. Passing an ID is allowed only when identity is truly all the capability needs.
+- A secondary port should perform one outbound business capability only, such as sending an email, publishing a domain event, generating a PDF, uploading a document, calling an external API, or sending an SMS.
+- Fetching domain objects is not part of a secondary port's responsibility.
+- Secondary ports should not orchestrate multi-step application workflows.
+- Secondary ports must remain persistence-agnostic and have no knowledge of repositories, SQL, ORMs, database schemas, or persistence models.
+
+```python
+# Good: the use case loads required domain objects, then invokes the port.
+class SendInvoiceUseCase:
+    def __init__(
+        self,
+        customer_repository: CustomerRepository,
+        invoice_repository: InvoiceRepository,
+        email_port: InvoiceEmailPort,
+    ):
+        self._customer_repository = customer_repository
+        self._invoice_repository = invoice_repository
+        self._email_port = email_port
+
+    def execute(self, command: SendInvoiceCommand) -> None:
+        customer = self._customer_repository.find_by_id(command.customer_id)
+        if customer is None:
+            raise CustomerNotFoundError(command.customer_id)
+
+        invoice = self._invoice_repository.find_by_id(command.invoice_id)
+        if invoice is None:
+            raise InvoiceNotFoundError(command.invoice_id)
+
+        self._email_port.send_invoice(customer, invoice)
+
+# Bad: the adapter hides persistence access behind the outbound capability.
+class SmtpInvoiceEmailAdapter(InvoiceEmailPort):
+    def __init__(self, customer_repository: CustomerRepository, smtp_client: SmtpClient):
+        self._customer_repository = customer_repository
+        self._smtp_client = smtp_client
+
+    def send_invoice(self, customer_id: CustomerId, invoice: Invoice) -> None:
+        customer = self._customer_repository.find_by_id(customer_id)
+        # ...
+```
+
 ## Ports & Adapters (Hexagonal Architecture) Rules
 
 ### 10. Port Definition Rules

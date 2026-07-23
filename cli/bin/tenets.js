@@ -41,6 +41,7 @@ Commands:
 Init options:
   --claude          Claude Code (rules + skill + hook integration)
   --cursor          Write to .cursorrules
+  --augment         Write context-aware rules to .augment/rules/
   --copilot         Write to .github/copilot-instructions.md
   --code-review-agent
                     Write a code review agent prompt
@@ -56,6 +57,7 @@ Examples:
   npx tenets init --claude --code-review-agent
   npx tenets init --code-review-agent
   npx tenets init --cursor
+  npx tenets init --augment
   npx tenets init --speckit
   npx tenets init --claude --speckit
   npx tenets update`);

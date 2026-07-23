@@ -39,6 +39,7 @@ const CONTENT_SECTIONS = [
       { path: 'context/application/02-synergy-rules.md', title: 'DDD + Hexagonal Synergy' },
       { path: 'context/application/03-event-integration.md', title: 'Event Integration' },
       { path: 'context/application/04-cross-context-communication.md', title: 'Cross-Context Communication' },
+      { path: 'context/application/05-secondary-port-data-flow.md', title: 'Secondary Port Data Flow' },
     ],
   },
   {
@@ -67,6 +68,12 @@ const TOOLS = {
     name: 'Cursor',
     flag: '--cursor',
     targetFile: '.cursorrules',
+  },
+  augment: {
+    name: 'Augment',
+    flag: '--augment',
+    targetFile: '.augment/rules/tenets-*.md',
+    augmentMultiOutput: true,
   },
   copilot: {
     name: 'GitHub Copilot',
@@ -106,7 +113,7 @@ const CLAUDE_RULE_DEFINITIONS = [
   },
   {
     fileName: 'tenets-application.md',
-    description: 'Application layer rules: use cases, DDD+hexagonal synergy, event integration, cross-context communication',
+    description: 'Application layer rules: use cases, DDD+hexagonal synergy, event integration, cross-context communication, secondary port data flow',
     globs: '**/application/**,**/use_cases/**,**/handlers/**',
     contentSection: 'Application',
   },
@@ -124,6 +131,34 @@ const CLAUDE_RULE_DEFINITIONS = [
   },
 ];
 
+const AUGMENT_RULE_DEFINITIONS = [
+  {
+    fileName: 'tenets-global.md',
+    type: 'always_apply',
+    description: 'Core Tenets project structure, dependency, testing, naming, validation, and error-handling rules',
+    contentSection: 'Global',
+    includeIntroduction: true,
+  },
+  {
+    fileName: 'tenets-architecture.md',
+    type: 'agent_requested',
+    description: 'Apply when designing or changing ports, adapters, infrastructure, APIs, or hexagonal architecture boundaries',
+    contentSection: 'Architecture',
+  },
+  {
+    fileName: 'tenets-domain.md',
+    type: 'agent_requested',
+    description: 'Apply when designing or changing entities, value objects, aggregates, repositories, domain services, events, or bounded contexts',
+    contentSection: 'Domain',
+  },
+  {
+    fileName: 'tenets-application.md',
+    type: 'agent_requested',
+    description: 'Apply when designing or changing use cases, application services, orchestration, cross-context communication, or secondary port data flow',
+    contentSection: 'Application',
+  },
+];
+
 const CLAUDE_MD_SNIPPET = `${MARKERS.start}
 ## Architecture: Hexagonal + DDD (via tenets)
 
@@ -136,6 +171,7 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **All infrastructure access goes through ports** (abstract interfaces).
 - **Aggregates are the only entry point** for state mutations within their boundary.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
+- **Use cases load domain objects before calling secondary ports** — ports receive domain models, never repositories.
 - **Primary adapters translate** external requests to domain commands; they contain NO business logic.
 - **Secondary adapters implement ports** — they handle all external system complexity.
 - **Domain events use ubiquitous language only** — no vendor or technology names.
@@ -190,11 +226,14 @@ For each file, verify:
 - Each use case handles exactly one business workflow
 - Use cases depend on port interfaces, never on concrete adapters
 - Primary ports define the application boundary
+- Use cases load required aggregates/entities before invoking secondary ports
+- Secondary ports receive domain models or application-owned contract values, never repositories, ORM models, database records, or adapter DTOs
 - Cross-context reference IDs are validated through the owning context's public contract before persistence
 
 ### Infrastructure/Adapter layer (\`**/infrastructure/**\`, \`**/adapters/**\`)
 - Secondary adapters implement port interfaces from domain/application layers
 - Adapters handle all external system complexity (mapping, retries, errors)
+- Secondary adapters do not call repositories or perform additional domain-object loading
 - No domain logic in adapters
 - Technology-specific models stay within their adapter directories
 - Primary adapters (controllers) are thin — translate and delegate only
@@ -239,9 +278,9 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
 
 const LAYER_RULES = {
   domain: 'Domain layer: no external deps, entities have identity equality, VOs are immutable, aggregates enforce invariants.',
-  application: 'Application layer: use cases orchestrate only — no business logic. Depend on ports, never adapters.',
-  adapters: 'Adapter layer: implement port interfaces, handle external complexity, no domain logic.',
-  infrastructure: 'Infrastructure layer: implement port interfaces, keep tech-specific models here.',
+  application: 'Application layer: use cases orchestrate only, load required domain objects before secondary ports, and depend on ports, never adapters.',
+  adapters: 'Adapter layer: implement port interfaces, handle external complexity, no domain logic, no hidden repository loading.',
+  infrastructure: 'Infrastructure layer: implement port interfaces, keep tech-specific models here, no repository access hidden inside outbound adapters.',
 };
 
 let input = '';
@@ -274,6 +313,7 @@ module.exports = {
   CONFIG_FILE,
   MARKERS,
   CLAUDE_RULE_DEFINITIONS,
+  AUGMENT_RULE_DEFINITIONS,
   CLAUDE_MD_SNIPPET,
   CLAUDE_SKILL_CONTENT,
   CODE_REVIEW_AGENT_NAME,
