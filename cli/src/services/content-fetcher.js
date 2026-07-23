@@ -142,18 +142,18 @@ function computeHash(content) {
 function computeClaudeHash(assembled) {
   const {
     CLAUDE_MD_SNIPPET,
-    CLAUDE_SKILL_CONTENT,
     CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
     CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
     CLAUDE_HOOK_SCRIPT,
   } = require('../constants');
+  const { buildReviewCommand } = require('./review-command-writer');
   const codeReviewAgentTemplate = readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE);
   const codeReviewHookPromptTemplate = readCliFile(CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE);
   const combined =
     assembled +
     '\n---CLI_TEMPLATES---\n' +
     CLAUDE_MD_SNIPPET +
-    CLAUDE_SKILL_CONTENT +
+    buildReviewCommand('claude') +
     codeReviewAgentTemplate +
     codeReviewHookPromptTemplate +
     CLAUDE_HOOK_SCRIPT;
@@ -162,7 +162,18 @@ function computeClaudeHash(assembled) {
 
 function computeAugmentHash(assembled) {
   const { AUGMENT_RULE_DEFINITIONS } = require('../constants');
-  return computeHash(`${assembled}\n---AUGMENT_RULES---\n${JSON.stringify(AUGMENT_RULE_DEFINITIONS)}`);
+  const { buildReviewCommand } = require('./review-command-writer');
+  return computeHash(
+    `${assembled}\n---AUGMENT_RULES---\n${JSON.stringify(AUGMENT_RULE_DEFINITIONS)}` +
+    `\n---AUGMENT_COMMAND---\n${buildReviewCommand('augment')}`
+  );
+}
+
+function computeReviewCommandHash(assembled, toolKey) {
+  const { buildReviewCommand } = require('./review-command-writer');
+  return computeHash(
+    `${assembled}\n---REVIEW_COMMAND:${toolKey}---\n${buildReviewCommand(toolKey)}`
+  );
 }
 
 module.exports = {
@@ -172,4 +183,5 @@ module.exports = {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeReviewCommandHash,
 };

@@ -32,9 +32,9 @@ npx tenets init --claude
 
 ```bash
 npx tenets init --claude        # Claude Code (multi-layer integration)
-npx tenets init --cursor        # writes to .cursorrules
-npx tenets init --augment       # writes context-aware rules to .augment/rules/
-npx tenets init --copilot       # writes to .github/copilot-instructions.md
+npx tenets init --cursor        # rules + /tenets-review-architecture
+npx tenets init --augment       # rules + /tenets-review-architecture
+npx tenets init --copilot       # rules + /tenets-review-architecture
 npx tenets init --code-review-agent  # writes a code review agent prompt
 npx tenets init --agents        # writes to AGENTS.md
 ```
@@ -42,11 +42,11 @@ npx tenets init --agents        # writes to AGENTS.md
 | Flag | Tool | What it writes |
 |------|------|----------------|
 | `--claude` | Claude Code | Rules, skill, hook, CLAUDE.md snippet (see below) |
-| `--cursor` | Cursor | `.cursorrules` |
-| `--augment` | Augment | `.augment/rules/tenets-*.md` |
-| `--copilot` | GitHub Copilot | `.github/copilot-instructions.md` |
+| `--cursor` | Cursor | `.cursorrules`, `.cursor/commands/tenets-review-architecture.md` |
+| `--augment` | Augment | `.augment/rules/tenets-*.md`, `.augment/commands/tenets-review-architecture.md` |
+| `--copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/tenets-review-architecture.prompt.md` |
 | `--code-review-agent` | Code review agent | `.tenets/agents/code-review-agent.md` |
-| `--agents` | AGENTS.md | `AGENTS.md` |
+| `--agents` | AGENTS.md | `AGENTS.md`, `.tenets/prompts/tenets-review-architecture.md` |
 
 Flags are composable — install multiple integrations in one step:
 
@@ -54,10 +54,28 @@ Flags are composable — install multiple integrations in one step:
 npx tenets init --claude --speckit
 ```
 
-Augment receives four repository-local rules. Global rules always apply, while
-architecture, domain, and application rules are loaded by Augment when relevant.
+Augment receives four repository-local rules and an architecture review command.
+Global rules always apply, while architecture, domain, and application rules are
+loaded by Augment when relevant.
 Re-running `npx tenets init --augment` can replace an existing generated Tenets
 rule set; `npx tenets update` refreshes it alongside every other installed integration.
+
+### Architecture Review Command
+
+Every supported coding-agent integration includes the same architecture review
+workflow in its native format:
+
+| Tool | Command file |
+|------|--------------|
+| Claude Code | `.claude/skills/tenets-review-architecture/TENETS-SKILL.md` |
+| Augment | `.augment/commands/tenets-review-architecture.md` |
+| Cursor | `.cursor/commands/tenets-review-architecture.md` |
+| GitHub Copilot | `.github/prompts/tenets-review-architecture.prompt.md` |
+| Generic agents | `.tenets/prompts/tenets-review-architecture.md` |
+
+Invoke `/tenets-review-architecture` in tools with slash-command support. The
+generic prompt can be loaded directly by any agent that follows `AGENTS.md`.
+All variants share one review checklist and are refreshed by `npx tenets update`.
 
 ### Keeping Up to Date
 

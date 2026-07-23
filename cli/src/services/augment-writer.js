@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { AUGMENT_RULE_DEFINITIONS, MARKERS } = require('../constants');
+const { writeReviewCommand } = require('./review-command-writer');
 
 function buildAugmentRuleFile(definition, content) {
   const section = content.sections.find(
@@ -39,6 +40,8 @@ function writeAugmentIntegration(projectRoot, content) {
     fs.writeFileSync(rulePath, buildAugmentRuleFile(definition, content), 'utf-8');
     writtenFiles.push(`.augment/rules/${definition.fileName}`);
   }
+
+  writtenFiles.push(writeReviewCommand(projectRoot, 'augment'));
 
   return writtenFiles;
 }

@@ -9,6 +9,7 @@ const {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeReviewCommandHash,
 } = require('../services/content-fetcher');
 const { writeFile } = require('../services/file-writer');
 const {
@@ -20,6 +21,7 @@ const {
   writeAugmentIntegration,
   augmentRulesExist,
 } = require('../services/augment-writer');
+const { writeReviewCommand } = require('../services/review-command-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
@@ -243,7 +245,9 @@ async function initCommand(args) {
         computeAugmentHash(assembled)
       );
     } else {
-      const hash = computeHash(assembled);
+      const hash = tool.reviewCommand
+        ? computeReviewCommandHash(assembled, toolKey)
+        : computeHash(assembled);
       await initSingleFile(toolKey, tool, assembled, hash);
     }
   }
@@ -267,11 +271,12 @@ async function initAugmentMultiOutput(toolKey, tool, content, hash) {
 
   logger.blank();
   logger.success('Augment integration installed!');
-  logger.info(`${writtenFiles.length} rules written:`);
+  logger.info(`${writtenFiles.length} files written:`);
   for (const file of writtenFiles) {
     logger.dim(`  ${file}`);
   }
   logger.dim('  Global rules always apply; layer rules load when relevant.');
+  logger.dim('  Run /tenets-review-architecture for a compliance review.');
   logger.dim('  Run `npx tenets update` to update rules later.');
 }
 
@@ -367,12 +372,18 @@ async function initSingleFile(toolKey, tool, assembled, hash) {
   }
 
   writeFile(targetPath, assembled, mode);
+  const commandFile = tool.reviewCommand
+    ? writeReviewCommand(process.cwd(), toolKey)
+    : null;
   updateToolEntry(toolKey, tool.targetFile, hash, mode);
 
   logger.blank();
   logger.success(`Rules installed to ${tool.targetFile}`);
   logger.dim(`  Tool: ${tool.name}`);
   logger.dim(`  Mode: ${mode}`);
+  if (commandFile) {
+    logger.dim(`  Review command: ${commandFile}`);
+  }
   logger.dim(`  Run \`npx tenets update\` to update later.`);
 }
 

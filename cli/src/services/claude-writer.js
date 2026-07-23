@@ -4,12 +4,12 @@ const {
   MARKERS,
   CLAUDE_RULE_DEFINITIONS,
   CLAUDE_MD_SNIPPET,
-  CLAUDE_SKILL_CONTENT,
   CODE_REVIEW_AGENT_NAME,
   CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
   CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
   CLAUDE_HOOK_SCRIPT,
 } = require('../constants');
+const { writeReviewCommand } = require('./review-command-writer');
 
 const CLI_ROOT = path.join(__dirname, '..', '..');
 
@@ -87,11 +87,9 @@ function writeClaudeIntegration(projectRoot, content, options = {}) {
   writtenFiles.push('CLAUDE.md');
 
   // --- Layer 3: Skill file ---
+  const skillFile = writeReviewCommand(projectRoot, 'claude');
+  writtenFiles.push(skillFile);
   const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
-  ensureDir(skillDir);
-  const skillPath = path.join(skillDir, 'TENETS-SKILL.md');
-  fs.writeFileSync(skillPath, CLAUDE_SKILL_CONTENT, 'utf-8');
-  writtenFiles.push('.claude/skills/tenets-review-architecture/TENETS-SKILL.md');
 
   // Clean up old skill files from pre-0.6.0 installs (renamed from SKILL.md to TENETS-SKILL.md)
   const oldSkillPath = path.join(skillDir, 'SKILL.md');

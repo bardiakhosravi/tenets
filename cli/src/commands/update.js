@@ -10,6 +10,7 @@ const {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeReviewCommandHash,
 } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
 const {
@@ -18,6 +19,10 @@ const {
   writeCodeReviewAgentHookSettings,
 } = require('../services/claude-writer');
 const { writeAugmentIntegration } = require('../services/augment-writer');
+const {
+  writeReviewCommand,
+  reviewCommandExists,
+} = require('../services/review-command-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
@@ -116,7 +121,9 @@ async function updateCommand() {
         ? claudeHash
         : tool?.augmentMultiOutput
           ? augmentHash
-          : baseHash;
+          : tool?.reviewCommand
+            ? computeReviewCommandHash(assembled, toolKey)
+            : baseHash;
 
     // --- Migration check: v1 single-file -> v2 multi-output ---
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
@@ -133,7 +140,9 @@ async function updateCommand() {
       continue;
     }
 
-    if (entry.contentHash === newHash) {
+    const commandMissing =
+      tool?.reviewCommand && !reviewCommandExists(process.cwd(), toolKey);
+    if (entry.contentHash === newHash && !commandMissing) {
       logger.success(`${toolKey} — already up to date.`);
       continue;
     }
@@ -170,7 +179,7 @@ async function updateCommand() {
       }
     } else if (tool?.augmentMultiOutput) {
       const writtenFiles = writeAugmentIntegration(process.cwd(), content);
-      logger.success(`${toolKey} — updated ${writtenFiles.length} rules.`);
+      logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
       for (const file of writtenFiles) {
         logger.dim(`  ${file}`);
       }
@@ -183,6 +192,11 @@ async function updateCommand() {
       } else {
         writeFile(targetPath, assembled, entry.mode || 'replace');
         logger.success(`${entry.targetFile} — updated (full ${entry.mode || 'replace'}).`);
+      }
+
+      if (tool?.reviewCommand) {
+        const commandFile = writeReviewCommand(process.cwd(), toolKey);
+        logger.dim(`  ${commandFile}`);
       }
     }
 

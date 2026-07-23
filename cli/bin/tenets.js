@@ -40,12 +40,12 @@ Commands:
 
 Init options:
   --claude          Claude Code (rules + skill + hook integration)
-  --cursor          Write to .cursorrules
-  --augment         Write context-aware rules to .augment/rules/
-  --copilot         Write to .github/copilot-instructions.md
+  --cursor          Write rules and a review command for Cursor
+  --augment         Write rules and a review command for Augment
+  --copilot         Write rules and a review prompt for Copilot
   --code-review-agent
                     Write a code review agent prompt
-  --agents          Write to AGENTS.md
+  --agents          Write AGENTS.md and a generic review prompt
   --speckit         Install DDD preset into an existing Spec-Kit project
 
 Claude-specific options:
