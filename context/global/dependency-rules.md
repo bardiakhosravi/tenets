@@ -27,7 +27,7 @@ class UserDomainService:  # Domain service
         self._user_repo = user_repo
 
     def is_email_unique(self, email: Email) -> bool:
-        existing_user = self._user_repo.find_by_email(email)
+        existing_user = self._user_repo.get_by_email(email)
         return existing_user is None
 
 # Application layer - depends on domain + infrastructure ports

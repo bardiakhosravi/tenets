@@ -39,6 +39,10 @@ class SchoolId:
     but School Management remains the source of truth for the school.
     """
     value: UUID
+
+
+def create_school_id(raw_value: str) -> SchoolId:
+    return SchoolId(value=UUID(raw_value))
 ```
 
 Staff Management may use this value object inside its own aggregate:
@@ -71,7 +75,7 @@ Even though `SchoolId` looks simple, importing it from School Management's domai
 Prefer this:
 
 - Staff Management defines its own local `SchoolId` reference value object.
-- Or Staff Management uses a generic ID primitive if the project already has one.
+- Staff Management unwraps `SchoolId` to a primitive only when mapping to persistence or an external transport contract.
 
 Do not put domain-specific IDs such as `SchoolId`, `RoomId`, `StaffId`, or `ChildId` in shared just because multiple contexts mention them.
 
@@ -115,7 +119,7 @@ Child Management:
 
 IAM:
 
-- May store `scope_type = "school"` and `scope_id = school_id`.
+- May model the reference with local `ScopeType` and `ScopeId` value objects, then serialize their values for persistence or transport.
 - Does not own `School`.
 
 ## Final Rule

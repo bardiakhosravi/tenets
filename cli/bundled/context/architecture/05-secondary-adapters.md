@@ -7,6 +7,7 @@
 - Include error handling and retry logic when appropriate
 - Keep technology-specific models/schemas within their adapter implementations
 - Repository adapters hydrate existing domain objects through constructors with explicit persisted state; they never call domain creation functions
+- Public adapter methods implement semantic port contracts; primitives belong only in external payloads, persistence mapping, configuration, and private helpers
 
 ```python
 # SQL Database Adapter - infrastructure/adapters/secondary/sql/sql_user_repository.py
@@ -23,7 +24,7 @@ class SqlUserRepository(UserRepository):
         )
         self._session.merge(user_model)
 
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         model = self._session.query(UserModel).filter_by(email=email.value).first()
         return self._to_domain(model) if model else None
 
@@ -40,11 +41,11 @@ class HttpEmailNotificationAdapter(EmailNotificationPort):
         self._http_client = http_client
         self._api_config = api_config
 
-    def send_welcome_email(self, user_email: Email, user_name: str) -> None:
+    def send_welcome_email(self, message: WelcomeEmail) -> None:
         payload = {
-            'to': user_email.value,
+            'to': message.recipient.value,
             'template': 'welcome',
-            'variables': {'name': user_name}
+            'variables': {'name': message.display_name}
         }
         response = self._http_client.post(
             f"{self._api_config.base_url}/send",

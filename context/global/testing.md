@@ -10,6 +10,8 @@
 - Test that creation functions receive and establish all required initial state without immediate follow-up mutation
 - **Contract Testing**: Ensure all adapter implementations satisfy their port contracts
 - **Use Case Testing**: Test each use case independently with mocked dependencies
+- Assert use cases pass domain IDs, value objects, named criteria, aggregates, or capability contracts to mocked repositories and secondary ports rather than raw semantic primitives
+- Repository contract tests should run against multiple adapter implementations so implementation-oriented callables, dictionaries, or ORM expressions cannot leak into the contract
 
 ```python
 # Contract test for all UserRepository implementations
@@ -18,7 +20,7 @@ class UserRepositoryContractTest:
         # This test should pass for SqlUserRepository, MongoUserRepository, etc.
         user = create_user(create_email("test@example.com"), "John")
         repository.save(user)
-        found = repository.find_by_email(create_email("test@example.com"))
+        found = repository.get_by_email(create_email("test@example.com"))
         assert found is not None
         assert found.email == user.email
 
@@ -36,7 +38,7 @@ class TestCreateUserUseCaseIntegration:
 
         # Assert
         assert result.user_id is not None
-        saved_user = user_repo.find_by_email(create_email("test@example.com"))
+        saved_user = user_repo.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert len(email_service.sent_emails) == 1
         assert len(event_publisher.published_events) == 1
@@ -53,7 +55,7 @@ class TestSqlUserRepository:
         repository.save(user)
 
         # Assert
-        saved_user = repository.find_by_email(create_email("test@example.com"))
+        saved_user = repository.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 
@@ -73,7 +75,7 @@ class TestMongoUserRepository:
         repository.save(user)
 
         # Assert
-        saved_user = repository.find_by_email(create_email("test@example.com"))
+        saved_user = repository.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 ```
@@ -110,6 +112,6 @@ class InMemoryUserRepository(UserRepository):
     def save(self, user: User) -> None:
         self._users[user.id] = user
 
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         return next((u for u in self._users.values() if u.email == email), None)
 ```

@@ -62,8 +62,8 @@ description: "Task list template for feature implementation"
 Examples of foundational tasks (adjust based on your project):
 
 - [ ] T004 [P] Define domain value objects, entities, and their module-level creation functions in `src/domain/model/`
-- [ ] T005 [P] Define repository port interfaces in `src/domain/ports/`
-- [ ] T006 [P] Define infrastructure port interfaces in `src/application/ports/secondary/`
+- [ ] T005 [P] Define repository port interfaces using domain IDs, value objects, aggregate roots, and named query criteria in `src/domain/ports/`
+- [ ] T006 [P] Define infrastructure port interfaces using cohesive domain types or immutable capability contracts in `src/application/ports/secondary/`
 - [ ] T007 Setup database schema and migrations
 - [ ] T008 [P] Configure dependency injection container in `src/configuration/di_container.py`
 - [ ] T009 Setup error handling — DomainException and AdapterException hierarchies
@@ -88,7 +88,7 @@ Examples of foundational tasks (adjust based on your project):
 ### Implementation for User Story 1
 
 - [ ] T012 [P] [US1] Implement [Entity/Aggregate] and `create_[entity]()` in `src/domain/model/[entity].py`
-- [ ] T013 [P] [US1] Implement repository adapter with constructor-based hydration in `src/adapters/secondary/sql/sql_[name]_repository.py`
+- [ ] T013 [P] [US1] Implement repository adapter with constructor-based hydration and semantic public method types in `src/adapters/secondary/sql/sql_[name]_repository.py`
 - [ ] T014 [US1] Implement use case in `src/application/use_cases/[name]_use_case.py` (depends on T012)
 - [ ] T015 [US1] Implement primary port in `src/application/ports/primary/[name]_port.py`
 - [ ] T016 [US1] Implement API controller in `src/adapters/primary/web/[name]_controller.py`

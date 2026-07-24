@@ -34,5 +34,9 @@ class SendWelcomeEmailUseCase:
         self._email_service = email_service
 
     def handle(self, event: UserCreated) -> None:
-        self._email_service.send_welcome_email(event.email, event.name)
+        message = WelcomeEmail(
+            recipient=create_email(event.email),
+            display_name=event.name,
+        )
+        self._email_service.send_welcome_email(message)
 ```

@@ -16,6 +16,7 @@ const CONTENT_SECTIONS = [
       { path: 'context/architecture/07-integration-flow.md', title: 'Integration Flow' },
       { path: 'context/architecture/08-infrastructure-replaceability.md', title: 'Infrastructure Replaceability' },
       { path: 'context/architecture/09-api-boundaries.md', title: 'API Boundaries' },
+      { path: 'context/architecture/10-semantic-types-at-port-boundaries.md', title: 'Semantic Types at Port Boundaries' },
     ],
   },
   {
@@ -125,7 +126,7 @@ const CLAUDE_RULE_DEFINITIONS = [
   },
   {
     fileName: 'tenets-architecture.md',
-    description: 'Hexagonal architecture rules: ports, primary adapters, secondary adapters, adapter configuration, integration flow',
+    description: 'Hexagonal architecture rules: ports, semantic boundary types, primary adapters, secondary adapters, adapter configuration, integration flow',
     globs: '**/adapters/**,**/infrastructure/**,**/ports/**',
     contentSection: 'Architecture',
   },
@@ -148,7 +149,7 @@ const AUGMENT_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-architecture.md',
     type: 'agent_requested',
-    description: 'Apply when designing or changing ports, adapters, infrastructure, APIs, or hexagonal architecture boundaries',
+    description: 'Apply when designing or changing ports, semantic boundary types, adapters, infrastructure, APIs, or hexagonal architecture boundaries',
     contentSection: 'Architecture',
   },
   {
@@ -175,6 +176,8 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Dependency direction is inward**: adapters -> application -> domain. NEVER domain -> infrastructure.
 - **Domain layer has ZERO external dependencies** — no frameworks, no ORMs, no HTTP libraries.
 - **All infrastructure access goes through ports** (abstract interfaces).
+- **No naked domain primitives cross repository or secondary-port contracts** — use domain types or cohesive application capability contracts.
+- **Repository lookups use semantic verbs** — \`get\`, \`get_by_*\`, \`list_*\`, \`search\`, or \`exists_by_*\`; never \`find_*\`.
 - **Aggregates are the only entry point** for state mutations within their boundary.
 - **Creation and hydration are different** — create new domain objects with module-level creation functions; repository adapters hydrate existing objects with constructors.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
@@ -211,9 +214,9 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
 
 const LAYER_RULES = {
   domain: 'Domain layer: no external deps, entities have identity equality, VOs are immutable, aggregates enforce invariants, and creation functions are distinct from hydration constructors.',
-  application: 'Application layer: use cases orchestrate only, load required domain objects before secondary ports, and depend on ports, never adapters.',
-  adapters: 'Adapter layer: implement port interfaces, handle external complexity, no domain logic, no hidden repository loading.',
-  infrastructure: 'Infrastructure layer: implement port interfaces, keep tech-specific models here, no repository access hidden inside outbound adapters.',
+  application: 'Application layer: use cases orchestrate only, load required domain objects before secondary ports, and pass semantic domain types or capability contracts instead of naked domain primitives.',
+  adapters: 'Adapter layer: implement semantic port contracts, unwrap values only during external mapping, handle external complexity, and perform no hidden repository loading.',
+  infrastructure: 'Infrastructure layer: implement semantic port contracts, keep tech-specific models here, and confine primitives to persistence, serialization, configuration, and private mapping.',
 };
 
 let input = '';

@@ -4,6 +4,7 @@
 - Must not contain business logic - only translation and validation
 - Should handle framework-specific concerns (HTTP status codes, serialization)
 - Should be thin and delegate to use cases through primary ports
+- External request and response DTOs may use primitives; those primitives must become semantic domain or application types before reaching repository or secondary-port methods
 
 ```python
 # FastAPI Controller (Primary Adapter)
@@ -49,7 +50,7 @@ async def change_user_email(
 ) -> None:
     try:
         command = ChangeEmailCommand(
-            user_id=UserId(user_id),
+            user_id=create_user_id(user_id),
             new_email=request.email
         )
         use_case.execute(command)
@@ -66,7 +67,7 @@ async def get_user(
     use_case: GetUserPort = Depends()
 ) -> GetUserResponse:
     try:
-        query = GetUserQuery(user_id=UserId(user_id))
+        query = GetUserQuery(user_id=create_user_id(user_id))
         response = use_case.execute(query)
         return GetUserResponse(
             user_id=response.user_id,
@@ -84,7 +85,7 @@ async def deactivate_user(
     use_case: DeactivateUserPort = Depends()
 ) -> None:
     try:
-        command = DeactivateUserCommand(user_id=UserId(user_id))
+        command = DeactivateUserCommand(user_id=create_user_id(user_id))
         use_case.execute(command)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")

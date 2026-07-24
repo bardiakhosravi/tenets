@@ -5,6 +5,8 @@
 - **Infrastructure secondary ports** (email, messaging, external APIs) - belong in application layer
 - Port interfaces should use domain language, not technical terms
 - Ports should be focused and follow Single Responsibility Principle
+- Public repository and secondary-port methods must not accept naked primitives for domain-semantic values
+- Use domain objects, value objects, named specifications, or immutable application-owned capability contracts
 
 ```python
 # Primary Ports (Application Layer) - application/ports/primary/
@@ -21,7 +23,7 @@ class ChangeUserEmailPort(ABC):
 # Domain-Driven Secondary Ports (Domain Layer) - domain/repositories/
 class UserRepository(ABC):  # Already shown in rule 5
     @abstractmethod
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         pass
 
 # Domain Services (Domain Layer) - domain/services/
@@ -31,9 +33,14 @@ class PricingServicePort(ABC):
         pass
 
 # Infrastructure Secondary Ports (Application Layer) - application/ports/secondary/
+@dataclass(frozen=True)
+class WelcomeEmail:
+    recipient: Email
+    display_name: str  # Presentation-only text; no domain behavior.
+
 class EmailNotificationPort(ABC):
     @abstractmethod
-    def send_welcome_email(self, user_email: Email, user_name: str) -> None:
+    def send_welcome_email(self, message: WelcomeEmail) -> None:
         pass
 
     @abstractmethod

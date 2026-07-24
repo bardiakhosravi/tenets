@@ -193,7 +193,7 @@ A concise block appended to your project's `CLAUDE.md` with the core non-negotia
 An on-demand architecture review command. Run `/tenets-review-architecture` (or `/tenets-review-architecture src/domain/`) and the agent reads all tenets rules, analyzes your codebase, and reports violations grouped by severity:
 
 - **Critical**: Dependency direction violations, domain layer impurity
-- **Major**: Business logic in the wrong layer, missing port abstractions, creation/hydration violations
+- **Major**: Business logic in the wrong layer, naked domain primitives at port boundaries, missing port abstractions, creation/hydration violations
 - **Minor**: Naming conventions, file organization
 
 ### Layer 4: Continuous Monitoring Hook (opt-in)
@@ -210,10 +210,10 @@ Or skip and add it later by re-running `init`.
 
 ## What's Inside
 
-32 rule files organized into four sections:
+33 rule files organized into four sections:
 
-### Architecture (9 files)
-Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries.
+### Architecture (10 files)
+Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries, semantic types at port boundaries.
 
 ### Domain (10 files)
 Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules, domain object creation and hydration.

@@ -18,6 +18,7 @@ class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
         email = create_email(command.email)
         user = create_user(email=email, name=command.name)
         self._user_repository.save(user)  # → Secondary Port
-        self._email_service.send_welcome_email(email, command.name)  # → Secondary Port
+        message = WelcomeEmail(recipient=email, display_name=command.name)
+        self._email_service.send_welcome_email(message)  # → Secondary Port
         return CreateUserResponse(user.id.value)
 ```

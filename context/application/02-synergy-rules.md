@@ -16,6 +16,7 @@
 - Each use case should represent exactly one business workflow
 - Use module-level domain creation functions for new objects and pass complete initial creation data
 - Treat objects loaded from repositories as hydrated existing objects; never recreate them through creation functions
+- Convert domain-semantic command values into domain types or capability contracts before invoking repositories and secondary ports
 
 ```python
 class CreateUserUseCase(CreateUserPort):
@@ -36,7 +37,8 @@ class CreateUserUseCase(CreateUserPort):
             email = create_email(command.email)
             user = create_user(email=email, name=command.name)
             self._user_repository.save(user)  # Domain port
-            self._email_service.send_welcome_email(email, command.name)  # Infrastructure port
+            message = WelcomeEmail(recipient=email, display_name=command.name)
+            self._email_service.send_welcome_email(message)  # Infrastructure port
             self._event_publisher.publish(UserCreated(user.id, email))  # Infrastructure port
             return CreateUserResponse(user.id.value)
 ```

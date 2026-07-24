@@ -35,6 +35,8 @@ def create_user(email: Email, name: str) -> User:
 - Should have meaningful methods that operate on the value
 - New value objects MUST be created through standalone `create_<value_object>()` functions in their modules
 - Constructors are reserved for hydration and internal reconstruction from normalized state
+- Create a value object when a primitive has domain meaning, validation, normalization, units, identity semantics, behavior, or a risk of confusion with another value of the same primitive type
+- Do not create wrappers for technical or incidental values that add no domain semantics or type safety
 
 ```python
 @dataclass(frozen=True)
@@ -75,7 +77,7 @@ class Order:  # Aggregate Root
     customer_id: CustomerId
     _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
 
-    def add_line_item(self, product_id: ProductId, quantity: int) -> None:
+    def add_line_item(self, product_id: ProductId, quantity: Quantity) -> None:
         # Business rules and validation
         line_item = create_order_line_item(product_id, quantity)
         self._line_items.append(line_item)
@@ -142,8 +144,12 @@ class PricingService:
 - Repositories should work with Aggregate Roots only
 - Use domain-specific query methods, not generic CRUD
 - Return domain objects, never DTOs or database models
+- Repository write methods accept aggregate roots; lookup methods accept domain IDs or value objects; flexible queries accept named domain criteria or specifications
+- Repository contracts MUST NOT accept raw domain-semantic primitives, dictionaries, arbitrary tuples, callables, ORM expressions, database predicates, or adapter DTOs
+- Use `get` for lookup by canonical identity, `get_by_<unique_attribute>` for lookup by another unique domain value, `list_<intent>` for collection queries, `search` for named criteria, and `exists_by_<attribute>` for existence checks
+- Do not use `find_*`; deterministic repository retrieval is a lookup, not a discovery operation
 - Should throw domain exceptions, not infrastructure exceptions
-- Query methods (`find_by_id`, `find_by_email`, etc.) return `None` when the entity is not found — absence is a normal query outcome, not an exception. The **use case** decides whether absence is an error and raises the appropriate domain exception (e.g., `UserNotFoundError`). Repositories never raise "not found" exceptions.
+- Single-result lookup methods (`get`, `get_by_email`, etc.) return `None` when the aggregate is not found — absence is a normal lookup outcome, not an exception. The **use case** decides whether absence is an error and raises the appropriate domain exception (e.g., `UserNotFoundError`). Repositories never raise "not found" exceptions.
 - Repository adapters hydrate existing domain objects with constructors and MUST NOT call creation functions.
 
 ```python
@@ -152,7 +158,7 @@ from abc import ABC, abstractmethod
 
 class UserRepository(ABC):
     @abstractmethod
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get(self, user_id: UserId) -> Optional[User]:
         pass
     
     @abstractmethod
@@ -160,11 +166,11 @@ class UserRepository(ABC):
         pass
     
     @abstractmethod
-    def find_active_users_in_department(self, department_id: DepartmentId) -> list[User]:
+    def list_active_in_department(self, department_id: DepartmentId) -> list[User]:
         pass
     
     @abstractmethod
-    def find_by_id(self, user_id: UserId) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         pass
 ```
 
@@ -218,6 +224,8 @@ class UserEmailChanged(DomainEvent):
 - Use cases call module-level creation functions for new domain objects and supply every available input that belongs to valid initial state
 - Use cases MUST NOT immediately mutate new objects to finish creation with already-available data
 - Objects loaded from repositories are hydrated existing objects and must not be recreated
+- Before invoking repositories or secondary ports, use cases convert domain-semantic command primitives into domain IDs, value objects, named criteria, or cohesive capability contracts
+- Use cases MUST NOT forward raw command dictionaries, callables, ORM expressions, adapter DTOs, or naked domain primitives into port methods
 - Should be stateless and focused on a single responsibility
 - Handle cross-cutting concerns (transactions, events, etc.)
 - Use cases return **domain objects** (entities, aggregates). The primary adapter (controller) is responsible for mapping domain objects to external representations (e.g., Pydantic response models, JSON). This follows hexagonal architecture — adapters are the translation layer, not use cases. (Note: Clean Architecture prescribes response DTOs from use cases, but in hexagonal architecture the adapter handles this translation.)
@@ -251,7 +259,7 @@ class ChangeUserEmailUseCase:
     
     def execute(self, command: ChangeEmailCommand) -> None:
         with self._unit_of_work:
-            user = self._user_repository.find_by_id(command.user_id)
+            user = self._user_repository.get(command.user_id)
             if not user:
                 raise UserNotFoundError(command.user_id)
             user.change_email(create_email(command.new_email))
@@ -267,7 +275,9 @@ class ChangeUserEmailUseCase:
 - If a secondary port needs more data, add that data to the port contract and have the use case supply it.
 - Secondary ports should receive rich domain objects when the outbound capability requires domain state.
 - Do not pass persistence entities, ORM models, database records, query result rows, or adapter-specific DTOs into secondary ports.
-- Do not pass primitive IDs when the full domain object is already required by the outbound capability. Passing an ID is allowed only when identity is truly all the capability needs.
+- Public secondary-port methods MUST NOT accept naked primitives for domain-semantic values.
+- Secondary ports use aggregates, entities, value objects, domain specifications, or immutable application-owned capability contracts.
+- When identity alone is sufficient, pass a domain ID or local reference ID value object, never a primitive ID.
 - A secondary port should perform one outbound business capability only, such as sending an email, publishing a domain event, generating a PDF, uploading a document, calling an external API, or sending an SMS.
 - Fetching domain objects is not part of a secondary port's responsibility.
 - Secondary ports should not orchestrate multi-step application workflows.
@@ -287,11 +297,11 @@ class SendInvoiceUseCase:
         self._email_port = email_port
 
     def execute(self, command: SendInvoiceCommand) -> None:
-        customer = self._customer_repository.find_by_id(command.customer_id)
+        customer = self._customer_repository.get(command.customer_id)
         if customer is None:
             raise CustomerNotFoundError(command.customer_id)
 
-        invoice = self._invoice_repository.find_by_id(command.invoice_id)
+        invoice = self._invoice_repository.get(command.invoice_id)
         if invoice is None:
             raise InvoiceNotFoundError(command.invoice_id)
 
@@ -304,7 +314,7 @@ class SmtpInvoiceEmailAdapter(InvoiceEmailPort):
         self._smtp_client = smtp_client
 
     def send_invoice(self, customer_id: CustomerId, invoice: Invoice) -> None:
-        customer = self._customer_repository.find_by_id(customer_id)
+        customer = self._customer_repository.get(customer_id)
         # ...
 ```
 
@@ -317,6 +327,8 @@ class SmtpInvoiceEmailAdapter(InvoiceEmailPort):
 - **Infrastructure secondary ports** (email, messaging, external APIs) - belong in application layer
 - Port interfaces should use domain language, not technical terms
 - Ports should be focused and follow Single Responsibility Principle
+- Public repository and secondary-port methods must not accept naked primitives for domain-semantic values
+- Use domain objects, value objects, named specifications, or immutable application-owned capability contracts
 
 ```python
 # Primary Ports (Application Layer) - application/ports/primary/
@@ -333,7 +345,7 @@ class ChangeUserEmailPort(ABC):
 # Domain-Driven Secondary Ports (Domain Layer) - domain/repositories/
 class UserRepository(ABC):  # Already shown in rule 5
     @abstractmethod
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         pass
 
 # Domain Services (Domain Layer) - domain/services/
@@ -343,9 +355,14 @@ class PricingServicePort(ABC):
         pass
 
 # Infrastructure Secondary Ports (Application Layer) - application/ports/secondary/
+@dataclass(frozen=True)
+class WelcomeEmail:
+    recipient: Email
+    display_name: str
+
 class EmailNotificationPort(ABC):
     @abstractmethod
-    def send_welcome_email(self, user_email: Email, user_name: str) -> None:
+    def send_welcome_email(self, message: WelcomeEmail) -> None:
         pass
     
     @abstractmethod
@@ -358,12 +375,44 @@ class EventPublisherPort(ABC):
         pass
 ```
 
+### 10A. Semantic Types at Port Boundaries
+- Public repository and secondary-port methods MUST NOT accept naked primitives for values with domain meaning.
+- A naked domain primitive is a `str`, `int`, `float`, `bool`, collection, dictionary, tuple, or callable used directly for a domain identity, quantity, amount, address, code, status, date range, or other named business concept.
+- Use an aggregate or entity when the capability genuinely needs its cohesive state or behavior.
+- Use a domain value object when one domain concept is sufficient.
+- Use an immutable application-owned capability contract when a port needs a deliberate subset of values.
+- Use named domain criteria or specification objects for flexible repository queries.
+- Repository write methods accept aggregate roots.
+- Repository lookups accept domain IDs or value objects.
+- Repository contracts MUST NOT accept raw domain primitives, dictionaries, callables, ORM expressions, database predicates, or adapter DTOs.
+- Application capability contracts use domain value objects for fields with domain meaning.
+- Full aggregates should not be passed merely to avoid defining a focused capability contract.
+- Cross-context identities use local reference ID value objects in the consuming context.
+- Primitive IDs are allowed only in serialized transport, integration-event, persistence, and external-system representations.
+- Primary adapters and application workflows create semantic values before invoking repositories or secondary ports.
+- Secondary adapters unwrap domain values only while mapping to external payloads or persistence.
+- Adapter constructors, configuration, private mapping helpers, persistence rows, and serialized DTOs may use primitives.
+- Arbitrary callables are prohibited in repository contracts because they express an execution mechanism that cannot be implemented consistently across adapters.
+
+```python
+# GOOD repository contracts
+def get(self, user_id: UserId) -> User | None: ...
+def search(self, criteria: UserSearchCriteria) -> list[User]: ...
+def save(self, user: User) -> None: ...
+
+# BAD repository contracts
+def get(self, user_id: str) -> User | None: ...
+def search(self, filters: dict[str, object]) -> list[User]: ...
+def query_where(self, predicate: Callable[[User], bool]) -> list[User]: ...
+```
+
 ### 11. Primary Adapter Rules
 - Primary adapters are the entry points (web controllers, CLI, message consumers)
 - Should translate external requests to domain commands/queries
 - Must not contain business logic - only translation and validation
 - Should handle framework-specific concerns (HTTP status codes, serialization)
 - Should be thin and delegate to use cases through primary ports
+- External DTOs may use primitives; those primitives become semantic domain or application types before reaching repository or secondary-port methods
 
 ```python
 # FastAPI Controller (Primary Adapter)
@@ -409,7 +458,7 @@ async def change_user_email(
 ) -> None:
     try:
         command = ChangeEmailCommand(
-            user_id=UserId(user_id),
+            user_id=create_user_id(user_id),
             new_email=request.email
         )
         use_case.execute(command)
@@ -426,7 +475,7 @@ async def get_user(
     use_case: GetUserPort = Depends()
 ) -> GetUserResponse:
     try:
-        query = GetUserQuery(user_id=UserId(user_id))
+        query = GetUserQuery(user_id=create_user_id(user_id))
         response = use_case.execute(query)
         return GetUserResponse(
             user_id=response.user_id,
@@ -444,7 +493,7 @@ async def deactivate_user(
     use_case: DeactivateUserPort = Depends()
 ) -> None:
     try:
-        command = DeactivateUserCommand(user_id=UserId(user_id))
+        command = DeactivateUserCommand(user_id=create_user_id(user_id))
         use_case.execute(command)
     except UserNotFoundError:
         raise HTTPException(status_code=404, detail="User not found")
@@ -463,6 +512,7 @@ async def deactivate_user(
 - Include error handling and retry logic when appropriate
 - Keep technology-specific models/schemas within their adapter implementations
 - Repository adapters hydrate existing domain objects through constructors with explicit persisted state; they never call domain creation functions
+- Public adapter methods preserve semantic port types and unwrap them only during external mapping
 
 ```python
 # SQL Database Adapter - infrastructure/adapters/secondary/sql/sql_user_repository.py
@@ -479,7 +529,7 @@ class SqlUserRepository(UserRepository):
         )
         self._session.merge(user_model)
     
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         model = self._session.query(UserModel).filter_by(email=email.value).first()
         return self._to_domain(model) if model else None
     
@@ -496,11 +546,11 @@ class HttpEmailNotificationAdapter(EmailNotificationPort):
         self._http_client = http_client
         self._api_config = api_config
     
-    def send_welcome_email(self, user_email: Email, user_name: str) -> None:
+    def send_welcome_email(self, message: WelcomeEmail) -> None:
         payload = {
-            'to': user_email.value,
+            'to': message.recipient.value,
             'template': 'welcome',
-            'variables': {'name': user_name}
+            'variables': {'name': message.display_name}
         }
         response = self._http_client.post(
             f"{self._api_config.base_url}/send",
@@ -694,7 +744,8 @@ class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
         email = create_email(command.email)
         user = create_user(email=email, name=command.name)
         self._user_repository.save(user)  # → Secondary Port
-        self._email_service.send_welcome_email(email, command.name)  # → Secondary Port
+        message = WelcomeEmail(recipient=email, display_name=command.name)
+        self._email_service.send_welcome_email(message)  # → Secondary Port
         return CreateUserResponse(user.id.value)
 ```
 
@@ -716,6 +767,7 @@ class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
 - Each use case should represent exactly one business workflow
 - Use module-level creation functions for new domain objects and pass complete initial creation data
 - Treat repository results as hydrated existing objects
+- Convert domain-semantic command values into domain types or capability contracts before invoking repositories and secondary ports
 
 ```python
 class CreateUserUseCase(CreateUserPort):
@@ -736,7 +788,8 @@ class CreateUserUseCase(CreateUserPort):
             email = create_email(command.email)
             user = create_user(email=email, name=command.name)
             self._user_repository.save(user)  # Domain port
-            self._email_service.send_welcome_email(email, command.name)  # Infrastructure port
+            message = WelcomeEmail(recipient=email, display_name=command.name)
+            self._email_service.send_welcome_email(message)  # Infrastructure port
             self._event_publisher.publish(UserCreated(user.id, email))  # Infrastructure port
             return CreateUserResponse(user.id.value)
 ```
@@ -777,7 +830,11 @@ class SendWelcomeEmailUseCase:
         self._email_service = email_service
     
     def handle(self, event: UserCreated) -> None:
-        self._email_service.send_welcome_email(event.email, event.name)
+        message = WelcomeEmail(
+            recipient=create_email(event.email),
+            display_name=event.name,
+        )
+        self._email_service.send_welcome_email(message)
 ```
 
 ### 19. Cross-Cutting Concern Rules
@@ -821,22 +878,73 @@ When one bounded context module needs data from another module in the same monol
 - This enables extraction to microservices later — swap the in-process adapter for an HTTP adapter with zero domain changes
 
 ```python
-# Providing module exposes a public query service
-class InventoryQueryService:
-    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+@dataclass(frozen=True)
+class InventoryAvailabilityRequest:
+    product_id: str
+    quantity: int
 
-# Consuming module defines its own port
+@dataclass(frozen=True)
+class InventoryAvailabilityResponse:
+    is_available: bool
+
+# Providing module exposes a published request/response contract.
+class InventoryQueryService:
+    def check_availability(
+        self,
+        request: InventoryAvailabilityRequest,
+    ) -> InventoryAvailabilityResponse:
+        ...
+
+# Consuming module defines local semantic types and its own port.
+@dataclass(frozen=True)
+class InventoryProductId:
+    value: str
+
+def create_inventory_product_id(raw_value: str) -> InventoryProductId:
+    return InventoryProductId(value=raw_value)
+
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+def create_quantity(value: int) -> Quantity:
+    if value <= 0:
+        raise InvalidQuantityError(value)
+    return Quantity(value=value)
+
+@dataclass(frozen=True)
+class Availability:
+    is_available: bool
+
+def create_availability(is_available: bool) -> Availability:
+    return Availability(is_available=is_available)
+
 class InventoryPort(ABC):
     @abstractmethod
-    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+    def check_availability(
+        self,
+        product_id: InventoryProductId,
+        quantity: Quantity,
+    ) -> Availability:
+        ...
 
-# Consuming module's adapter wraps the query service
+# Consuming module's adapter unwraps values at the external boundary.
 class InProcessInventoryAdapter(InventoryPort):
     def __init__(self, service: InventoryQueryService):
         self._service = service
 
-    def check_availability(self, product_id: str, quantity: int) -> bool:
-        return self._service.check_availability(product_id, quantity)
+    def check_availability(
+        self,
+        product_id: InventoryProductId,
+        quantity: Quantity,
+    ) -> Availability:
+        response = self._service.check_availability(
+            InventoryAvailabilityRequest(
+                product_id=product_id.value,
+                quantity=quantity.value,
+            )
+        )
+        return create_availability(response.is_available)
 ```
 
 ### 21. Cross-Service Communication (Different Processes)
@@ -881,7 +989,7 @@ class InMemoryUserRepository(UserRepository):
     def save(self, user: User) -> None:
         self._users[user.id] = user
     
-    def find_by_email(self, email: Email) -> Optional[User]:
+    def get_by_email(self, email: Email) -> Optional[User]:
         return next((u for u in self._users.values() if u.email == email), None)
 ```
 
@@ -928,6 +1036,9 @@ def create_email(raw_value: str) -> Email:
 - Use intention-revealing names for methods
 - Value objects should be named after the concept they represent
 - Repository methods should reflect business queries
+- **Repository Retrieval**: Use `get` for canonical identity and `get_by_<unique_attribute>` for another unique domain value; both return the aggregate or `None`
+- **Repository Collections**: Use `list_<intent>` for collection queries, `search` with named criteria for flexible queries, and `exists_by_<attribute>` for existence checks
+- **Avoid `find_*`**: Deterministic repository retrieval is a lookup, not a discovery operation
 - **Port Naming**: End primary ports with "Port", secondary ports with "Port"
 - **Adapter Naming**: Include the technology/framework in secondary adapter names
 - **Clear Port vs Adapter distinction**: Ports define interfaces, Adapters implement them
@@ -976,7 +1087,7 @@ class UserDomainService:  # Domain service
         self._user_repo = user_repo
     
     def is_email_unique(self, email: Email) -> bool:
-        existing_user = self._user_repo.find_by_email(email)
+        existing_user = self._user_repo.get_by_email(email)
         return existing_user is None
 
 # Application layer - depends on domain + infrastructure ports
@@ -1014,6 +1125,8 @@ class SmtpEmailAdapter(EmailNotificationPort):  # Implements infrastructure port
 - Test that creation functions establish complete initial state without immediate follow-up mutation
 - **Contract Testing**: Ensure all adapter implementations satisfy their port contracts
 - **Use Case Testing**: Test each use case independently with mocked dependencies
+- Assert use cases pass semantic domain types or capability contracts to mocked repositories and secondary ports
+- Run repository contract tests against multiple adapters so callables, dictionaries, ORM expressions, and raw semantic primitives cannot leak into the contract
 
 ```python
 # Contract test for all UserRepository implementations
@@ -1022,7 +1135,7 @@ class UserRepositoryContractTest:
         # This test should pass for SqlUserRepository, MongoUserRepository, etc.
         user = create_user(create_email("test@example.com"), "John")
         repository.save(user)
-        found = repository.find_by_email(create_email("test@example.com"))
+        found = repository.get_by_email(create_email("test@example.com"))
         assert found is not None
         assert found.email == user.email
 
@@ -1040,7 +1153,7 @@ class TestCreateUserUseCaseIntegration:
         
         # Assert
         assert result.user_id is not None
-        saved_user = user_repo.find_by_email(create_email("test@example.com"))
+        saved_user = user_repo.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert len(email_service.sent_emails) == 1
         assert len(event_publisher.published_events) == 1
@@ -1057,7 +1170,7 @@ class TestSqlUserRepository:
         repository.save(user)
         
         # Assert
-        saved_user = repository.find_by_email(create_email("test@example.com"))
+        saved_user = repository.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
         
@@ -1077,7 +1190,7 @@ class TestMongoUserRepository:
         repository.save(user)
         
         # Assert
-        saved_user = repository.find_by_email(create_email("test@example.com"))
+        saved_user = repository.get_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 ```
@@ -1125,7 +1238,7 @@ class GetUserResponse(BaseModel):
 
 @router.get("/{user_id}", response_model=GetUserResponse)
 async def get_user(user_id: str, use_case: GetUserPort = Depends()) -> GetUserResponse:
-    result = use_case.execute(GetUserQuery(user_id=UserId(user_id)))
+    result = use_case.execute(GetUserQuery(user_id=create_user_id(user_id)))
     return GetUserResponse(user_id=result.user_id, email=result.email, name=result.name)
 ```
 
@@ -1141,6 +1254,9 @@ async def get_user(user_id: str, use_case: GetUserPort = Depends()) -> GetUserRe
 class IdempotencyKey:
     value: str
 
+def create_idempotency_key(value: str) -> IdempotencyKey:
+    return IdempotencyKey(value=value)
+
 class SendWelcomeEmailHandler:
     def __init__(
         self,
@@ -1151,10 +1267,14 @@ class SendWelcomeEmailHandler:
         self._idempotency_store = idempotency_store
 
     def handle(self, event: UserCreated) -> None:
-        key = IdempotencyKey(f"welcome_email:{event.user_id.value}")
+        key = create_idempotency_key(f"welcome_email:{event.user_id}")
         if self._idempotency_store.has_been_processed(key):
             return  # Already handled — skip
-        self._email_service.send_welcome_email(event.email, event.name)
+        message = WelcomeEmail(
+            recipient=create_email(event.email),
+            display_name=event.name,
+        )
+        self._email_service.send_welcome_email(message)
         self._idempotency_store.mark_processed(key)
 ```
 
@@ -1187,9 +1307,20 @@ class User:
 class CustomerId:
     value: str
 
+def create_customer_id(raw_value: str) -> CustomerId:
+    return CustomerId(value=raw_value)
+
+@dataclass(frozen=True)
+class IdentityUserId:
+    value: str
+
+def create_identity_user_id(raw_value: str) -> IdentityUserId:
+    return IdentityUserId(value=raw_value)
+
 @dataclass
 class Customer:
     id: CustomerId
+    identity_user_id: IdentityUserId
     name: str
     shipping_address: Address
 
@@ -1199,12 +1330,12 @@ class IdentityContextACL:
     def __init__(self, identity_api: IdentityQueryPort):
         self._identity_api = identity_api
 
-    def resolve_customer(self, user_id: str) -> Customer:
-        user_data = self._identity_api.get_user(user_id)
-        return Customer(
-            id=CustomerId(user_data.user_id),
+    def resolve_customer(self, user_id: IdentityUserId) -> Customer:
+        user_data = self._identity_api.get_user(user_id.value)
+        return create_customer(
+            identity_user_id=user_id,
             name=user_data.name,
-            shipping_address=Address(user_data.default_address)
+            shipping_address=create_address(user_data.default_address),
         )
 ```
 

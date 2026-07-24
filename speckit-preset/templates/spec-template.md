@@ -72,7 +72,7 @@
 
   Rule:
   - The referencing context may store the external ID as a local reference value
-    object or generic ID primitive.
+    object defined by the consuming bounded context.
   - The referencing context MUST NOT import the owning context's domain value
     object just to reuse an ID type.
   - The referenced entity must be validated through the owning context's public

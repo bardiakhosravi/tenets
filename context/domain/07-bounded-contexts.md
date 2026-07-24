@@ -29,9 +29,24 @@ class User:
 class CustomerId:
     value: str
 
+
+def create_customer_id(raw_value: str) -> CustomerId:
+    return CustomerId(value=raw_value)
+
+
+@dataclass(frozen=True)
+class IdentityUserId:
+    value: str
+
+
+def create_identity_user_id(raw_value: str) -> IdentityUserId:
+    return IdentityUserId(value=raw_value)
+
+
 @dataclass
 class Customer:
     id: CustomerId
+    identity_user_id: IdentityUserId
     name: str
     shipping_address: Address
 
@@ -41,11 +56,11 @@ class IdentityContextACL:
     def __init__(self, identity_api: IdentityQueryPort):
         self._identity_api = identity_api
 
-    def resolve_customer(self, user_id: str) -> Customer:
-        user_data = self._identity_api.get_user(user_id)
-        return Customer(
-            id=CustomerId(user_data.user_id),
+    def resolve_customer(self, user_id: IdentityUserId) -> Customer:
+        user_data = self._identity_api.get_user(user_id.value)
+        return create_customer(
+            identity_user_id=user_id,
             name=user_data.name,
-            shipping_address=Address(user_data.default_address)
+            shipping_address=create_address(user_data.default_address),
         )
 ```

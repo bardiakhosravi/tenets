@@ -11,29 +11,89 @@ When one bounded context module needs data from another module in the same monol
 - This enables extraction to microservices later — swap the in-process adapter for an HTTP adapter with zero domain changes
 
 ```python
-# Providing module exposes a public query service
-class InventoryQueryService:
-    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+@dataclass(frozen=True)
+class InventoryAvailabilityRequest:
+    product_id: str
+    quantity: int
 
-# Consuming module defines its own port
+
+@dataclass(frozen=True)
+class InventoryAvailabilityResponse:
+    is_available: bool
+
+
+# Providing module exposes a published request/response contract.
+class InventoryQueryService:
+    def check_availability(
+        self,
+        request: InventoryAvailabilityRequest,
+    ) -> InventoryAvailabilityResponse:
+        ...
+
+# Consuming module defines local semantic types and its own port.
+@dataclass(frozen=True)
+class InventoryProductId:
+    value: str
+
+
+def create_inventory_product_id(raw_value: str) -> InventoryProductId:
+    return InventoryProductId(value=raw_value)
+
+
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+
+def create_quantity(value: int) -> Quantity:
+    if value <= 0:
+        raise InvalidQuantityError(value)
+    return Quantity(value=value)
+
+
+@dataclass(frozen=True)
+class Availability:
+    is_available: bool
+
+
+def create_availability(is_available: bool) -> Availability:
+    return Availability(is_available=is_available)
+
+
 class InventoryPort(ABC):
     @abstractmethod
-    def check_availability(self, product_id: str, quantity: int) -> bool: ...
+    def check_availability(
+        self,
+        product_id: InventoryProductId,
+        quantity: Quantity,
+    ) -> Availability:
+        ...
 
-# Consuming module's adapter wraps the query service
+# Consuming module's adapter unwraps local values at the external boundary.
 class InProcessInventoryAdapter(InventoryPort):
     def __init__(self, service: InventoryQueryService):
         self._service = service
 
-    def check_availability(self, product_id: str, quantity: int) -> bool:
-        return self._service.check_availability(product_id, quantity)
+    def check_availability(
+        self,
+        product_id: InventoryProductId,
+        quantity: Quantity,
+    ) -> Availability:
+        response = self._service.check_availability(
+            InventoryAvailabilityRequest(
+                product_id=product_id.value,
+                quantity=quantity.value,
+            )
+        )
+        return create_availability(response.is_available)
 ```
 
 ## Validating Cross-Context Reference IDs
 
 When a use case creates or updates a relationship to an entity owned by another bounded context:
 
-- Store the external entity's ID only as a local reference ID or generic ID primitive
+- Store the external entity's ID as a local reference ID value object
+- Use primitive IDs only in serialized transport, persistence, integration-event, or external-system representations
 - Validate the referenced entity through the owning context's public contract before persisting the relationship
 - Do not import the owning context's repositories, aggregates, entities, or domain value objects
 - Keep the validation in the application workflow or adapter boundary; do not make the referencing aggregate query another context

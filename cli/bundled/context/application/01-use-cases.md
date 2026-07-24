@@ -5,6 +5,8 @@
 - When a workflow creates a new domain object, the use case calls the module-level creation function and supplies every available input that belongs to the valid initial state
 - A use case MUST NOT create an incomplete object and immediately mutate it to apply creation data that was already available
 - Objects returned by repositories are already hydrated; use cases invoke domain behavior on them and do not recreate them
+- Before invoking a repository or secondary port, use cases convert domain-semantic command primitives into domain IDs, value objects, named criteria, or cohesive capability contracts
+- Use cases MUST NOT forward raw command dictionaries, callables, ORM expressions, adapter DTOs, or naked domain primitives into repository or secondary-port methods
 - Should be stateless and focused on a single responsibility
 - Handle cross-cutting concerns (transactions, events, etc.)
 - Use cases return **domain objects** (entities, aggregates). The primary adapter (controller) is responsible for mapping domain objects to external representations (e.g., Pydantic response models, JSON). This follows hexagonal architecture — adapters are the translation layer, not use cases. (Note: Clean Architecture prescribes response DTOs from use cases, but in hexagonal architecture the adapter handles this translation.)
@@ -38,7 +40,7 @@ class ChangeUserEmailUseCase:
 
     def execute(self, command: ChangeEmailCommand) -> None:
         with self._unit_of_work:
-            user = self._user_repository.find_by_id(command.user_id)
+            user = self._user_repository.get(command.user_id)
             if not user:
                 raise UserNotFoundError(command.user_id)
             user.change_email(create_email(command.new_email))

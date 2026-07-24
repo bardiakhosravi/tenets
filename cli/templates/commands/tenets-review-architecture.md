@@ -21,9 +21,11 @@ For each file, verify:
 - No imports from another bounded context's domain model or domain value objects
 - Entities use identity-based equality, not attribute-based
 - Value objects are immutable
-- Cross-context IDs are local reference value objects or generic ID primitives, not reused owner-context types
+- Cross-context relationships and port contracts use local reference ID value objects, not primitives or reused owner-context types; primitives appear only in serialized events, persistence, or external transport
 - Aggregates enforce invariants; no logic leaks to use cases or repositories
 - Repository interfaces are abstract and use domain language
+- Repository contracts use aggregate roots, domain IDs, value objects, or named query criteria; never raw domain primitives, dictionaries, callables, ORM expressions, or adapter DTOs
+- Repository methods use `get`, `get_by_*`, `list_*`, `search`, or `exists_by_*` according to result semantics; `find_*` is not used
 - Domain events are immutable and use ubiquitous language only
 - New entities, aggregates, and value objects are created through module-level `create_<domain_object>()` functions in their modules
 - Constructors used by repositories hydrate explicit persisted state without generating identities, defaults, or creation events
@@ -37,11 +39,14 @@ For each file, verify:
 - Use cases supply every available initial-state input to creation functions and do not immediately mutate new objects to finish creation
 - Use cases do not pass hydrated objects back through creation functions
 - Secondary ports receive domain models or application-owned contract values, never repositories, ORM models, database records, or adapter DTOs
-- Secondary port contracts use IDs only when identity alone is sufficient for the capability
+- Secondary-port methods use no naked primitives for domain-semantic values
+- Secondary ports use the smallest cohesive aggregate, entity, value object, domain specification, or immutable application-owned capability contract
+- Identity-only port methods receive domain or local reference ID value objects, never primitive IDs
 - Cross-context reference IDs are validated through the owning context's public contract before persistence
 
 ### Infrastructure and adapter layers (`**/infrastructure/**`, `**/adapters/**`)
 - Secondary adapters implement port interfaces from domain or application layers
+- Public adapter methods preserve semantic port types and unwrap them only inside external-system mapping
 - Adapters handle external-system mapping, retries, and errors
 - Secondary adapters do not receive or call repositories
 - Secondary adapters do not perform additional domain-object loading
@@ -72,7 +77,7 @@ Lead with findings ordered by severity. For each violation provide:
 Use these severity levels:
 
 - **Critical**: Dependency-direction violations or domain-layer impurity
-- **Major**: Business logic in the wrong layer, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, or missing port abstractions
+- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, or missing port abstractions
 - **Minor**: Naming conventions or file organization
 
 Then report:

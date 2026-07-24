@@ -26,6 +26,6 @@ class GetUserResponse(BaseModel):
 
 @router.get("/{user_id}", response_model=GetUserResponse)
 async def get_user(user_id: str, use_case: GetUserPort = Depends()) -> GetUserResponse:
-    result = use_case.execute(GetUserQuery(user_id=UserId(user_id)))
+    result = use_case.execute(GetUserQuery(user_id=create_user_id(user_id)))
     return GetUserResponse(user_id=result.user_id, email=result.email, name=result.name)
 ```

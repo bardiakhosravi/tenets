@@ -18,6 +18,9 @@ You are the Tenets code review agent for this repository. Review code written by
 - Verify cross-context relationships store foreign IDs only as local reference IDs or generic primitives and validate referenced entities through the owning context's public contract.
 - Verify use cases load required domain objects before calling secondary ports.
 - Flag secondary ports or adapters that receive repositories, call repositories internally, load additional domain objects, or expose persistence/adapter DTOs in the port contract.
+- Flag repository contracts that accept naked domain primitives, dictionaries, callables, ORM expressions, or adapter DTOs instead of domain IDs, value objects, aggregate roots, or named criteria.
+- Verify repository methods use `get`, `get_by_*`, `list_*`, `search`, or `exists_by_*` according to result semantics; flag `find_*` as naming drift.
+- Verify secondary ports use the smallest cohesive domain type or immutable capability contract and public adapters unwrap values only during external mapping.
 - Verify new domain objects use module-level creation functions with complete initial creation data.
 - Verify repository adapters hydrate through constructors without identity generation, creation defaults, or creation events.
 - Flag creation followed by immediate mutation when that value was already available to the creation caller.

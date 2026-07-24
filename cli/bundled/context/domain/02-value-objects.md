@@ -9,6 +9,8 @@
 - New value objects MUST be created through a standalone `create_<value_object>()` function in the value object's module
 - Constructors are reserved for hydration and internal reconstruction from already-normalized state
 - See **Domain Object Creation and Hydration Rules** for the complete lifecycle distinction
+- Create a value object when a primitive has domain-specific meaning, validation, normalization, units, identity semantics, domain behavior, or a meaningful risk of being confused with another value of the same primitive type
+- Do not create wrappers for genuinely technical or incidental values that add no domain semantics or type safety
 
 ```python
 @dataclass(frozen=True)

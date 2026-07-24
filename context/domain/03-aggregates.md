@@ -22,7 +22,7 @@ class Order:  # Aggregate Root
     customer_id: CustomerId
     _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
 
-    def add_line_item(self, product_id: ProductId, quantity: int) -> None:
+    def add_line_item(self, product_id: ProductId, quantity: Quantity) -> None:
         # Business rules and validation
         line_item = create_order_line_item(product_id, quantity)
         self._line_items.append(line_item)
