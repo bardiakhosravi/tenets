@@ -1,7 +1,7 @@
 # Domain Event Rules
 
 ## Domain Event Rules
-- Domain events should be immutable value objects
+- Domain events should be immutable domain records; they are not entities or value objects
 - Events should represent something that happened in the past (use past tense)
 - Events should contain all necessary data to handle the event
 - Use `@dataclass(frozen=True)` for events

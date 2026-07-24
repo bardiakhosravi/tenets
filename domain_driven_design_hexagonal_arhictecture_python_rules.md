@@ -5,25 +5,26 @@
 ### 1. Entity Rules
 - Entities MUST have a unique identity that persists throughout their lifecycle
 - Use `@dataclass(eq=False)` for mutable entities — the `eq=False` prevents Python from generating `__eq__` and `__hash__` based on all fields, which would override the identity-based equality that entities require
-- Identity should be immutable once set (use `field(init=False)` for auto-generated IDs)
+- Identity should be immutable once set
 - Implement `__eq__` and `__hash__` based solely on identity, not attributes
 - Entities MUST contain business logic as methods, not just data
 - Avoid anemic domain models - entities should have behavior
+- New entities MUST be created through standalone `create_<entity>()` functions in their modules
+- Constructors accept explicit identity and state for hydration by repository adapters
 
 ```python
 @dataclass(eq=False)
 class User:
-    id: UserId = field(init=False)
+    id: UserId
     email: Email
     name: str
-    
-    def __post_init__(self):
-        if not hasattr(self, 'id'):
-            self.id = UserId.generate()
     
     def change_email(self, new_email: Email) -> None:
         # Business logic here
         self.email = new_email
+
+def create_user(email: Email, name: str) -> User:
+    return User(id=UserId.generate(), email=email, name=name)
 ```
 
 ### 2. Value Object Rules
@@ -32,6 +33,8 @@ class User:
 - Should be small, focused, and represent a concept from the domain
 - Include validation in `__post_init__` method
 - Should have meaningful methods that operate on the value
+- New value objects MUST be created through standalone `create_<value_object>()` functions in their modules
+- Constructors are reserved for hydration and internal reconstruction from normalized state
 
 ```python
 @dataclass(frozen=True)
@@ -45,6 +48,9 @@ class Email:
     @property
     def domain(self) -> str:
         return self.value.split('@')[1]
+
+def create_email(raw_value: str) -> Email:
+    return Email(value=raw_value.strip().lower())
 ```
 
 ### 3. Aggregate Rules
@@ -52,7 +58,7 @@ class Email:
 - Only the Aggregate Root should be directly accessible from outside
 - Internal entities within an aggregate should be accessed through the root
 - Aggregate boundaries should align with transaction boundaries
-- Use factory methods on aggregates for complex creation logic
+- Create aggregate roots through standalone `create_<aggregate>()` functions, never class factory methods or direct constructor calls
 - Aggregates should be small and focused
 - Cross-child invariants (rules that span multiple child entities within an aggregate) MUST be enforced by the aggregate root's methods, not by repositories or use cases. If two things must be consistent within the same transaction, they belong in the same aggregate.
 
@@ -67,16 +73,49 @@ class Email:
 class Order:  # Aggregate Root
     id: OrderId
     customer_id: CustomerId
-    _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
+    _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
 
     def add_line_item(self, product_id: ProductId, quantity: int) -> None:
         # Business rules and validation
-        line_item = OrderLineItem(product_id, quantity)
+        line_item = create_order_line_item(product_id, quantity)
         self._line_items.append(line_item)
 
     @property
     def line_items(self) -> tuple[OrderLineItem, ...]:
         return tuple(self._line_items)  # Return immutable view
+
+def create_order(customer_id: CustomerId) -> Order:
+    return Order(
+        id=OrderId.generate(),
+        customer_id=customer_id,
+        _line_items=[],
+    )
+```
+
+### 3A. Domain Object Creation and Hydration Rules
+- **Creation** establishes a new entity, aggregate, or value object from the business's perspective.
+- **Hydration** reconstructs an existing domain object from persisted state.
+- Creation and hydration MUST use different entry points.
+- Create new domain objects with standalone `create_<domain_object>()` functions in the same modules as those objects.
+- Creation functions receive every input that is already available and belongs to the valid initial state.
+- Creation functions own creation-specific normalization, invariant enforcement, identity generation, defaults, and creation-event recording.
+- Do not create an incomplete object and immediately mutate it with creation data that was already available.
+- Mutation methods remain valid for genuine later business transitions or information that becomes available after creation.
+- Repository adapters hydrate with constructors and explicit persisted identity and state.
+- Hydration MUST NOT generate identity, apply new-object defaults, record creation events, or invoke creation functions.
+- Constructors may enforce invariants shared by creation and hydration but MUST NOT contain creation-specific side effects.
+
+```python
+# Creation in a use case
+email = create_email(command.email)
+user = create_user(email=email, name=command.name)
+
+# Hydration in a repository adapter
+user = User(
+    id=UserId(row.id),
+    email=Email(row.email),
+    name=row.name,
+)
 ```
 
 ### 4. Domain Service Rules
@@ -105,6 +144,7 @@ class PricingService:
 - Return domain objects, never DTOs or database models
 - Should throw domain exceptions, not infrastructure exceptions
 - Query methods (`find_by_id`, `find_by_email`, etc.) return `None` when the entity is not found — absence is a normal query outcome, not an exception. The **use case** decides whether absence is an error and raises the appropriate domain exception (e.g., `UserNotFoundError`). Repositories never raise "not found" exceptions.
+- Repository adapters hydrate existing domain objects with constructors and MUST NOT call creation functions.
 
 ```python
 # Domain Layer - domain/repositories/user_repository.py
@@ -132,13 +172,15 @@ class UserRepository(ABC):
 - Implement repositories in the infrastructure layer
 - Use the Unit of Work pattern for transaction management
 - Map between domain objects and persistence models
+- Hydrate domain objects by supplying persisted identity and state directly to constructors
+- Never generate new identities, apply creation defaults, or emit creation events while loading persisted objects
 - Handle optimistic concurrency using version fields
 - Repository should not contain business logic
 
 ## Domain Event Rules
 
 ### 7. Domain Event Rules
-- Domain events should be immutable value objects
+- Domain events should be immutable domain records; they are not entities or value objects
 - Events should represent something that happened in the past (use past tense)
 - Events should contain all necessary data to handle the event
 - Use `@dataclass(frozen=True)` for events
@@ -173,6 +215,9 @@ class UserEmailChanged(DomainEvent):
 - Use cases represent single business operations that the application can perform
 - Each use case should handle exactly one business workflow
 - Use cases orchestrate domain objects but contain no business logic
+- Use cases call module-level creation functions for new domain objects and supply every available input that belongs to valid initial state
+- Use cases MUST NOT immediately mutate new objects to finish creation with already-available data
+- Objects loaded from repositories are hydrated existing objects and must not be recreated
 - Should be stateless and focused on a single responsibility
 - Handle cross-cutting concerns (transactions, events, etc.)
 - Use cases return **domain objects** (entities, aggregates). The primary adapter (controller) is responsible for mapping domain objects to external representations (e.g., Pydantic response models, JSON). This follows hexagonal architecture — adapters are the translation layer, not use cases. (Note: Clean Architecture prescribes response DTOs from use cases, but in hexagonal architecture the adapter handles this translation.)
@@ -193,8 +238,8 @@ class CreateUserUseCase:
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
         with self._unit_of_work:
             # Orchestration logic only
-            email = Email(command.email)
-            user = User.create(email, command.name)
+            email = create_email(command.email)
+            user = create_user(email=email, name=command.name)
             self._user_repository.save(user)
             self._event_publisher.publish(UserCreated(user.id, email))
             return CreateUserResponse(user.id.value)
@@ -209,7 +254,7 @@ class ChangeUserEmailUseCase:
             user = self._user_repository.find_by_id(command.user_id)
             if not user:
                 raise UserNotFoundError(command.user_id)
-            user.change_email(Email(command.new_email))
+            user.change_email(create_email(command.new_email))
             self._user_repository.save(user)
 ```
 
@@ -417,6 +462,7 @@ async def deactivate_user(
 - Should not expose external system details to the domain
 - Include error handling and retry logic when appropriate
 - Keep technology-specific models/schemas within their adapter implementations
+- Repository adapters hydrate existing domain objects through constructors with explicit persisted state; they never call domain creation functions
 
 ```python
 # SQL Database Adapter - infrastructure/adapters/secondary/sql/sql_user_repository.py
@@ -645,8 +691,8 @@ class UserController:  # Primary Adapter
 
 class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
-        email = Email(command.email)
-        user = User.create(email, command.name)
+        email = create_email(command.email)
+        user = create_user(email=email, name=command.name)
         self._user_repository.save(user)  # → Secondary Port
         self._email_service.send_welcome_email(email, command.name)  # → Secondary Port
         return CreateUserResponse(user.id.value)
@@ -668,6 +714,8 @@ class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
 - Handle cross-cutting concerns like transactions and event publishing
 - Serve as the application's use case boundary
 - Each use case should represent exactly one business workflow
+- Use module-level creation functions for new domain objects and pass complete initial creation data
+- Treat repository results as hydrated existing objects
 
 ```python
 class CreateUserUseCase(CreateUserPort):
@@ -685,8 +733,8 @@ class CreateUserUseCase(CreateUserPort):
     
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
         with self._unit_of_work:
-            email = Email(command.email)
-            user = User.create(email, command.name)
+            email = create_email(command.email)
+            user = create_user(email=email, name=command.name)
             self._user_repository.save(user)  # Domain port
             self._email_service.send_welcome_email(email, command.name)  # Infrastructure port
             self._event_publisher.publish(UserCreated(user.id, email))  # Infrastructure port
@@ -717,7 +765,8 @@ class CreateUserUseCase(CreateUserPort):
         self._event_publisher = event_publisher
     
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
-        user = User.create(Email(command.email), command.name)
+        email = create_email(command.email)
+        user = create_user(email=email, name=command.name)
         self._user_repo.save(user)  # Domain port
         self._event_publisher.publish(UserCreated(user.id, user.email))  # Infrastructure port
         return CreateUserResponse(user.id.value)
@@ -840,7 +889,7 @@ class InMemoryUserRepository(UserRepository):
 - Domain validation should happen in domain objects (entities, value objects)
 - Validation should be explicit and fail fast
 - Input validation in application services should be minimal
-- Use factory methods for complex validation scenarios
+- Use module-level `create_<domain_object>()` functions for creation-time normalization and validation; constructors retain invariants required during hydration
 - Use **two exception hierarchies** defined in the shared kernel:
   - `DomainException` — raised by entities, value objects, and use cases for business rule violations (e.g., invalid email, entity not found, constraint violated)
   - `AdapterException` — raised by infrastructure adapters when external systems fail (e.g., database unreachable, HTTP call failed). Adapters MUST wrap infrastructure-specific errors (e.g., `asyncpg.PostgresError`) in an `AdapterException` — the domain layer should never see infrastructure error types.
@@ -868,6 +917,9 @@ class Email:
     def __post_init__(self):
         if not self._is_valid_email(self.value):
             raise InvalidEmailError(f"Invalid email: {self.value}")
+
+def create_email(raw_value: str) -> Email:
+    return Email(value=raw_value.strip().lower())
 ```
 
 ### 23. Naming Convention Rules
@@ -905,7 +957,7 @@ class SendGridEmailAdapter(EmailNotificationPort): # Secondary adapter (SendGrid
 - **Inversion of Control**: Use DI container to wire adapters to ports at startup
 - Use dependency inversion - depend on abstractions, not concretions
 - Inject dependencies through constructors
-- Use factory pattern for complex object creation
+- Use composition-root factories for complex dependency graphs; domain object creation follows the module-level creation-function rules
 
 ```python
 # Domain layer - can depend on domain ports
@@ -958,7 +1010,8 @@ class SmtpEmailAdapter(EmailNotificationPort):  # Implements infrastructure port
 - **Integration Testing**: Use in-memory adapters for full workflow testing
 - Test domain events are raised correctly
 - Integration tests should test aggregate boundaries
-- Use builders or factories for test data creation
+- Use production creation functions for genuinely new test objects and constructors with explicit persisted state for hydration tests
+- Test that creation functions establish complete initial state without immediate follow-up mutation
 - **Contract Testing**: Ensure all adapter implementations satisfy their port contracts
 - **Use Case Testing**: Test each use case independently with mocked dependencies
 
@@ -967,9 +1020,9 @@ class SmtpEmailAdapter(EmailNotificationPort):  # Implements infrastructure port
 class UserRepositoryContractTest:
     def test_save_and_find_user(self, repository: UserRepository):
         # This test should pass for SqlUserRepository, MongoUserRepository, etc.
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
         repository.save(user)
-        found = repository.find_by_email(Email("test@example.com"))
+        found = repository.find_by_email(create_email("test@example.com"))
         assert found is not None
         assert found.email == user.email
 
@@ -987,7 +1040,7 @@ class TestCreateUserUseCaseIntegration:
         
         # Assert
         assert result.user_id is not None
-        saved_user = user_repo.find_by_email(Email("test@example.com"))
+        saved_user = user_repo.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert len(email_service.sent_emails) == 1
         assert len(event_publisher.published_events) == 1
@@ -998,13 +1051,13 @@ class TestSqlUserRepository:
         # Arrange
         session = create_test_sql_session()
         repository = SqlUserRepository(session)
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
         
         # Act
         repository.save(user)
         
         # Assert
-        saved_user = repository.find_by_email(Email("test@example.com"))
+        saved_user = repository.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
         
@@ -1018,13 +1071,13 @@ class TestMongoUserRepository:
         # Arrange
         mongo_client = create_test_mongo_client()
         repository = MongoUserRepository(mongo_client)
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
         
         # Act
         repository.save(user)
         
         # Assert
-        saved_user = repository.find_by_email(Email("test@example.com"))
+        saved_user = repository.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 ```
@@ -1192,15 +1245,15 @@ class Order:  # Aggregate Root
     id: OrderId
     customer_id: CustomerId  # Reference by ID, not Customer object
     version: int = 0
-    _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
-    _status: OrderStatus = field(default=OrderStatus.DRAFT, init=False)
+    _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
+    _status: OrderStatus = field(default=OrderStatus.DRAFT, repr=False)
 
     def add_line_item(self, product_id: ProductId, quantity: Quantity, price: Money) -> None:
         if self._status != OrderStatus.DRAFT:
             raise OrderNotEditableError(self.id)
         if len(self._line_items) >= 50:
             raise OrderLineLimitExceededError(self.id, max_items=50)
-        self._line_items.append(OrderLineItem(product_id, quantity, price))
+        self._line_items.append(create_order_line_item(product_id, quantity, price))
 
     def submit(self) -> list[DomainEvent]:
         if not self._line_items:

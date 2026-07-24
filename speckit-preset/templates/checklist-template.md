@@ -27,39 +27,43 @@
 - [ ] CHK003 Aggregate roots enforce all invariants for their child entities
 - [ ] CHK004 Domain events use past tense and ubiquitous language (no vendor terms)
 - [ ] CHK005 Repository interfaces declared in domain layer (not infrastructure)
+- [ ] CHK006 New entities, aggregates, and value objects use module-level creation functions
+- [ ] CHK007 Creation functions receive all available data belonging to valid initial state
+- [ ] CHK008 Repository adapters hydrate through constructors without creation side effects
 
 ## Bounded Context Boundaries
 
-- [ ] CHK006 Cross-context relationships store foreign IDs as local reference value objects or generic ID primitives
-- [ ] CHK007 No bounded context imports another context's domain value objects, entities, aggregates, or repositories
-- [ ] CHK008 Referenced external entities are validated through the owning context's public contract before persistence
+- [ ] CHK009 Cross-context relationships store foreign IDs as local reference value objects or generic ID primitives
+- [ ] CHK010 No bounded context imports another context's domain value objects, entities, aggregates, or repositories
+- [ ] CHK011 Referenced external entities are validated through the owning context's public contract before persistence
 
 ## Application Layer
 
-- [ ] CHK009 Each use case implements exactly one business workflow
-- [ ] CHK010 Use cases contain no business logic (delegated to domain)
-- [ ] CHK011 All external dependencies injected through port interfaces
-- [ ] CHK012 Primary ports defined in `application/ports/primary/`
-- [ ] CHK013 Infrastructure ports defined in `application/ports/secondary/`
+- [ ] CHK012 Each use case implements exactly one business workflow
+- [ ] CHK013 Use cases contain no business logic (delegated to domain)
+- [ ] CHK014 Use cases do not create incomplete objects and immediately mutate them with already-available creation data
+- [ ] CHK015 All external dependencies injected through port interfaces
+- [ ] CHK016 Primary ports defined in `application/ports/primary/`
+- [ ] CHK017 Infrastructure ports defined in `application/ports/secondary/`
 
 ## Adapters
 
-- [ ] CHK014 Primary adapters (controllers) contain no business logic
-- [ ] CHK015 API responses use DTOs, not domain entities or persistence models
-- [ ] CHK016 Secondary adapters wrap all infrastructure errors in `AdapterException`
-- [ ] CHK017 DI container is the only place that knows which adapter is active
+- [ ] CHK018 Primary adapters (controllers) contain no business logic
+- [ ] CHK019 API responses use DTOs, not domain entities or persistence models
+- [ ] CHK020 Secondary adapters wrap all infrastructure errors in `AdapterException`
+- [ ] CHK021 DI container is the only place that knows which adapter is active
 
 ## Testing
 
-- [ ] CHK018 BDD tests written BEFORE implementation and verified to fail first
-- [ ] CHK019 Domain logic tested without mocking domain objects
-- [ ] CHK020 Use case tests mock secondary ports, not domain objects
-- [ ] CHK021 Each user story independently testable from acceptance scenarios in spec
+- [ ] CHK022 BDD tests written BEFORE implementation and verified to fail first
+- [ ] CHK023 Domain logic tested without mocking domain objects
+- [ ] CHK024 Use case tests mock secondary ports, not domain objects
+- [ ] CHK025 Each user story independently testable from acceptance scenarios in spec
 
 ## [Category 4]
 
-- [ ] CHK022 [Additional project-specific item]
-- [ ] CHK023 [Additional project-specific item]
+- [ ] CHK026 [Additional project-specific item]
+- [ ] CHK027 [Additional project-specific item]
 
 ## Notes
 

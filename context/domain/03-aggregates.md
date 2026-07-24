@@ -5,7 +5,7 @@
 - Only the Aggregate Root should be directly accessible from outside
 - Internal entities within an aggregate should be accessed through the root
 - Aggregate boundaries should align with transaction boundaries
-- Use factory methods on aggregates for complex creation logic
+- Create new aggregate roots through standalone `create_<aggregate>()` functions in the aggregate root's module, never class factory methods or direct constructor calls
 - Aggregates should be small and focused
 - Cross-child invariants (rules that span multiple child entities within an aggregate) MUST be enforced by the aggregate root's methods, not by repositories or use cases. If two things must be consistent within the same transaction, they belong in the same aggregate.
 
@@ -20,16 +20,24 @@
 class Order:  # Aggregate Root
     id: OrderId
     customer_id: CustomerId
-    _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
+    _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
 
     def add_line_item(self, product_id: ProductId, quantity: int) -> None:
         # Business rules and validation
-        line_item = OrderLineItem(product_id, quantity)
+        line_item = create_order_line_item(product_id, quantity)
         self._line_items.append(line_item)
 
     @property
     def line_items(self) -> tuple[OrderLineItem, ...]:
         return tuple(self._line_items)  # Return immutable view
+
+
+def create_order(customer_id: CustomerId) -> Order:
+    return Order(
+        id=OrderId.generate(),
+        customer_id=customer_id,
+        _line_items=[],
+    )
 ```
 
 ## Aggregate Consistency Rules
@@ -46,15 +54,15 @@ class Order:  # Aggregate Root
     id: OrderId
     customer_id: CustomerId  # Reference by ID, not Customer object
     version: int = 0
-    _line_items: list[OrderLineItem] = field(default_factory=list, init=False)
-    _status: OrderStatus = field(default=OrderStatus.DRAFT, init=False)
+    _line_items: list[OrderLineItem] = field(default_factory=list, repr=False)
+    _status: OrderStatus = field(default=OrderStatus.DRAFT, repr=False)
 
     def add_line_item(self, product_id: ProductId, quantity: Quantity, price: Money) -> None:
         if self._status != OrderStatus.DRAFT:
             raise OrderNotEditableError(self.id)
         if len(self._line_items) >= 50:
             raise OrderLineLimitExceededError(self.id, max_items=50)
-        self._line_items.append(OrderLineItem(product_id, quantity, price))
+        self._line_items.append(create_order_line_item(product_id, quantity, price))
 
     def submit(self) -> list[DomainEvent]:
         if not self._line_items:

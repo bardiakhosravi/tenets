@@ -142,6 +142,7 @@ function computeHash(content) {
 function computeClaudeHash(assembled) {
   const {
     CLAUDE_MD_SNIPPET,
+    CLAUDE_RULE_DEFINITIONS,
     CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,
     CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
     CLAUDE_HOOK_SCRIPT,
@@ -152,6 +153,7 @@ function computeClaudeHash(assembled) {
   const combined =
     assembled +
     '\n---CLI_TEMPLATES---\n' +
+    JSON.stringify(CLAUDE_RULE_DEFINITIONS) +
     CLAUDE_MD_SNIPPET +
     buildReviewCommand('claude') +
     codeReviewAgentTemplate +

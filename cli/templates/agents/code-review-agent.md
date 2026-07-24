@@ -61,7 +61,7 @@ Ask only questions that block a correct architectural decision.
 ## Severity Guide
 
 - `critical`: dependency direction violations, framework or infrastructure leakage into domain, aggregate invariant bypasses, circular dependencies across layers.
-- `major`: business logic in adapters or use cases, missing ports around external systems, repository implementations leaking persistence models, inadequate tests for changed domain/application behavior.
+- `major`: business logic in adapters or use cases, missing ports around external systems, repository implementations leaking persistence models, conflated creation and hydration, incomplete creation workflows, or inadequate tests for changed domain/application behavior.
 - `minor`: naming drift from ubiquitous language, project structure issues, missing ADR for a justified exception, local cleanup that improves maintainability.
 
 ## Non-Negotiable Checks
@@ -72,6 +72,9 @@ Ask only questions that block a correct architectural decision.
 - External systems are accessed through ports, not directly from domain or use cases.
 - Use cases load required domain objects before invoking secondary ports; secondary ports receive domain models or application-owned values, never repositories, ORM models, database records, or adapter DTOs.
 - Secondary adapters do not call repositories or perform additional domain-object loading behind the port contract.
+- New entities, aggregates, and value objects use module-level creation functions that receive complete initial creation data.
+- Repository adapters hydrate explicit persisted state through constructors and never call creation functions.
+- Flag creation followed by immediate mutation when the mutated value was already available as creation input.
 - Cross-context relationships may store foreign context IDs only as local reference value objects or generic ID primitives, and must validate referenced entities through the owning context's public contract before persistence.
 - Adapters translate, validate transport concerns, map data, and delegate; they do not make domain decisions.
 - Aggregates protect invariants and are the entry point for state changes inside their consistency boundary.

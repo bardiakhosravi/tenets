@@ -6,6 +6,9 @@
 - Should be small, focused, and represent a concept from the domain
 - Include validation in `__post_init__` method
 - Should have meaningful methods that operate on the value
+- New value objects MUST be created through a standalone `create_<value_object>()` function in the value object's module
+- Constructors are reserved for hydration and internal reconstruction from already-normalized state
+- See **Domain Object Creation and Hydration Rules** for the complete lifecycle distinction
 
 ```python
 @dataclass(frozen=True)
@@ -19,4 +22,8 @@ class Email:
     @property
     def domain(self) -> str:
         return self.value.split('@')[1]
+
+
+def create_email(raw_value: str) -> Email:
+    return Email(value=raw_value.strip().lower())
 ```

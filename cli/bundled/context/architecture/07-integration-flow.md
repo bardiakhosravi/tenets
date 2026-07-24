@@ -15,8 +15,8 @@ class UserController:  # Primary Adapter
 
 class CreateUserUseCase(CreateUserPort):  # Primary Port Implementation
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
-        email = Email(command.email)
-        user = User.create(email, command.name)
+        email = create_email(command.email)
+        user = create_user(email=email, name=command.name)
         self._user_repository.save(user)  # → Secondary Port
         self._email_service.send_welcome_email(email, command.name)  # → Secondary Port
         return CreateUserResponse(user.id.value)

@@ -186,14 +186,14 @@ No manual referencing needed. The right rules appear at the right time.
 
 ### Layer 2: CLAUDE.md Snippet
 
-A concise block appended to your project's `CLAUDE.md` with the 8 non-negotiable principles. Always in context, every conversation.
+A concise block appended to your project's `CLAUDE.md` with the core non-negotiable principles. Always in context, every conversation.
 
 ### Layer 3: `/tenets-review-architecture` Skill
 
 An on-demand architecture review command. Run `/tenets-review-architecture` (or `/tenets-review-architecture src/domain/`) and the agent reads all tenets rules, analyzes your codebase, and reports violations grouped by severity:
 
 - **Critical**: Dependency direction violations, domain layer impurity
-- **Major**: Business logic in wrong layer, missing port abstractions
+- **Major**: Business logic in the wrong layer, missing port abstractions, creation/hydration violations
 - **Minor**: Naming conventions, file organization
 
 ### Layer 4: Continuous Monitoring Hook (opt-in)
@@ -215,8 +215,8 @@ Or skip and add it later by re-running `init`.
 ### Architecture (9 files)
 Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries.
 
-### Domain (9 files)
-Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules.
+### Domain (10 files)
+Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules, domain object creation and hydration.
 
 ### Application (5 files)
 Use cases, DDD + hexagonal synergy, event integration, cross-context communication, secondary port data flow.

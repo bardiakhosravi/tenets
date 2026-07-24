@@ -30,6 +30,7 @@ const CONTENT_SECTIONS = [
       { path: 'context/domain/07-bounded-contexts.md', title: 'Bounded Contexts' },
       { path: 'context/domain/08-ubiquitous-language.md', title: 'Ubiquitous Language' },
       { path: 'context/domain/09-bounded-context-boundary-rules.md', title: 'Bounded Context Boundary Rules' },
+      { path: 'context/domain/10-creation-and-hydration.md', title: 'Domain Object Creation and Hydration' },
     ],
   },
   {
@@ -112,7 +113,7 @@ const MARKERS = {
 const CLAUDE_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-domain.md',
-    description: 'DDD domain layer rules: entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts',
+    description: 'DDD domain layer rules: entities, value objects, aggregates, creation and hydration, domain services, repositories, domain events, bounded contexts',
     globs: '**/domain/**',
     contentSection: 'Domain',
   },
@@ -153,7 +154,7 @@ const AUGMENT_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-domain.md',
     type: 'agent_requested',
-    description: 'Apply when designing or changing entities, value objects, aggregates, repositories, domain services, events, or bounded contexts',
+    description: 'Apply when designing or changing entities, value objects, aggregates, creation and hydration, repositories, domain services, events, or bounded contexts',
     contentSection: 'Domain',
   },
   {
@@ -175,6 +176,7 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Domain layer has ZERO external dependencies** — no frameworks, no ORMs, no HTTP libraries.
 - **All infrastructure access goes through ports** (abstract interfaces).
 - **Aggregates are the only entry point** for state mutations within their boundary.
+- **Creation and hydration are different** — create new domain objects with module-level creation functions; repository adapters hydrate existing objects with constructors.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
 - **Use cases load domain objects before calling secondary ports** — ports receive domain models, never repositories.
 - **Primary adapters translate** external requests to domain commands; they contain NO business logic.
@@ -208,7 +210,7 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
  */
 
 const LAYER_RULES = {
-  domain: 'Domain layer: no external deps, entities have identity equality, VOs are immutable, aggregates enforce invariants.',
+  domain: 'Domain layer: no external deps, entities have identity equality, VOs are immutable, aggregates enforce invariants, and creation functions are distinct from hydration constructors.',
   application: 'Application layer: use cases orchestrate only, load required domain objects before secondary ports, and depend on ports, never adapters.',
   adapters: 'Adapter layer: implement port interfaces, handle external complexity, no domain logic, no hidden repository loading.',
   infrastructure: 'Infrastructure layer: implement port interfaces, keep tech-specific models here, no repository access hidden inside outbound adapters.',

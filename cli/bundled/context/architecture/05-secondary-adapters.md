@@ -6,6 +6,7 @@
 - Should not expose external system details to the domain
 - Include error handling and retry logic when appropriate
 - Keep technology-specific models/schemas within their adapter implementations
+- Repository adapters hydrate existing domain objects through constructors with explicit persisted state; they never call domain creation functions
 
 ```python
 # SQL Database Adapter - infrastructure/adapters/secondary/sql/sql_user_repository.py

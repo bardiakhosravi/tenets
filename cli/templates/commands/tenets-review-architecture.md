@@ -25,6 +25,8 @@ For each file, verify:
 - Aggregates enforce invariants; no logic leaks to use cases or repositories
 - Repository interfaces are abstract and use domain language
 - Domain events are immutable and use ubiquitous language only
+- New entities, aggregates, and value objects are created through module-level `create_<domain_object>()` functions in their modules
+- Constructors used by repositories hydrate explicit persisted state without generating identities, defaults, or creation events
 
 ### Application layer (`**/application/**`)
 - Use cases contain no business logic; they only orchestrate
@@ -32,6 +34,8 @@ For each file, verify:
 - Use cases depend on port interfaces, never concrete adapters
 - Primary ports define the application boundary
 - Use cases load required aggregates and entities before invoking secondary ports
+- Use cases supply every available initial-state input to creation functions and do not immediately mutate new objects to finish creation
+- Use cases do not pass hydrated objects back through creation functions
 - Secondary ports receive domain models or application-owned contract values, never repositories, ORM models, database records, or adapter DTOs
 - Secondary port contracts use IDs only when identity alone is sufficient for the capability
 - Cross-context reference IDs are validated through the owning context's public contract before persistence
@@ -68,7 +72,7 @@ Lead with findings ordered by severity. For each violation provide:
 Use these severity levels:
 
 - **Critical**: Dependency-direction violations or domain-layer impurity
-- **Major**: Business logic in the wrong layer, invalid port contracts, hidden repository loading, or missing port abstractions
+- **Major**: Business logic in the wrong layer, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, or missing port abstractions
 - **Minor**: Naming conventions or file organization
 
 Then report:

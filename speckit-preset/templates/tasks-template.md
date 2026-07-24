@@ -61,7 +61,7 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 [P] Define domain value objects and entities for this feature in `src/domain/model/`
+- [ ] T004 [P] Define domain value objects, entities, and their module-level creation functions in `src/domain/model/`
 - [ ] T005 [P] Define repository port interfaces in `src/domain/ports/`
 - [ ] T006 [P] Define infrastructure port interfaces in `src/application/ports/secondary/`
 - [ ] T007 Setup database schema and migrations
@@ -87,8 +87,8 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Implement [Entity/Aggregate] in `src/domain/model/[entity].py`
-- [ ] T013 [P] [US1] Implement repository adapter in `src/adapters/secondary/sql/sql_[name]_repository.py`
+- [ ] T012 [P] [US1] Implement [Entity/Aggregate] and `create_[entity]()` in `src/domain/model/[entity].py`
+- [ ] T013 [P] [US1] Implement repository adapter with constructor-based hydration in `src/adapters/secondary/sql/sql_[name]_repository.py`
 - [ ] T014 [US1] Implement use case in `src/application/use_cases/[name]_use_case.py` (depends on T012)
 - [ ] T015 [US1] Implement primary port in `src/application/ports/primary/[name]_port.py`
 - [ ] T016 [US1] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
@@ -111,7 +111,7 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Implement [Entity] in `src/domain/model/[entity].py`
+- [ ] T020 [P] [US2] Implement [Entity] and `create_[entity]()` in `src/domain/model/[entity].py`
 - [ ] T021 [US2] Implement use case in `src/application/use_cases/[name]_use_case.py`
 - [ ] T022 [US2] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
 - [ ] T023 [US2] Wire use case in DI container
@@ -133,7 +133,7 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement [Entity] in `src/domain/model/[entity].py`
+- [ ] T026 [P] [US3] Implement [Entity] and `create_[entity]()` in `src/domain/model/[entity].py`
 - [ ] T027 [US3] Implement use case in `src/application/use_cases/[name]_use_case.py`
 - [ ] T028 [US3] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
 - [ ] T029 [US3] Wire use case in DI container

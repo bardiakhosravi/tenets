@@ -22,7 +22,8 @@ class CreateUserUseCase(CreateUserPort):
         self._event_publisher = event_publisher
 
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
-        user = User.create(Email(command.email), command.name)
+        email = create_email(command.email)
+        user = create_user(email=email, name=command.name)
         self._user_repo.save(user)  # Domain port
         self._event_publisher.publish(UserCreated(user.id, user.email))  # Infrastructure port
         return CreateUserResponse(user.id.value)

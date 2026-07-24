@@ -37,6 +37,10 @@
   - All cross-context communication goes through ports
   - No business logic leaks into adapters or use cases
   - Aggregates are the only mutation entry points within their boundary
+  - New domain objects use module-level creation functions with complete initial
+    creation data
+  - Repository adapters hydrate persisted objects through constructors without
+    creation-specific side effects
   - New bounded context relationships are explicit and documented in spec.md
   - Cross-context reference IDs use local reference value objects or generic ID
     primitives, not imported owner-context domain types
@@ -51,6 +55,7 @@
 | Ports define all external boundaries | [ ] Pass / [ ] Violation | |
 | Use cases contain no business logic | [ ] Pass / [ ] Violation | |
 | Aggregates own their mutations | [ ] Pass / [ ] Violation | |
+| Creation and hydration use distinct entry points | [ ] Pass / [ ] Violation | |
 | Bounded context relationships documented | [ ] Pass / [ ] Violation | |
 | Cross-context reference IDs preserve ownership boundaries | [ ] Pass / [ ] Violation | |
 

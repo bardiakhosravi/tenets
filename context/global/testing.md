@@ -5,7 +5,9 @@
 - **Integration Testing**: Use in-memory adapters for full workflow testing
 - Test domain events are raised correctly
 - Integration tests should test aggregate boundaries
-- Use builders or factories for test data creation
+- Use production `create_<domain_object>()` functions when tests need genuinely new domain objects
+- Use constructors with explicit persisted state when testing repository hydration
+- Test that creation functions receive and establish all required initial state without immediate follow-up mutation
 - **Contract Testing**: Ensure all adapter implementations satisfy their port contracts
 - **Use Case Testing**: Test each use case independently with mocked dependencies
 
@@ -14,9 +16,9 @@
 class UserRepositoryContractTest:
     def test_save_and_find_user(self, repository: UserRepository):
         # This test should pass for SqlUserRepository, MongoUserRepository, etc.
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
         repository.save(user)
-        found = repository.find_by_email(Email("test@example.com"))
+        found = repository.find_by_email(create_email("test@example.com"))
         assert found is not None
         assert found.email == user.email
 
@@ -34,7 +36,7 @@ class TestCreateUserUseCaseIntegration:
 
         # Assert
         assert result.user_id is not None
-        saved_user = user_repo.find_by_email(Email("test@example.com"))
+        saved_user = user_repo.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert len(email_service.sent_emails) == 1
         assert len(event_publisher.published_events) == 1
@@ -45,13 +47,13 @@ class TestSqlUserRepository:
         # Arrange
         session = create_test_sql_session()
         repository = SqlUserRepository(session)
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
 
         # Act
         repository.save(user)
 
         # Assert
-        saved_user = repository.find_by_email(Email("test@example.com"))
+        saved_user = repository.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 
@@ -65,13 +67,13 @@ class TestMongoUserRepository:
         # Arrange
         mongo_client = create_test_mongo_client()
         repository = MongoUserRepository(mongo_client)
-        user = User.create(Email("test@example.com"), "John")
+        user = create_user(create_email("test@example.com"), "John")
 
         # Act
         repository.save(user)
 
         # Assert
-        saved_user = repository.find_by_email(Email("test@example.com"))
+        saved_user = repository.find_by_email(create_email("test@example.com"))
         assert saved_user is not None
         assert saved_user.email == user.email
 ```

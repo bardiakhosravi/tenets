@@ -8,7 +8,7 @@
 - **Inversion of Control**: Use DI container to wire adapters to ports at startup
 - Use dependency inversion - depend on abstractions, not concretions
 - Inject dependencies through constructors
-- Use factory pattern for complex object creation
+- Use composition-root factories for complex dependency graphs; domain object creation follows the module-level creation-function rules
 
 ```python
 # Domain layer - can depend on domain ports
