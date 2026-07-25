@@ -399,14 +399,14 @@ test('doctor treats the optional Claude monitoring hook as optional', (t) => {
 
 test('scoped installation inspection reports a requested missing integration', async (t) => {
   const directory = temporaryDirectory(t);
-  const previousDirectory = process.cwd();
-  t.after(() => process.chdir(previousDirectory));
-  process.chdir(directory);
   const {
     inspectInstallation,
   } = require('../src/services/installation-inspector');
 
-  const result = await inspectInstallation({ toolKeys: ['cursor'] });
+  const result = await inspectInstallation({
+    projectRoot: directory,
+    toolKeys: ['cursor'],
+  });
 
   assert.equal(result.healthy, false);
   assert.equal(result.tools[0].tool, 'cursor');

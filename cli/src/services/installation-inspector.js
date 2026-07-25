@@ -238,8 +238,8 @@ function hasUntrackedArtifacts(projectRoot, toolKey, tool) {
 }
 
 async function inspectInstallation(options = {}) {
-  const projectRoot = process.cwd();
-  const config = readConfig();
+  const projectRoot = options.projectRoot || process.cwd();
+  const config = readConfig(projectRoot);
   const content = await fetchContent();
   const assembled = assembleContent(content);
   const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);

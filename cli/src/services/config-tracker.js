@@ -12,12 +12,12 @@ const { logger } = require('../ui/logger');
  */
 const SCHEMA_VERSION = 3;
 
-function configPath() {
-  return path.resolve(process.cwd(), CONFIG_FILE);
+function configPath(projectRoot = process.cwd()) {
+  return path.resolve(projectRoot, CONFIG_FILE);
 }
 
-function readConfig() {
-  const p = configPath();
+function readConfig(projectRoot = process.cwd()) {
+  const p = configPath(projectRoot);
   if (!fs.existsSync(p)) {
     return null;
   }
