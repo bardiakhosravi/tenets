@@ -22,7 +22,12 @@ const {
   computeCopilotHash,
   computeReviewCommandHash,
 } = require('../services/content-fetcher');
-const { writeFile, replaceMarkedContent } = require('../services/file-writer');
+const {
+  assertCanWriteOwnedFiles,
+  isTenetsOwnedFile,
+  replaceMarkedContent,
+  writeOwnedFile,
+} = require('../services/file-writer');
 const {
   writeClaudeIntegration,
   writeHookSettings,
@@ -42,6 +47,7 @@ const {
   copilotIntegrationComplete,
 } = require('../services/copilot-writer');
 const {
+  reviewCommandPath,
   writeReviewCommand,
   reviewCommandExists,
 } = require('../services/review-command-writer');
@@ -194,21 +200,33 @@ async function updateCommand() {
       (tool?.augmentMultiOutput && !augmentIntegrationComplete(process.cwd())) ||
       (tool?.cursorMultiOutput && !cursorIntegrationComplete(process.cwd())) ||
       (tool?.copilotMultiOutput && !copilotIntegrationComplete(process.cwd()));
-    const targetMissing =
+    const targetUnownedOrMissing =
       !tool?.multiOutput &&
       !tool?.augmentMultiOutput &&
       !tool?.cursorMultiOutput &&
       !tool?.copilotMultiOutput &&
-      !fs.existsSync(path.resolve(process.cwd(), entry.targetFile));
+      !isTenetsOwnedFile(path.resolve(process.cwd(), entry.targetFile));
 
     if (
       entry.contentHash === newHash &&
       !commandMissing &&
       !integrationIncomplete &&
-      !targetMissing
+      !targetUnownedOrMissing
     ) {
       logger.success(`${toolKey} — already up to date.`);
       continue;
+    }
+
+    const isSingleFileReviewIntegration =
+      tool?.reviewCommand &&
+      !tool?.multiOutput &&
+      !tool?.augmentMultiOutput &&
+      !tool?.cursorMultiOutput &&
+      !tool?.copilotMultiOutput;
+    if (isSingleFileReviewIntegration) {
+      assertCanWriteOwnedFiles([
+        reviewCommandPath(process.cwd(), toolKey),
+      ]);
     }
 
     if (tool?.codeReviewAgent) {
@@ -219,8 +237,8 @@ async function updateCommand() {
       if (replaced) {
         logger.success(`${targetFile} — updated (marker replacement).`);
       } else {
-        writeFile(targetPath, codeReviewAgentContent, entry.mode || 'replace');
-        logger.success(`${targetFile} — updated (full ${entry.mode || 'replace'}).`);
+        writeOwnedFile(targetPath, codeReviewAgentContent);
+        logger.success(`${targetFile} — updated (Tenets-owned file).`);
       }
     } else if (tool?.multiOutput) {
       const projectRoot = process.cwd();
@@ -272,8 +290,8 @@ async function updateCommand() {
       if (replaced) {
         logger.success(`${entry.targetFile} — updated (marker replacement).`);
       } else {
-        writeFile(targetPath, assembled, entry.mode || 'replace');
-        logger.success(`${entry.targetFile} — updated (full ${entry.mode || 'replace'}).`);
+        writeOwnedFile(targetPath, assembled);
+        logger.success(`${entry.targetFile} — updated (Tenets-owned file).`);
       }
 
       if (tool?.reviewCommand) {

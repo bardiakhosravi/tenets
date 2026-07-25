@@ -15,8 +15,8 @@ function temporaryDirectory(t) {
   return directory;
 }
 
-function runCli(directory, args, input = '', environment = {}) {
-  const result = spawnSync(process.execPath, [CLI, ...args], {
+function spawnCli(directory, args, input = '', environment = {}) {
+  return spawnSync(process.execPath, [CLI, ...args], {
     cwd: directory,
     input,
     encoding: 'utf-8',
@@ -26,6 +26,10 @@ function runCli(directory, args, input = '', environment = {}) {
       ...environment,
     },
   });
+}
+
+function runCli(directory, args, input = '', environment = {}) {
+  const result = spawnCli(directory, args, input, environment);
 
   assert.equal(
     result.status,
@@ -205,5 +209,54 @@ test('Spec-Kit installs the bundled preset without network tooling', (t) => {
   );
   assert.ok(
     readConfig(directory).speckit['tenets-ddd']
+  );
+});
+
+test('update refuses an unowned target and init can replace it explicitly', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--augment']);
+  const targetPath = path.join(
+    directory,
+    '.augment/rules/tenets-domain.md'
+  );
+  fs.writeFileSync(targetPath, 'User-authored domain guidance\n');
+
+  const updateResult = spawnCli(directory, ['update']);
+  assert.equal(updateResult.status, 1);
+  assert.match(
+    updateResult.stderr,
+    /Refusing to overwrite files that are not owned by Tenets/
+  );
+  assert.equal(
+    fs.readFileSync(targetPath, 'utf-8'),
+    'User-authored domain guidance\n'
+  );
+
+  const initOutput = runCli(directory, ['init', '--augment'], 'y\n');
+  assert.match(initOutput, /not marked as Tenets-owned/);
+  assert.match(initOutput, /\.augment\/rules\/tenets-domain\.md/);
+  assert.match(
+    fs.readFileSync(targetPath, 'utf-8'),
+    new RegExp(MARKERS.start)
+  );
+});
+
+test('review command conflicts are detected before shared rules change', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--agents']);
+  const agentsPath = path.join(directory, 'AGENTS.md');
+  const commandPath = path.join(
+    directory,
+    '.tenets/prompts/tenets-review-architecture.md'
+  );
+  const agentsBefore = fs.readFileSync(agentsPath, 'utf-8');
+  fs.writeFileSync(commandPath, 'User-authored review workflow\n');
+
+  const result = spawnCli(directory, ['update']);
+  assert.equal(result.status, 1);
+  assert.equal(fs.readFileSync(agentsPath, 'utf-8'), agentsBefore);
+  assert.equal(
+    fs.readFileSync(commandPath, 'utf-8'),
+    'User-authored review workflow\n'
   );
 });

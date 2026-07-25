@@ -18,25 +18,52 @@ const {
   writeClaudeIntegration,
   writeHookSettings,
   writeCodeReviewAgentHookSettings,
+  claudeOwnedPaths,
 } = require('../services/claude-writer');
 const {
+  augmentOwnedPaths,
   writeAugmentIntegration,
   augmentRulesExist,
 } = require('../services/augment-writer');
 const {
+  cursorOwnedPaths,
   writeCursorIntegration,
   cursorRulesExist,
 } = require('../services/cursor-writer');
 const {
+  copilotOwnedPaths,
   writeCopilotIntegration,
   copilotInstructionsExist,
 } = require('../services/copilot-writer');
-const { writeReviewCommand } = require('../services/review-command-writer');
+const {
+  reviewCommandPath,
+  writeReviewCommand,
+} = require('../services/review-command-writer');
+const {
+  findOwnershipConflicts,
+  isTenetsOwnedFile,
+} = require('../services/file-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
 const SPECKIT_PRESET_ID = 'tenets-ddd';
+
+function printOwnershipConflicts(filePaths) {
+  const conflicts = findOwnershipConflicts(filePaths);
+  if (conflicts.length === 0) {
+    return;
+  }
+
+  logger.blank();
+  logger.warn('These existing files are not marked as Tenets-owned:');
+  for (const filePath of conflicts) {
+    logger.dim(`  ${path.relative(process.cwd(), filePath)}`);
+  }
+  logger.dim('  Confirming replacement will overwrite the listed files.');
+  logger.blank();
+}
+
 function resolveToolsFromFlags(args) {
   return Object.entries(TOOLS)
     .filter(([, tool]) => args.includes(tool.flag))
@@ -276,20 +303,24 @@ async function initCommand(args) {
 
 async function initCursorMultiOutput(toolKey, tool, content, hash) {
   const projectRoot = process.cwd();
+  let overwriteConflicts = false;
 
   if (cursorRulesExist(projectRoot)) {
+    printOwnershipConflicts(cursorOwnedPaths(projectRoot));
     const overwrite = await promptYesNo(
-      'Tenets Cursor rules already exist. Update the generated rules?'
+      'Cursor integration target files already exist. Replace or update them?'
     );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
     }
+    overwriteConflicts = true;
   }
 
   const { writtenFiles, removedLegacyRules } = writeCursorIntegration(
     projectRoot,
-    content
+    content,
+    { overwriteConflicts }
   );
   updateToolEntry(toolKey, tool.targetFile, hash, 'cursor-multi');
 
@@ -309,20 +340,24 @@ async function initCursorMultiOutput(toolKey, tool, content, hash) {
 
 async function initCopilotMultiOutput(toolKey, tool, content, hash) {
   const projectRoot = process.cwd();
+  let overwriteConflicts = false;
 
   if (copilotInstructionsExist(projectRoot)) {
+    printOwnershipConflicts(copilotOwnedPaths(projectRoot));
     const overwrite = await promptYesNo(
-      'Tenets Copilot instructions already exist. Update the generated instructions?'
+      'Copilot integration target files already exist. Replace or update them?'
     );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
     }
+    overwriteConflicts = true;
   }
 
   const { writtenFiles, globalAction } = writeCopilotIntegration(
     projectRoot,
-    content
+    content,
+    { overwriteConflicts }
   );
   updateToolEntry(toolKey, tool.targetFile, hash, 'copilot-multi');
 
@@ -340,18 +375,23 @@ async function initCopilotMultiOutput(toolKey, tool, content, hash) {
 
 async function initAugmentMultiOutput(toolKey, tool, content, hash) {
   const projectRoot = process.cwd();
+  let overwriteConflicts = false;
 
   if (augmentRulesExist(projectRoot)) {
+    printOwnershipConflicts(augmentOwnedPaths(projectRoot));
     const overwrite = await promptYesNo(
-      'Tenets Augment rules already exist. Update the generated rules?'
+      'Augment integration target files already exist. Replace or update them?'
     );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
     }
+    overwriteConflicts = true;
   }
 
-  const writtenFiles = writeAugmentIntegration(projectRoot, content);
+  const writtenFiles = writeAugmentIntegration(projectRoot, content, {
+    overwriteConflicts,
+  });
   updateToolEntry(toolKey, tool.targetFile, hash, 'augment-multi');
 
   logger.blank();
@@ -370,19 +410,31 @@ async function initAugmentMultiOutput(toolKey, tool, content, hash) {
  */
 async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options = {}) {
   const projectRoot = process.cwd();
-  const rulesDir = path.resolve(projectRoot, '.claude', 'rules');
+  const ownedPaths = claudeOwnedPaths(projectRoot, {
+    installCodeReviewAgent: options.installCodeReviewAgent,
+  });
+  const existingOwnedTargets = ownedPaths.filter((filePath) =>
+    fs.existsSync(filePath)
+  );
+  let overwriteConflicts = false;
 
-  if (fs.existsSync(rulesDir)) {
+  if (existingOwnedTargets.length > 0) {
+    printOwnershipConflicts(existingOwnedTargets);
     const overwrite = await promptYesNo(
-      `.claude/rules/ already exists. Overwrite existing rules?`
+      'Claude integration target files already exist. Update them?'
     );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
     }
+    overwriteConflicts = true;
   }
 
-  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(projectRoot, content, options);
+  const { writtenFiles, claudeMdAction } = writeClaudeIntegration(
+    projectRoot,
+    content,
+    { ...options, overwriteConflicts }
+  );
 
   if (claudeMdAction === 'appended') {
     logger.info('Appending Tenets block to existing CLAUDE.md.');
@@ -446,6 +498,24 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
  */
 async function initSingleFile(toolKey, tool, assembled, hash) {
   const targetPath = path.resolve(process.cwd(), tool.targetFile);
+  const commandPath = tool.reviewCommand
+    ? reviewCommandPath(process.cwd(), toolKey)
+    : null;
+  let overwriteCommandConflict = false;
+
+  if (
+    commandPath &&
+    fs.existsSync(commandPath) &&
+    !isTenetsOwnedFile(commandPath)
+  ) {
+    overwriteCommandConflict = await promptYesNo(
+      `Review command file already exists at ${commandPath}. Replace it?`
+    );
+    if (!overwriteCommandConflict) {
+      logger.info('Cancelled.');
+      return;
+    }
+  }
 
   let mode = 'replace';
   if (fs.existsSync(targetPath)) {
@@ -458,7 +528,9 @@ async function initSingleFile(toolKey, tool, assembled, hash) {
 
   writeFile(targetPath, assembled, mode);
   const commandFile = tool.reviewCommand
-    ? writeReviewCommand(process.cwd(), toolKey)
+    ? writeReviewCommand(process.cwd(), toolKey, {
+      overwriteConflicts: overwriteCommandConflict,
+    })
     : null;
   updateToolEntry(toolKey, tool.targetFile, hash, mode);
 

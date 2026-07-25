@@ -3,8 +3,14 @@ const path = require('node:path');
 const { AUGMENT_RULE_DEFINITIONS, MARKERS } = require('../constants');
 const {
   writeReviewCommand,
+  reviewCommandPath,
   reviewCommandExists,
 } = require('./review-command-writer');
+const {
+  assertCanWriteOwnedFiles,
+  isTenetsOwnedFile,
+  writeOwnedFile,
+} = require('./file-writer');
 
 function buildAugmentRuleFile(definition, content) {
   const section = content.sections.find(
@@ -33,32 +39,46 @@ function buildAugmentRuleFile(definition, content) {
   return parts.join('\n');
 }
 
-function writeAugmentIntegration(projectRoot, content) {
+function augmentOwnedPaths(projectRoot) {
+  return [
+    ...AUGMENT_RULE_DEFINITIONS.map((definition) =>
+      path.join(projectRoot, '.augment', 'rules', definition.fileName)
+    ),
+    reviewCommandPath(projectRoot, 'augment'),
+  ];
+}
+
+function writeAugmentIntegration(projectRoot, content, options = {}) {
   const rulesDir = path.join(projectRoot, '.augment', 'rules');
+  assertCanWriteOwnedFiles(augmentOwnedPaths(projectRoot), options);
   fs.mkdirSync(rulesDir, { recursive: true });
 
   const writtenFiles = [];
   for (const definition of AUGMENT_RULE_DEFINITIONS) {
     const rulePath = path.join(rulesDir, definition.fileName);
-    fs.writeFileSync(rulePath, buildAugmentRuleFile(definition, content), 'utf-8');
+    writeOwnedFile(
+      rulePath,
+      buildAugmentRuleFile(definition, content),
+      options
+    );
     writtenFiles.push(`.augment/rules/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'augment'));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'augment', options));
 
   return writtenFiles;
 }
 
 function augmentRulesExist(projectRoot) {
-  return AUGMENT_RULE_DEFINITIONS.some((definition) =>
-    fs.existsSync(path.join(projectRoot, '.augment', 'rules', definition.fileName))
+  return augmentOwnedPaths(projectRoot).some((filePath) =>
+    fs.existsSync(filePath)
   );
 }
 
 function augmentIntegrationComplete(projectRoot) {
   return (
     AUGMENT_RULE_DEFINITIONS.every((definition) =>
-      fs.existsSync(
+      isTenetsOwnedFile(
         path.join(projectRoot, '.augment', 'rules', definition.fileName)
       )
     ) && reviewCommandExists(projectRoot, 'augment')
@@ -67,6 +87,7 @@ function augmentIntegrationComplete(projectRoot) {
 
 module.exports = {
   buildAugmentRuleFile,
+  augmentOwnedPaths,
   writeAugmentIntegration,
   augmentRulesExist,
   augmentIntegrationComplete,

@@ -97,6 +97,23 @@ versioned, reproducible, and available offline. The command also updates an
 installed Spec-Kit preset. If an older output format is detected, the CLI
 migrates it while preserving content outside Tenets ownership markers.
 
+### Safe File Ownership
+
+Tenets distinguishes fully generated files from shared repository files:
+
+- Fully generated rules, commands, prompts, hooks, and agents carry a Tenets
+  ownership marker. `tenets update` replaces them only when that ownership can
+  be verified.
+- Shared files such as `CLAUDE.md`, `AGENTS.md`, and
+  `.github/copilot-instructions.md` are updated only between
+  `<!-- tenets:start -->` and `<!-- tenets:end -->`.
+- `.claude/settings.json` is parsed and merged. Existing settings are preserved,
+  and malformed JSON is never replaced.
+- When an `init` target already contains an unowned file, Tenets lists the
+  conflicting path and requires explicit confirmation before replacement.
+- Noninteractive `tenets update` refuses unowned conflicts and leaves the files
+  unchanged. Review, move, or remove the listed files before retrying.
+
 ---
 
 ## Code Review Agent

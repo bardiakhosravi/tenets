@@ -108,6 +108,8 @@ const MARKERS = {
   end: '<!-- tenets:end -->',
 };
 
+const GENERATED_MARKER = '<!-- tenets:generated -->';
+
 /**
  * Claude Code rule files with glob-based auto-loading.
  * Each rule maps to a content section directory.
@@ -282,6 +284,7 @@ const CLAUDE_CODE_REVIEW_AGENT_TEMPLATE = 'templates/claude/agents/code-review-a
 const CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE = 'templates/claude/hooks/code-review-agent-prompt.md';
 
 const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
+// tenets:generated
 /**
  * PostToolUse hook for tenets architecture monitoring.
  * Fires after Edit/Write tool calls to remind Claude about architecture rules.
@@ -323,6 +326,7 @@ module.exports = {
   TOOLS,
   CONFIG_FILE,
   MARKERS,
+  GENERATED_MARKER,
   CLAUDE_RULE_DEFINITIONS,
   AUGMENT_RULE_DEFINITIONS,
   CURSOR_RULE_DEFINITIONS,

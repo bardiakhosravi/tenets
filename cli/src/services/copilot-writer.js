@@ -5,9 +5,15 @@ const {
   COPILOT_MD_SNIPPET,
   MARKERS,
 } = require('../constants');
-const { upsertMarkedContent } = require('./file-writer');
+const {
+  assertCanWriteOwnedFiles,
+  isTenetsOwnedFile,
+  upsertMarkedContent,
+  writeOwnedFile,
+} = require('./file-writer');
 const {
   writeReviewCommand,
+  reviewCommandPath,
   reviewCommandExists,
 } = require('./review-command-writer');
 
@@ -35,7 +41,22 @@ function buildCopilotInstructionFile(definition, content) {
   return parts.join('\n');
 }
 
-function writeCopilotIntegration(projectRoot, content) {
+function copilotOwnedPaths(projectRoot) {
+  return [
+    ...COPILOT_INSTRUCTION_DEFINITIONS.map((definition) =>
+      path.join(
+        projectRoot,
+        '.github',
+        'instructions',
+        definition.fileName
+      )
+    ),
+    reviewCommandPath(projectRoot, 'copilot'),
+  ];
+}
+
+function writeCopilotIntegration(projectRoot, content, options = {}) {
+  assertCanWriteOwnedFiles(copilotOwnedPaths(projectRoot), options);
   const globalInstructionsPath = path.join(
     projectRoot,
     '.github',
@@ -53,23 +74,21 @@ function writeCopilotIntegration(projectRoot, content) {
   const writtenFiles = ['.github/copilot-instructions.md'];
   for (const definition of COPILOT_INSTRUCTION_DEFINITIONS) {
     const instructionPath = path.join(instructionsDir, definition.fileName);
-    fs.writeFileSync(
+    writeOwnedFile(
       instructionPath,
       buildCopilotInstructionFile(definition, content),
-      'utf-8'
+      options
     );
     writtenFiles.push(`.github/instructions/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'copilot'));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'copilot', options));
   return { writtenFiles, globalAction };
 }
 
 function copilotInstructionsExist(projectRoot) {
-  return COPILOT_INSTRUCTION_DEFINITIONS.some((definition) =>
-    fs.existsSync(
-      path.join(projectRoot, '.github', 'instructions', definition.fileName)
-    )
+  return copilotOwnedPaths(projectRoot).some((filePath) =>
+    fs.existsSync(filePath)
   );
 }
 
@@ -84,7 +103,7 @@ function copilotIntegrationComplete(projectRoot) {
     fs.readFileSync(globalInstructionsPath, 'utf-8').includes(MARKERS.start);
   const hasScopedInstructions = COPILOT_INSTRUCTION_DEFINITIONS.every(
     (definition) =>
-      fs.existsSync(
+      isTenetsOwnedFile(
         path.join(
           projectRoot,
           '.github',
@@ -103,6 +122,7 @@ function copilotIntegrationComplete(projectRoot) {
 
 module.exports = {
   buildCopilotInstructionFile,
+  copilotOwnedPaths,
   writeCopilotIntegration,
   copilotInstructionsExist,
   copilotIntegrationComplete,

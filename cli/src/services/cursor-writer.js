@@ -1,9 +1,15 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { CURSOR_RULE_DEFINITIONS, MARKERS } = require('../constants');
-const { removeMarkedContent } = require('./file-writer');
+const {
+  assertCanWriteOwnedFiles,
+  isTenetsOwnedFile,
+  removeMarkedContent,
+  writeOwnedFile,
+} = require('./file-writer');
 const {
   writeReviewCommand,
+  reviewCommandPath,
   reviewCommandExists,
 } = require('./review-command-writer');
 
@@ -36,18 +42,32 @@ function buildCursorRuleFile(definition, content) {
   return parts.join('\n');
 }
 
-function writeCursorIntegration(projectRoot, content) {
+function cursorOwnedPaths(projectRoot) {
+  return [
+    ...CURSOR_RULE_DEFINITIONS.map((definition) =>
+      path.join(projectRoot, '.cursor', 'rules', definition.fileName)
+    ),
+    reviewCommandPath(projectRoot, 'cursor'),
+  ];
+}
+
+function writeCursorIntegration(projectRoot, content, options = {}) {
   const rulesDir = path.join(projectRoot, '.cursor', 'rules');
+  assertCanWriteOwnedFiles(cursorOwnedPaths(projectRoot), options);
   fs.mkdirSync(rulesDir, { recursive: true });
 
   const writtenFiles = [];
   for (const definition of CURSOR_RULE_DEFINITIONS) {
     const rulePath = path.join(rulesDir, definition.fileName);
-    fs.writeFileSync(rulePath, buildCursorRuleFile(definition, content), 'utf-8');
+    writeOwnedFile(
+      rulePath,
+      buildCursorRuleFile(definition, content),
+      options
+    );
     writtenFiles.push(`.cursor/rules/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'cursor'));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'cursor', options));
 
   const legacyPath = path.join(projectRoot, '.cursorrules');
   const removedLegacyRules = removeMarkedContent(legacyPath);
@@ -56,15 +76,15 @@ function writeCursorIntegration(projectRoot, content) {
 }
 
 function cursorRulesExist(projectRoot) {
-  return CURSOR_RULE_DEFINITIONS.some((definition) =>
-    fs.existsSync(path.join(projectRoot, '.cursor', 'rules', definition.fileName))
+  return cursorOwnedPaths(projectRoot).some((filePath) =>
+    fs.existsSync(filePath)
   );
 }
 
 function cursorIntegrationComplete(projectRoot) {
   return (
     CURSOR_RULE_DEFINITIONS.every((definition) =>
-      fs.existsSync(
+      isTenetsOwnedFile(
         path.join(projectRoot, '.cursor', 'rules', definition.fileName)
       )
     ) && reviewCommandExists(projectRoot, 'cursor')
@@ -73,6 +93,7 @@ function cursorIntegrationComplete(projectRoot) {
 
 module.exports = {
   buildCursorRuleFile,
+  cursorOwnedPaths,
   writeCursorIntegration,
   cursorRulesExist,
   cursorIntegrationComplete,
