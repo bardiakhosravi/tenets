@@ -348,7 +348,9 @@ function formatChangePlan(changes, projectRoot = process.cwd()) {
 
   const lines = [];
   for (const change of changes) {
-    const relativePath = path.relative(projectRoot, change.path);
+    const relativePath = path.relative(projectRoot, change.path)
+      .split(path.sep)
+      .join('/');
     lines.push(
       `${change.action.toUpperCase()} ${relativePath}`,
       `diff --tenets a/${relativePath} b/${relativePath}`

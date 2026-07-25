@@ -2,6 +2,12 @@
 
 All notable changes to Tenets are documented here.
 
+## [0.10.1] - 2026-07-25
+
+### Fixed
+
+- Preview and JSON change paths now use stable forward slashes on Windows.
+
 ## [0.10.0] - 2026-07-25
 
 ### Added

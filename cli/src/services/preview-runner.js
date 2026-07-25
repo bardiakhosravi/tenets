@@ -18,7 +18,9 @@ async function runPreview(label, operation) {
   logger.success('Dry run complete. No changes were applied.');
   return changes.map((change) => ({
     action: change.action,
-    path: path.relative(process.cwd(), change.path),
+    path: path.relative(process.cwd(), change.path)
+      .split(path.sep)
+      .join('/'),
     before: change.before?.toString('utf-8') ?? null,
     after: change.after?.toString('utf-8') ?? null,
     beforeMode: change.beforeMode,
