@@ -39,10 +39,10 @@ Commands:
   update            Update all installed rules to latest
 
 Init options:
-  --claude          Claude Code (rules + skill + hook integration)
-  --cursor          Write rules and a review command for Cursor
+  --claude          Claude Code (rules + skill, optional hook)
+  --cursor          Write scoped rules and a review command for Cursor
   --augment         Write rules and a review command for Augment
-  --copilot         Write rules and a review prompt for Copilot
+  --copilot         Write global + scoped instructions and a review prompt
   --code-review-agent
                     Write a code review agent prompt
   --agents          Write AGENTS.md and a generic review prompt

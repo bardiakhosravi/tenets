@@ -1,7 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
-const { TOOLS } = require('../constants');
+const { SPECKIT_PRESET_RELEASE_URL, TOOLS } = require('../constants');
 const {
   fetchContent,
   assembleContent,
@@ -9,6 +9,8 @@ const {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeCursorHash,
+  computeCopilotHash,
   computeReviewCommandHash,
 } = require('../services/content-fetcher');
 const { writeFile } = require('../services/file-writer');
@@ -21,15 +23,20 @@ const {
   writeAugmentIntegration,
   augmentRulesExist,
 } = require('../services/augment-writer');
+const {
+  writeCursorIntegration,
+  cursorRulesExist,
+} = require('../services/cursor-writer');
+const {
+  writeCopilotIntegration,
+  copilotInstructionsExist,
+} = require('../services/copilot-writer');
 const { writeReviewCommand } = require('../services/review-command-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 
 const SPECKIT_PRESET_ID = 'tenets-ddd';
-const SPECKIT_PRESET_RELEASE_URL =
-  'https://github.com/bardiakhosravi/ai-agent-backend-standards/releases/latest/download/tenets-speckit-preset.zip';
-
 function resolveToolsFromFlags(args) {
   return Object.entries(TOOLS)
     .filter(([, tool]) => args.includes(tool.flag))
@@ -244,6 +251,20 @@ async function initCommand(args) {
         content,
         computeAugmentHash(assembled)
       );
+    } else if (tool.cursorMultiOutput) {
+      await initCursorMultiOutput(
+        toolKey,
+        tool,
+        content,
+        computeCursorHash(assembled)
+      );
+    } else if (tool.copilotMultiOutput) {
+      await initCopilotMultiOutput(
+        toolKey,
+        tool,
+        content,
+        computeCopilotHash(assembled)
+      );
     } else {
       const hash = tool.reviewCommand
         ? computeReviewCommandHash(assembled, toolKey)
@@ -251,6 +272,70 @@ async function initCommand(args) {
       await initSingleFile(toolKey, tool, assembled, hash);
     }
   }
+}
+
+async function initCursorMultiOutput(toolKey, tool, content, hash) {
+  const projectRoot = process.cwd();
+
+  if (cursorRulesExist(projectRoot)) {
+    const overwrite = await promptYesNo(
+      'Tenets Cursor rules already exist. Update the generated rules?'
+    );
+    if (!overwrite) {
+      logger.info('Cancelled.');
+      return;
+    }
+  }
+
+  const { writtenFiles, removedLegacyRules } = writeCursorIntegration(
+    projectRoot,
+    content
+  );
+  updateToolEntry(toolKey, tool.targetFile, hash, 'cursor-multi');
+
+  logger.blank();
+  logger.success('Cursor integration installed!');
+  logger.info(`${writtenFiles.length} files written:`);
+  for (const file of writtenFiles) {
+    logger.dim(`  ${file}`);
+  }
+  if (removedLegacyRules) {
+    logger.dim('  Removed the legacy Tenets block from .cursorrules.');
+  }
+  logger.dim('  Global rules always apply; layer rules load by path.');
+  logger.dim('  Run /tenets-review-architecture for a compliance review.');
+  logger.dim('  Run `npx tenets update` to update rules later.');
+}
+
+async function initCopilotMultiOutput(toolKey, tool, content, hash) {
+  const projectRoot = process.cwd();
+
+  if (copilotInstructionsExist(projectRoot)) {
+    const overwrite = await promptYesNo(
+      'Tenets Copilot instructions already exist. Update the generated instructions?'
+    );
+    if (!overwrite) {
+      logger.info('Cancelled.');
+      return;
+    }
+  }
+
+  const { writtenFiles, globalAction } = writeCopilotIntegration(
+    projectRoot,
+    content
+  );
+  updateToolEntry(toolKey, tool.targetFile, hash, 'copilot-multi');
+
+  logger.blank();
+  logger.success('GitHub Copilot integration installed!');
+  logger.info(`${writtenFiles.length} files written:`);
+  for (const file of writtenFiles) {
+    logger.dim(`  ${file}`);
+  }
+  logger.dim(`  Global instructions: ${globalAction}.`);
+  logger.dim('  Layer rules load only for matching paths.');
+  logger.dim('  Run the Tenets architecture review prompt for a compliance review.');
+  logger.dim('  Run `npx tenets update` to update instructions later.');
 }
 
 async function initAugmentMultiOutput(toolKey, tool, content, hash) {
@@ -357,7 +442,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
 }
 
 /**
- * Single-file tools (Cursor, Copilot, AGENTS.md): one assembled rule file.
+ * Single-file tools such as AGENTS.md.
  */
 async function initSingleFile(toolKey, tool, assembled, hash) {
   const targetPath = path.resolve(process.cwd(), tool.targetFile);

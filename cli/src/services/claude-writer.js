@@ -9,7 +9,10 @@ const {
   CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE,
   CLAUDE_HOOK_SCRIPT,
 } = require('../constants');
-const { writeReviewCommand } = require('./review-command-writer');
+const {
+  writeReviewCommand,
+  reviewCommandExists,
+} = require('./review-command-writer');
 
 const CLI_ROOT = path.join(__dirname, '..', '..');
 
@@ -238,4 +241,31 @@ function writeCodeReviewAgentHookSettings(projectRoot) {
   return '.claude/settings.json';
 }
 
-module.exports = { writeClaudeIntegration, writeHookSettings, writeCodeReviewAgentHookSettings };
+function claudeIntegrationComplete(projectRoot) {
+  const claudeMdPath = path.join(projectRoot, 'CLAUDE.md');
+  const hasSnippet =
+    fs.existsSync(claudeMdPath) &&
+    fs.readFileSync(claudeMdPath, 'utf-8').includes(MARKERS.start);
+  const hasRules = CLAUDE_RULE_DEFINITIONS.every((definition) =>
+    fs.existsSync(
+      path.join(projectRoot, '.claude', 'rules', definition.fileName)
+    )
+  );
+  const hasHookScript = fs.existsSync(
+    path.join(projectRoot, '.claude', 'hooks', 'check-architecture.js')
+  );
+
+  return (
+    hasSnippet &&
+    hasRules &&
+    hasHookScript &&
+    reviewCommandExists(projectRoot, 'claude')
+  );
+}
+
+module.exports = {
+  writeClaudeIntegration,
+  writeHookSettings,
+  writeCodeReviewAgentHookSettings,
+  claudeIntegrationComplete,
+};

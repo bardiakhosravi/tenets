@@ -32,9 +32,9 @@ npx tenets init --claude
 
 ```bash
 npx tenets init --claude        # Claude Code (multi-layer integration)
-npx tenets init --cursor        # rules + /tenets-review-architecture
+npx tenets init --cursor        # scoped rules + /tenets-review-architecture
 npx tenets init --augment       # rules + /tenets-review-architecture
-npx tenets init --copilot       # rules + /tenets-review-architecture
+npx tenets init --copilot       # global + scoped instructions + review prompt
 npx tenets init --code-review-agent  # writes a code review agent prompt
 npx tenets init --agents        # writes to AGENTS.md
 ```
@@ -42,9 +42,9 @@ npx tenets init --agents        # writes to AGENTS.md
 | Flag | Tool | What it writes |
 |------|------|----------------|
 | `--claude` | Claude Code | Rules, skill, hook, CLAUDE.md snippet (see below) |
-| `--cursor` | Cursor | `.cursorrules`, `.cursor/commands/tenets-review-architecture.md` |
+| `--cursor` | Cursor | `.cursor/rules/tenets-*.mdc`, `.cursor/commands/tenets-review-architecture.md` |
 | `--augment` | Augment | `.augment/rules/tenets-*.md`, `.augment/commands/tenets-review-architecture.md` |
-| `--copilot` | GitHub Copilot | `.github/copilot-instructions.md`, `.github/prompts/tenets-review-architecture.prompt.md` |
+| `--copilot` | GitHub Copilot | Global instructions, `.github/instructions/tenets-*.instructions.md`, review prompt |
 | `--code-review-agent` | Code review agent | `.tenets/agents/code-review-agent.md` |
 | `--agents` | AGENTS.md | `AGENTS.md`, `.tenets/prompts/tenets-review-architecture.md` |
 
@@ -59,6 +59,14 @@ Global rules always apply, while architecture, domain, and application rules are
 loaded by Augment when relevant.
 Re-running `npx tenets init --augment` can replace an existing generated Tenets
 rule set; `npx tenets update` refreshes it alongside every other installed integration.
+
+Cursor receives an always-on global rule plus path-scoped architecture, domain,
+and application rules. Upgrading an older installation removes only the
+Tenets-owned block from `.cursorrules`; unrelated content is preserved.
+
+GitHub Copilot receives concise repository-wide instructions plus path-specific
+instruction files. Existing content outside the Tenets markers in
+`.github/copilot-instructions.md` is preserved.
 
 ### Architecture Review Command
 
@@ -83,7 +91,11 @@ All variants share one review checklist and are refreshed by `npx tenets update`
 npx tenets update
 ```
 
-This pulls the latest rules and updates all previously installed files — including the Spec-Kit preset if you installed it. If you're upgrading from an older version, the CLI will detect this and walk you through the migration.
+This installs the rules bundled with the current `tenets` package into every
+previously configured integration. Package-bundled content makes the result
+versioned, reproducible, and available offline. The command also updates an
+installed Spec-Kit preset. If an older output format is detected, the CLI
+migrates it while preserving content outside Tenets ownership markers.
 
 ---
 

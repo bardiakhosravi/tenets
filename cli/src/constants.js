@@ -1,7 +1,6 @@
-const GITHUB_RAW_BASE =
-  'https://raw.githubusercontent.com/bardiakhosravi/tenets/main';
-
 const INTRODUCTION_FILE = { path: 'context/00-introduction.md', title: 'Introduction' };
+const SPECKIT_PRESET_RELEASE_URL =
+  'https://github.com/bardiakhosravi/tenets/releases/latest/download/tenets-speckit-preset.zip';
 
 const CONTENT_SECTIONS = [
   {
@@ -70,7 +69,8 @@ const TOOLS = {
   cursor: {
     name: 'Cursor',
     flag: '--cursor',
-    targetFile: '.cursorrules',
+    targetFile: '.cursor/rules/tenets-*.mdc',
+    cursorMultiOutput: true,
     reviewCommand: true,
   },
   augment: {
@@ -84,6 +84,7 @@ const TOOLS = {
     name: 'GitHub Copilot',
     flag: '--copilot',
     targetFile: '.github/copilot-instructions.md',
+    copilotMultiOutput: true,
     reviewCommand: true,
   },
   codeReviewAgent: {
@@ -166,6 +167,61 @@ const AUGMENT_RULE_DEFINITIONS = [
   },
 ];
 
+const CURSOR_RULE_DEFINITIONS = [
+  {
+    fileName: 'tenets-global.mdc',
+    description: 'Core Tenets project structure, dependency, testing, naming, validation, and error-handling rules',
+    globs: '',
+    alwaysApply: true,
+    contentSection: 'Global',
+    includeIntroduction: true,
+  },
+  {
+    fileName: 'tenets-architecture.mdc',
+    description: 'Apply when designing or changing ports, semantic boundary types, adapters, infrastructure, APIs, or hexagonal architecture boundaries',
+    globs: '**/adapters/**,**/infrastructure/**,**/ports/**',
+    alwaysApply: false,
+    contentSection: 'Architecture',
+  },
+  {
+    fileName: 'tenets-domain.mdc',
+    description: 'Apply when designing or changing entities, value objects, aggregates, creation and hydration, repositories, domain services, events, or bounded contexts',
+    globs: '**/domain/**',
+    alwaysApply: false,
+    contentSection: 'Domain',
+  },
+  {
+    fileName: 'tenets-application.mdc',
+    description: 'Apply when designing or changing use cases, application services, orchestration, cross-context communication, or secondary port data flow',
+    globs: '**/application/**,**/use_cases/**,**/handlers/**',
+    alwaysApply: false,
+    contentSection: 'Application',
+  },
+];
+
+const COPILOT_INSTRUCTION_DEFINITIONS = [
+  {
+    fileName: 'tenets-global.instructions.md',
+    applyTo: '**/src/**',
+    contentSection: 'Global',
+  },
+  {
+    fileName: 'tenets-architecture.instructions.md',
+    applyTo: '**/adapters/**,**/infrastructure/**,**/ports/**',
+    contentSection: 'Architecture',
+  },
+  {
+    fileName: 'tenets-domain.instructions.md',
+    applyTo: '**/domain/**',
+    contentSection: 'Domain',
+  },
+  {
+    fileName: 'tenets-application.instructions.md',
+    applyTo: '**/application/**,**/use_cases/**,**/handlers/**',
+    contentSection: 'Application',
+  },
+];
+
 const CLAUDE_MD_SNIPPET = `${MARKERS.start}
 ## Architecture: Hexagonal + DDD (via tenets)
 
@@ -199,6 +255,25 @@ After completing any feature implementation, bug fix, or refactoring that touche
 You or the user can also run \`/tenets-review-architecture\` at any time for a full compliance audit.
 
 Detailed rules: \`.claude/rules/tenets-*.md\`
+${MARKERS.end}`;
+
+const COPILOT_MD_SNIPPET = `${MARKERS.start}
+## Architecture: Hexagonal + DDD (via Tenets)
+
+This project follows Hexagonal Architecture and Domain-Driven Design.
+Tenets installs scoped instructions in \`.github/instructions/tenets-*.instructions.md\`.
+
+### Non-negotiable rules
+- Dependencies point inward: adapters -> application -> domain.
+- The domain has no framework, ORM, transport, or infrastructure dependencies.
+- Infrastructure access goes through ports.
+- Repository and secondary-port contracts use semantic domain types.
+- Aggregates protect invariants and own state changes.
+- Creation functions create new domain objects; repository constructors hydrate existing ones.
+- Use cases orchestrate and secondary ports never load from repositories.
+- Adapters translate and perform I/O without owning business rules.
+
+Run the Tenets architecture review prompt after changes that cross architecture boundaries.
 ${MARKERS.end}`;
 
 const CODE_REVIEW_AGENT_NAME = 'code-review-agent';
@@ -242,15 +317,18 @@ process.stdin.on('end', () => {
 `;
 
 module.exports = {
-  GITHUB_RAW_BASE,
   INTRODUCTION_FILE,
+  SPECKIT_PRESET_RELEASE_URL,
   CONTENT_SECTIONS,
   TOOLS,
   CONFIG_FILE,
   MARKERS,
   CLAUDE_RULE_DEFINITIONS,
   AUGMENT_RULE_DEFINITIONS,
+  CURSOR_RULE_DEFINITIONS,
+  COPILOT_INSTRUCTION_DEFINITIONS,
   CLAUDE_MD_SNIPPET,
+  COPILOT_MD_SNIPPET,
   CODE_REVIEW_AGENT_NAME,
   CODE_REVIEW_AGENT_TEMPLATE,
   CLAUDE_CODE_REVIEW_AGENT_TEMPLATE,

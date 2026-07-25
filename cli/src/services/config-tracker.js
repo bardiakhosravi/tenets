@@ -8,8 +8,9 @@ const { logger } = require('../ui/logger');
  *   v1 (0.1.x): single assembled file per tool (CLAUDE.md, .cursorrules, etc.)
  *   v2 (0.2.x): claude gets multi-output (rules/ + skill + hook + CLAUDE.md snippet),
  *               augment uses repository-local rules, and other tools remain single-file.
+ *   v3: Cursor and Copilot use scoped, repository-local rule files.
  */
-const SCHEMA_VERSION = 2;
+const SCHEMA_VERSION = 3;
 
 function configPath() {
   return path.resolve(process.cwd(), CONFIG_FILE);
@@ -51,24 +52,16 @@ function updateToolEntry(toolKey, targetFile, contentHash, mode) {
 }
 
 /**
- * Detect whether a tool entry needs migration from v1 -> v2.
- * Returns true if the config was written by v1 (no schemaVersion or schemaVersion < 2)
- * and the tool is now a multi-output tool.
+ * Detect whether an installed tool still uses a legacy output mode.
+ * Mode is authoritative because updating one tool also advances the global schema.
  */
-function needsMigration(config, toolKey) {
-  const configVersion = config?.schemaVersion || 1;
-  if (configVersion >= SCHEMA_VERSION) {
-    return false;
-  }
-
+function needsMigration(config, toolKey, expectedMode = 'multi') {
   const entry = config?.tools?.[toolKey];
   if (!entry) {
     return false;
   }
 
-  // v1 claude entries have mode: "replace" or "append" (single-file)
-  // v2 claude entries have mode: "multi"
-  return entry.mode !== 'multi';
+  return entry.mode !== expectedMode;
 }
 
 function updateSpeckitEntry(presetId) {

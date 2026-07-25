@@ -1,12 +1,13 @@
 {
   "name": "tenets",
-  "version": "0.9.6",
+  "version": "0.9.7",
   "description": "Install DDD + Hexagonal Architecture rules into your AI coding tool's config",
   "bin": {
     "tenets": "bin/tenets.js"
   },
   "scripts": {
     "bundle": "node scripts/bundle-content.js",
+    "test": "node --test",
     "prepublishOnly": "npm run bundle"
   },
   "keywords": [

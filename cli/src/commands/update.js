@@ -2,7 +2,15 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
-const { readConfig, updateToolEntry, updateSpeckitEntry, getSpeckitEntries, needsMigration, markMigrationDeclined, isMigrationDeclined } = require('../services/config-tracker');
+const {
+  readConfig,
+  updateToolEntry,
+  updateSpeckitEntry,
+  getSpeckitEntries,
+  needsMigration,
+  markMigrationDeclined,
+  isMigrationDeclined,
+} = require('../services/config-tracker');
 const {
   fetchContent,
   assembleContent,
@@ -10,6 +18,8 @@ const {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeCursorHash,
+  computeCopilotHash,
   computeReviewCommandHash,
 } = require('../services/content-fetcher');
 const { writeFile, replaceMarkedContent } = require('../services/file-writer');
@@ -17,17 +27,26 @@ const {
   writeClaudeIntegration,
   writeHookSettings,
   writeCodeReviewAgentHookSettings,
+  claudeIntegrationComplete,
 } = require('../services/claude-writer');
-const { writeAugmentIntegration } = require('../services/augment-writer');
+const {
+  writeAugmentIntegration,
+  augmentIntegrationComplete,
+} = require('../services/augment-writer');
+const {
+  writeCursorIntegration,
+  cursorIntegrationComplete,
+} = require('../services/cursor-writer');
+const {
+  writeCopilotIntegration,
+  copilotIntegrationComplete,
+} = require('../services/copilot-writer');
 const {
   writeReviewCommand,
   reviewCommandExists,
 } = require('../services/review-command-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
-
-const SPECKIT_PRESET_RELEASE_URL =
-  'https://github.com/bardiakhosravi/ai-agent-backend-standards/releases/latest/download/tenets-speckit-preset.zip';
 
 function isCommandAvailable(cmd) {
   try {
@@ -110,6 +129,8 @@ async function updateCommand() {
   const codeReviewAgentHash = computeHash(codeReviewAgentContent);
   const claudeHash = computeClaudeHash(assembled);
   const augmentHash = computeAugmentHash(assembled);
+  const cursorHash = computeCursorHash(assembled);
+  const copilotHash = computeCopilotHash(assembled);
 
   let updatedCount = 0;
 
@@ -121,11 +142,15 @@ async function updateCommand() {
         ? claudeHash
         : tool?.augmentMultiOutput
           ? augmentHash
-          : tool?.reviewCommand
-            ? computeReviewCommandHash(assembled, toolKey)
-            : baseHash;
+          : tool?.cursorMultiOutput
+            ? cursorHash
+            : tool?.copilotMultiOutput
+              ? copilotHash
+              : tool?.reviewCommand
+                ? computeReviewCommandHash(assembled, toolKey)
+                : baseHash;
 
-    // --- Migration check: v1 single-file -> v2 multi-output ---
+    // Claude migration remains interactive because hook installation is optional.
     if (tool?.multiOutput && needsMigration(config, toolKey)) {
       // Skip if user already declined migration to avoid prompting on every update run.
       if (isMigrationDeclined(config, toolKey)) {
@@ -140,9 +165,48 @@ async function updateCommand() {
       continue;
     }
 
+    if (tool?.cursorMultiOutput && needsMigration(config, toolKey, 'cursor-multi')) {
+      const { writtenFiles, removedLegacyRules } = writeCursorIntegration(
+        process.cwd(),
+        content
+      );
+      updateToolEntry(toolKey, tool.targetFile, newHash, 'cursor-multi');
+      logger.success(`${toolKey} — migrated to scoped rules (${writtenFiles.length} files).`);
+      if (removedLegacyRules) {
+        logger.dim('  Removed the legacy Tenets block from .cursorrules.');
+      }
+      updatedCount++;
+      continue;
+    }
+
+    if (tool?.copilotMultiOutput && needsMigration(config, toolKey, 'copilot-multi')) {
+      const { writtenFiles } = writeCopilotIntegration(process.cwd(), content);
+      updateToolEntry(toolKey, tool.targetFile, newHash, 'copilot-multi');
+      logger.success(`${toolKey} — migrated to scoped instructions (${writtenFiles.length} files).`);
+      updatedCount++;
+      continue;
+    }
+
     const commandMissing =
       tool?.reviewCommand && !reviewCommandExists(process.cwd(), toolKey);
-    if (entry.contentHash === newHash && !commandMissing) {
+    const integrationIncomplete =
+      (tool?.multiOutput && !claudeIntegrationComplete(process.cwd())) ||
+      (tool?.augmentMultiOutput && !augmentIntegrationComplete(process.cwd())) ||
+      (tool?.cursorMultiOutput && !cursorIntegrationComplete(process.cwd())) ||
+      (tool?.copilotMultiOutput && !copilotIntegrationComplete(process.cwd()));
+    const targetMissing =
+      !tool?.multiOutput &&
+      !tool?.augmentMultiOutput &&
+      !tool?.cursorMultiOutput &&
+      !tool?.copilotMultiOutput &&
+      !fs.existsSync(path.resolve(process.cwd(), entry.targetFile));
+
+    if (
+      entry.contentHash === newHash &&
+      !commandMissing &&
+      !integrationIncomplete &&
+      !targetMissing
+    ) {
       logger.success(`${toolKey} — already up to date.`);
       continue;
     }
@@ -183,6 +247,24 @@ async function updateCommand() {
       for (const file of writtenFiles) {
         logger.dim(`  ${file}`);
       }
+    } else if (tool?.cursorMultiOutput) {
+      const { writtenFiles, removedLegacyRules } = writeCursorIntegration(
+        process.cwd(),
+        content
+      );
+      logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
+      for (const file of writtenFiles) {
+        logger.dim(`  ${file}`);
+      }
+      if (removedLegacyRules) {
+        logger.dim('  Removed the legacy Tenets block from .cursorrules.');
+      }
+    } else if (tool?.copilotMultiOutput) {
+      const { writtenFiles } = writeCopilotIntegration(process.cwd(), content);
+      logger.success(`${toolKey} — updated ${writtenFiles.length} files.`);
+      for (const file of writtenFiles) {
+        logger.dim(`  ${file}`);
+      }
     } else {
       const targetPath = path.resolve(process.cwd(), entry.targetFile);
       const replaced = replaceMarkedContent(targetPath, assembled);
@@ -200,7 +282,12 @@ async function updateCommand() {
       }
     }
 
-    updateToolEntry(toolKey, entry.targetFile, newHash, entry.mode || 'replace');
+    const mode = tool?.cursorMultiOutput
+      ? 'cursor-multi'
+      : tool?.copilotMultiOutput
+        ? 'copilot-multi'
+        : entry.mode || 'replace';
+    updateToolEntry(toolKey, tool?.targetFile || entry.targetFile, newHash, mode);
     updatedCount++;
   }
 

@@ -2,8 +2,6 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const {
-  GITHUB_RAW_BASE,
-  INTRODUCTION_FILE,
   CONTENT_SECTIONS,
   MARKERS,
   CODE_REVIEW_AGENT_TEMPLATE,
@@ -12,46 +10,14 @@ const { logger } = require('../ui/logger');
 
 const BUNDLED_DIR = path.join(__dirname, '..', '..', 'bundled');
 const CLI_ROOT = path.join(__dirname, '..', '..');
+const PACKAGE_VERSION = require('../../package.json').version;
 
 function readCliFile(relativePath) {
   return fs.readFileSync(path.join(CLI_ROOT, relativePath), 'utf-8');
 }
 
-async function fetchUrl(url) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 10_000);
-
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-    return await response.text();
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-async function fetchFromGitHub() {
-  logger.info('Fetching latest rules from GitHub...');
-
-  const introduction = await fetchUrl(`${GITHUB_RAW_BASE}/${INTRODUCTION_FILE.path}`);
-
-  const sections = [];
-  for (const section of CONTENT_SECTIONS) {
-    const files = [];
-    for (const entry of section.files) {
-      const content = await fetchUrl(`${GITHUB_RAW_BASE}/${entry.path}`);
-      files.push({ title: entry.title, content });
-    }
-    sections.push({ section: section.section, files });
-  }
-
-  return { introduction, sections };
-}
-
 function loadBundled() {
-  logger.info('Using bundled content (offline fallback)...');
+  logger.info(`Using versioned rules bundled with tenets v${PACKAGE_VERSION}...`);
 
   const introPath = path.join(BUNDLED_DIR, '00-introduction.md');
   const introduction = fs.existsSync(introPath)
@@ -80,12 +46,7 @@ function loadBundled() {
 }
 
 async function fetchContent() {
-  try {
-    return await fetchFromGitHub();
-  } catch {
-    logger.warn('Could not fetch from GitHub, using bundled content.');
-    return loadBundled();
-  }
+  return loadBundled();
 }
 
 /**
@@ -171,6 +132,29 @@ function computeAugmentHash(assembled) {
   );
 }
 
+function computeCursorHash(assembled) {
+  const { CURSOR_RULE_DEFINITIONS } = require('../constants');
+  const { buildReviewCommand } = require('./review-command-writer');
+  return computeHash(
+    `${assembled}\n---CURSOR_RULES---\n${JSON.stringify(CURSOR_RULE_DEFINITIONS)}` +
+    `\n---CURSOR_COMMAND---\n${buildReviewCommand('cursor')}`
+  );
+}
+
+function computeCopilotHash(assembled) {
+  const {
+    COPILOT_INSTRUCTION_DEFINITIONS,
+    COPILOT_MD_SNIPPET,
+  } = require('../constants');
+  const { buildReviewCommand } = require('./review-command-writer');
+  return computeHash(
+    `${assembled}\n---COPILOT_INSTRUCTIONS---\n` +
+    JSON.stringify(COPILOT_INSTRUCTION_DEFINITIONS) +
+    COPILOT_MD_SNIPPET +
+    `\n---COPILOT_PROMPT---\n${buildReviewCommand('copilot')}`
+  );
+}
+
 function computeReviewCommandHash(assembled, toolKey) {
   const { buildReviewCommand } = require('./review-command-writer');
   return computeHash(
@@ -185,5 +169,7 @@ module.exports = {
   computeHash,
   computeClaudeHash,
   computeAugmentHash,
+  computeCursorHash,
+  computeCopilotHash,
   computeReviewCommandHash,
 };

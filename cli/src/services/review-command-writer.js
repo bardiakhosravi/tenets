@@ -31,7 +31,7 @@ const REVIEW_COMMAND_DEFINITIONS = {
   cursor: {
     targetFile: '.cursor/commands/tenets-review-architecture.md',
     rulesInstruction:
-      'Read `.cursorrules` in full before reviewing, including every rule inside the Tenets markers.',
+      'Read every rule file matching `.cursor/rules/tenets-*.mdc` before reviewing.',
     scopeInstruction:
       'If the command invocation includes a path or scope, focus on it. Otherwise inspect the full `src/` directory.',
   },
@@ -42,7 +42,7 @@ const REVIEW_COMMAND_DEFINITIONS = {
       'agent: agent',
     ],
     rulesInstruction:
-      'Read `.github/copilot-instructions.md` in full before reviewing, including every rule inside the Tenets markers.',
+      'Read `.github/copilot-instructions.md` and every `.github/instructions/tenets-*.instructions.md` file before reviewing.',
     scopeInstruction:
       'If the prompt invocation includes a path or scope, focus on it. Otherwise inspect the full `src/` directory.',
   },

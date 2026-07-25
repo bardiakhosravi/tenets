@@ -1,7 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { AUGMENT_RULE_DEFINITIONS, MARKERS } = require('../constants');
-const { writeReviewCommand } = require('./review-command-writer');
+const {
+  writeReviewCommand,
+  reviewCommandExists,
+} = require('./review-command-writer');
 
 function buildAugmentRuleFile(definition, content) {
   const section = content.sections.find(
@@ -52,8 +55,19 @@ function augmentRulesExist(projectRoot) {
   );
 }
 
+function augmentIntegrationComplete(projectRoot) {
+  return (
+    AUGMENT_RULE_DEFINITIONS.every((definition) =>
+      fs.existsSync(
+        path.join(projectRoot, '.augment', 'rules', definition.fileName)
+      )
+    ) && reviewCommandExists(projectRoot, 'augment')
+  );
+}
+
 module.exports = {
   buildAugmentRuleFile,
   writeAugmentIntegration,
   augmentRulesExist,
+  augmentIntegrationComplete,
 };
