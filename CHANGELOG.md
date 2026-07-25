@@ -2,7 +2,7 @@
 
 All notable changes to Tenets are documented here.
 
-## Unreleased
+## [0.11.0] - 2026-07-25
 
 ### Added
 
