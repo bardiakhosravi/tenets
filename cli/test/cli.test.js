@@ -105,6 +105,87 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
   );
 });
 
+test('zero-argument init detects agents and accepts recommended setup', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.mkdirSync(path.join(directory, '.cursor'));
+  fs.mkdirSync(path.join(directory, '.augment'));
+  fs.writeFileSync(
+    path.join(directory, 'pyproject.toml'),
+    '[project]\ndependencies = ["fastapi"]\n'
+  );
+
+  const output = runCli(directory, ['init'], '\n');
+
+  assert.match(output, /Detected repository:/);
+  assert.match(output, /Agents: Cursor, Augment/);
+  assert.match(output, /Stack:\s+Python, FastAPI/);
+  assert.match(output, /\[x\] Cursor/);
+  assert.match(output, /\[x\] Augment/);
+  assert.match(output, /Post-install verification:/);
+  assert.match(output, /Cursor: rules and review command found/);
+  assert.match(output, /Augment: rules and review command found/);
+  assert.match(output, /Installation verified/);
+
+  const config = readConfig(directory);
+  assert.ok(config.tools.cursor);
+  assert.ok(config.tools.augment);
+  assert.equal(config.tools.claude, undefined);
+  assert.equal(config.tools.agents, undefined);
+});
+
+test('zero-argument init allows a subset of the recommended tools', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.mkdirSync(path.join(directory, '.claude'));
+  fs.mkdirSync(path.join(directory, '.cursor'));
+
+  const output = runCli(directory, ['init'], '2\n');
+
+  assert.match(output, /\[x\] Claude Code/);
+  assert.match(output, /\[x\] Cursor/);
+  assert.match(output, /Cursor: rules and review command found/);
+  const config = readConfig(directory);
+  assert.deepEqual(Object.keys(config.tools), ['cursor']);
+  assert.equal(fs.existsSync(path.join(directory, 'CLAUDE.md')), false);
+});
+
+test('noninteractive zero-argument init returns detection and verification JSON', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.writeFileSync(
+    path.join(directory, 'package.json'),
+    JSON.stringify({ dependencies: { express: '^5.0.0' } })
+  );
+
+  const result = spawnCli(directory, ['init', '--yes', '--json']);
+
+  assert.equal(result.status, 0);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.ok, true);
+  assert.deepEqual(output.result.requestedTools, ['agents']);
+  assert.deepEqual(
+    output.result.detection.languages.map((language) => language.id),
+    ['javascript']
+  );
+  assert.deepEqual(
+    output.result.detection.frameworks.map((framework) => framework.id),
+    ['express']
+  );
+  assert.equal(output.result.verification.healthy, true);
+  assert.equal(output.result.verification.tools[0].tool, 'agents');
+});
+
+test('zero-argument init recommends an initialized Spec-Kit project', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.mkdirSync(path.join(directory, '.specify'));
+
+  const output = runCli(directory, ['init'], '\n', { PATH: '' });
+
+  assert.match(output, /\[x\] Spec-Kit DDD preset/);
+  assert.match(output, /Spec-Kit tenets-ddd: preset found/);
+  const config = readConfig(directory);
+  assert.ok(config.tools.agents);
+  assert.ok(config.speckit['tenets-ddd']);
+});
+
 test('update repairs a missing generated integration file', (t) => {
   const directory = temporaryDirectory(t);
   runCli(directory, ['init', '--augment']);
@@ -314,6 +395,26 @@ test('doctor treats the optional Claude monitoring hook as optional', (t) => {
   const result = spawnCli(directory, ['doctor', '--json']);
   assert.equal(result.status, 0);
   assert.equal(JSON.parse(result.stdout).result.tools[0].status, 'healthy');
+});
+
+test('scoped installation inspection reports a requested missing integration', async (t) => {
+  const directory = temporaryDirectory(t);
+  const previousDirectory = process.cwd();
+  t.after(() => process.chdir(previousDirectory));
+  process.chdir(directory);
+  const {
+    inspectInstallation,
+  } = require('../src/services/installation-inspector');
+
+  const result = await inspectInstallation({ toolKeys: ['cursor'] });
+
+  assert.equal(result.healthy, false);
+  assert.equal(result.tools[0].tool, 'cursor');
+  assert.ok(
+    result.tools[0].findings.some(
+      (item) => item.code === 'integration_not_configured'
+    )
+  );
 });
 
 test('uninstall dry-run is non-destructive and uninstall preserves shared content', (t) => {

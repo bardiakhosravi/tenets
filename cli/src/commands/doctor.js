@@ -1,341 +1,50 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const { MARKERS, TOOLS } = require('../constants');
-const { readConfig } = require('../services/config-tracker');
-const {
-  fetchContent,
-  assembleContent,
-  assembleCodeReviewAgentContent,
-  computeHash,
-  computeClaudeHash,
-  computeAugmentHash,
-  computeCursorHash,
-  computeCopilotHash,
-  computeReviewCommandHash,
-} = require('../services/content-fetcher');
-const { claudeOwnedPaths } = require('../services/claude-writer');
-const { augmentOwnedPaths } = require('../services/augment-writer');
-const { cursorOwnedPaths } = require('../services/cursor-writer');
-const { copilotOwnedPaths } = require('../services/copilot-writer');
-const {
-  isTenetsOwnedFile,
-  hasValidMarkers,
-} = require('../services/file-writer');
-const {
-  reviewCommandPath,
-} = require('../services/review-command-writer');
 const { logger } = require('../ui/logger');
+const {
+  inspectInstallation,
+} = require('../services/installation-inspector');
 
-function expectedMode(tool) {
-  if (tool.multiOutput) return 'multi';
-  if (tool.augmentMultiOutput) return 'augment-multi';
-  if (tool.cursorMultiOutput) return 'cursor-multi';
-  if (tool.copilotMultiOutput) return 'copilot-multi';
-  return null;
-}
-
-function expectedHash(toolKey, tool, assembled, codeReviewAgentContent) {
-  if (tool.codeReviewAgent) return computeHash(codeReviewAgentContent);
-  if (tool.multiOutput) return computeClaudeHash(assembled);
-  if (tool.augmentMultiOutput) return computeAugmentHash(assembled);
-  if (tool.cursorMultiOutput) return computeCursorHash(assembled);
-  if (tool.copilotMultiOutput) return computeCopilotHash(assembled);
-  if (tool.reviewCommand) {
-    return computeReviewCommandHash(assembled, toolKey);
-  }
-  return computeHash(assembled);
-}
-
-function toolPaths(projectRoot, toolKey, tool) {
-  if (tool.multiOutput) {
-    const hookPath = path.join(
-      projectRoot,
-      '.claude',
-      'hooks',
-      'check-architecture.js'
-    );
-    const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
-    let hookConfigured = false;
-    if (fs.existsSync(settingsPath)) {
-      try {
-        const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-        hookConfigured = settings?.hooks?.PostToolUse?.some((entry) =>
-          entry?.hooks?.some((hook) =>
-            hook?.command?.includes('check-architecture')
-          )
-        );
-      } catch {
-        // Malformed settings are reported separately by inspectConfiguredTool.
-      }
-    }
-    return {
-      owned: claudeOwnedPaths(projectRoot).filter((filePath) =>
-        filePath !== hookPath || hookConfigured || fs.existsSync(hookPath)
-      ),
-      shared: [path.join(projectRoot, 'CLAUDE.md')],
-    };
-  }
-  if (tool.augmentMultiOutput) {
-    return { owned: augmentOwnedPaths(projectRoot), shared: [] };
-  }
-  if (tool.cursorMultiOutput) {
-    return { owned: cursorOwnedPaths(projectRoot), shared: [] };
-  }
-  if (tool.copilotMultiOutput) {
-    return {
-      owned: copilotOwnedPaths(projectRoot),
-      shared: [
-        path.join(projectRoot, '.github', 'copilot-instructions.md'),
-      ],
-    };
-  }
-
-  const targetPath = path.join(projectRoot, tool.targetFile);
-  return {
-    owned: tool.codeReviewAgent ? [targetPath] : [
-      ...(tool.reviewCommand
-        ? [reviewCommandPath(projectRoot, toolKey)]
-        : []),
-    ],
-    shared: tool.codeReviewAgent ? [] : [targetPath],
-  };
-}
-
-function finding(severity, code, message, filePath = null) {
-  return {
-    severity,
-    code,
-    message,
-    ...(filePath ? { path: path.relative(process.cwd(), filePath) } : {}),
-  };
-}
-
-function inspectConfiguredTool(
-  projectRoot,
-  toolKey,
-  entry,
-  tool,
-  currentHash
+function renderDoctorResult(
+  result,
+  heading = `Tenets doctor (${result.packageVersion})`
 ) {
-  const findings = [];
-  const mode = expectedMode(tool);
-  if (mode && entry.mode !== mode) {
-    findings.push(finding(
-      'error',
-      'legacy_mode',
-      `Configured mode is ${entry.mode || 'missing'}; expected ${mode}.`
-    ));
-  }
-  if (entry.contentHash !== currentHash) {
-    findings.push(finding(
-      'error',
-      'stale_content',
-      'Installed content does not match this Tenets package version.'
-    ));
-  }
+  if (logger.isJsonMode()) return;
 
-  const paths = toolPaths(projectRoot, toolKey, tool);
-  if (toolKey === 'claude') {
-    const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
-    if (fs.existsSync(settingsPath)) {
-      try {
-        JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
-      } catch {
-        findings.push(finding(
-          'error',
-          'malformed_shared_json',
-          'Claude settings contain malformed JSON and cannot be inspected safely.',
-          settingsPath
-        ));
-      }
+  logger.info(heading);
+  for (const tool of result.tools) {
+    const output = tool.status === 'healthy' ? logger.success : logger.warn;
+    output(`${tool.name}: ${tool.status}`);
+    for (const item of tool.findings) {
+      logger.dim(
+        `  [${item.code}] ${item.path ? `${item.path}: ` : ''}${item.message}`
+      );
     }
   }
-  for (const filePath of paths.owned) {
-    if (!fs.existsSync(filePath)) {
-      findings.push(finding(
-        'error',
-        'missing_file',
-        'Expected generated file is missing.',
-        filePath
-      ));
-    } else if (!isTenetsOwnedFile(filePath)) {
-      findings.push(finding(
-        'error',
-        'ownership_conflict',
-        'Expected generated path exists but is not marked as Tenets-owned.',
-        filePath
-      ));
+  for (const preset of result.presets) {
+    const output = preset.status === 'healthy' ? logger.success : logger.warn;
+    output(`Spec-Kit ${preset.preset}: ${preset.status}`);
+    for (const item of preset.findings) {
+      logger.dim(
+        `  [${item.code}] ${item.path ? `${item.path}: ` : ''}${item.message}`
+      );
     }
   }
-  for (const filePath of paths.shared) {
-    if (!fs.existsSync(filePath)) {
-      findings.push(finding(
-        'error',
-        'missing_shared_file',
-        'Expected shared instruction file is missing.',
-        filePath
-      ));
-      continue;
-    }
-    const content = fs.readFileSync(filePath, 'utf-8');
-    if (!hasValidMarkers(content)) {
-      findings.push(finding(
-        'error',
-        'missing_marked_block',
-        'Shared file does not contain a valid Tenets-owned block.',
-        filePath
-      ));
-    }
+  for (const item of result.findings) {
+    logger.warn(`[${item.code}] ${item.message}`);
   }
-
-  if (
-    toolKey === 'cursor' &&
-    fs.existsSync(path.join(projectRoot, '.cursorrules')) &&
-    fs.readFileSync(path.join(projectRoot, '.cursorrules'), 'utf-8')
-      .includes(MARKERS.start)
-  ) {
-    findings.push(finding(
-      'warning',
-      'legacy_cursor_rules',
-      'Legacy Tenets content remains in .cursorrules.',
-      path.join(projectRoot, '.cursorrules')
-    ));
-  }
-
-  return {
-    tool: toolKey,
-    name: tool.name,
-    status: findings.some((item) => item.severity === 'error')
-      ? 'error'
-      : findings.length > 0
-        ? 'warning'
-        : 'healthy',
-    findings,
-  };
-}
-
-function hasUntrackedArtifacts(projectRoot, toolKey, tool) {
-  const paths = toolPaths(projectRoot, toolKey, tool);
-  return (
-    paths.owned.some((filePath) => isTenetsOwnedFile(filePath)) ||
-    paths.shared.some((filePath) => {
-      if (!fs.existsSync(filePath)) return false;
-      return hasValidMarkers(fs.readFileSync(filePath, 'utf-8'));
-    })
+  logger.blank();
+  logger.info(
+    `${result.summary.healthy} healthy, ${result.summary.warnings} warning(s), ` +
+    `${result.summary.errors} error(s).`
   );
 }
 
-async function doctorCommand() {
-  const projectRoot = process.cwd();
-  const config = readConfig();
-  const content = await fetchContent();
-  const assembled = assembleContent(content);
-  const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
-  const tools = [];
-  const globalFindings = [];
-
-  if (!config) {
-    globalFindings.push(finding(
-      'error',
-      'missing_config',
-      'No readable .tenets.json configuration was found.'
-    ));
-  }
-
-  for (const toolKey of Object.keys(config?.tools || {})) {
-    if (!TOOLS[toolKey]) {
-      globalFindings.push(finding(
-        'error',
-        'unknown_tool',
-        `Configuration references unsupported integration key: ${toolKey}.`
-      ));
-    }
-  }
-
-  for (const [toolKey, tool] of Object.entries(TOOLS)) {
-    const entry = config?.tools?.[toolKey];
-    if (entry) {
-      tools.push(inspectConfiguredTool(
-        projectRoot,
-        toolKey,
-        entry,
-        tool,
-        expectedHash(toolKey, tool, assembled, codeReviewAgentContent)
-      ));
-    } else if (hasUntrackedArtifacts(projectRoot, toolKey, tool)) {
-      tools.push({
-        tool: toolKey,
-        name: tool.name,
-        status: 'error',
-        findings: [finding(
-          'error',
-          'untracked_integration',
-          'Tenets-owned files exist but this integration is absent from .tenets.json.'
-        )],
-      });
-    }
-  }
-
-  const speckitEntries = Object.keys(config?.speckit || {});
-  for (const presetId of speckitEntries) {
-    const presetPath = path.join(
-      projectRoot,
-      '.specify',
-      'presets',
-      presetId,
-      'preset.yml'
-    );
-    if (!fs.existsSync(presetPath)) {
-      globalFindings.push(finding(
-        'error',
-        'missing_speckit_preset',
-        `Configured Spec-Kit preset ${presetId} is missing.`,
-        presetPath
-      ));
-    }
-  }
-
-  const findings = [
-    ...globalFindings,
-    ...tools.flatMap((tool) => tool.findings),
-  ];
-  const result = {
-    healthy: !findings.some((item) => item.severity === 'error'),
-    packageVersion: require('../../package.json').version,
-    tools,
-    findings: globalFindings,
-    summary: {
-      healthy: tools.filter((tool) => tool.status === 'healthy').length,
-      warnings: findings.filter((item) => item.severity === 'warning').length,
-      errors: findings.filter((item) => item.severity === 'error').length,
-    },
-  };
-
-  if (!logger.isJsonMode()) {
-    logger.info(`Tenets doctor (${result.packageVersion})`);
-    for (const tool of tools) {
-      const output = tool.status === 'healthy' ? logger.success : logger.warn;
-      output(`${tool.name}: ${tool.status}`);
-      for (const item of tool.findings) {
-        logger.dim(
-          `  [${item.code}] ${item.path ? `${item.path}: ` : ''}${item.message}`
-        );
-      }
-    }
-    for (const item of globalFindings) {
-      logger.warn(`[${item.code}] ${item.message}`);
-    }
-    logger.blank();
-    logger.info(
-      `${result.summary.healthy} healthy, ${result.summary.warnings} warning(s), ` +
-      `${result.summary.errors} error(s).`
-    );
-  }
-
+async function doctorCommand(args = [], options = {}) {
+  const result = await inspectInstallation(options);
+  renderDoctorResult(result);
   if (!result.healthy) {
     process.exitCode = 1;
   }
   return result;
 }
 
-module.exports = { doctorCommand };
+module.exports = { doctorCommand, renderDoctorResult };

@@ -66,7 +66,7 @@ function printUsage() {
   const usage = `Usage: tenets <command> [options]
 
 Commands:
-  init              Install rules into your AI tool's config
+  init              Detect the repository and install recommended integrations
   update            Update all installed rules to latest
   diff              Preview the exact filesystem changes from update
   doctor            Diagnose missing, stale, conflicting, or untracked integrations
@@ -90,6 +90,7 @@ Claude-specific options:
   --with-hook       Auto-install PostToolUse monitoring hook (skip prompt)
 
 Examples:
+  npx tenets init
   npx tenets init --claude
   npx tenets init --claude --with-hook
   npx tenets init --claude --code-review-agent

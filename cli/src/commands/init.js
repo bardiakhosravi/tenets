@@ -44,11 +44,61 @@ const {
   isTenetsOwnedFile,
 } = require('../services/file-writer');
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
-const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
+const {
+  promptRecommendedSetup,
+  promptFileConflict,
+  promptYesNo,
+} = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 const { runPreview } = require('../services/preview-runner');
+const {
+  detectRepository,
+} = require('../services/repository-detector');
+const {
+  inspectInstallation,
+} = require('../services/installation-inspector');
 
 const SPECKIT_PRESET_ID = 'tenets-ddd';
+
+async function verifyInstalledSetup(toolKeys, speckitRequested) {
+  const result = await inspectInstallation({
+    toolKeys,
+    presetIds: speckitRequested ? [SPECKIT_PRESET_ID] : [],
+  });
+
+  logger.blank();
+  logger.info('Post-install verification:');
+  for (const tool of result.tools) {
+    if (tool.status === 'healthy') {
+      const artifactDescription = tool.artifacts.reviewCommand
+        ? 'rules and review command found'
+        : 'generated files found';
+      logger.success(`${tool.name}: ${artifactDescription}`);
+      continue;
+    }
+    logger.warn(`${tool.name}: verification ${tool.status}`);
+    for (const item of tool.findings) {
+      logger.dim(`  [${item.code}] ${item.message}`);
+    }
+  }
+  for (const preset of result.presets) {
+    if (preset.status === 'healthy') {
+      logger.success(`Spec-Kit ${preset.preset}: preset found`);
+    } else {
+      logger.warn(`Spec-Kit ${preset.preset}: verification failed`);
+      for (const item of preset.findings) {
+        logger.dim(`  [${item.code}] ${item.message}`);
+      }
+    }
+  }
+  if (result.healthy) {
+    logger.success('Installation verified.');
+  } else {
+    logger.error('Installation verification failed. Run `npx tenets doctor` for details.');
+    process.exitCode = 1;
+  }
+  return result;
+}
 
 function printOwnershipConflicts(filePaths) {
   const conflicts = findOwnershipConflicts(filePaths);
@@ -256,29 +306,38 @@ async function initCommand(args, options = {}) {
     throw new Error('`tenets init --json` requires `--yes` for noninteractive use.');
   }
 
-  // --speckit is orthogonal — handle it independently before tool selection
-  if (args.includes('--speckit')) {
-    await initSpeckit({ ...options, yes: args.includes('--yes') });
-    // If --speckit was the only flag, we're done
-    const hasToolFlag = Object.values(TOOLS).some(t => args.includes(t.flag));
-    if (!hasToolFlag) return;
-  }
-
   let toolKeys = resolveToolsFromFlags(args);
+  let speckitRequested = args.includes('--speckit');
+  let detection = null;
 
-  if (toolKeys.length === 0) {
-    if (logger.isJsonMode()) {
-      throw new Error(
-        'JSON mode requires at least one explicit integration flag.'
-      );
-    }
-    const toolKey = await promptToolSelection(TOOLS);
-    if (!toolKey) {
+  if (toolKeys.length === 0 && !speckitRequested) {
+    detection = detectRepository();
+    const setup = args.includes('--yes')
+      ? detection.recommendations
+      : await promptRecommendedSetup(TOOLS, detection);
+    const selectedToolKeys = setup?.toolKeys || setup?.tools || [];
+    if (!setup || (selectedToolKeys.length === 0 && !setup.speckit)) {
       logger.error('Invalid selection. Aborting.');
       process.exitCode = 1;
       return;
     }
-    toolKeys = [toolKey];
+    toolKeys = selectedToolKeys;
+    speckitRequested = setup.speckit;
+  }
+
+  if (speckitRequested) {
+    await initSpeckit({ ...options, yes: args.includes('--yes') });
+    if (toolKeys.length === 0) {
+      const verification = options.dryRun
+        ? null
+        : await verifyInstalledSetup([], true);
+      return {
+        requestedTools: [],
+        speckitRequested: true,
+        detection,
+        verification,
+      };
+    }
   }
 
   const content = await fetchContent();
@@ -334,9 +393,14 @@ async function initCommand(args, options = {}) {
       });
     }
   }
+  const verification = options.dryRun
+    ? null
+    : await verifyInstalledSetup(toolKeys, speckitRequested);
   return {
     requestedTools: toolKeys,
-    speckitRequested: args.includes('--speckit'),
+    speckitRequested,
+    detection,
+    verification,
   };
 }
 

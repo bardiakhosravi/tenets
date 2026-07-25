@@ -2,6 +2,19 @@
 
 All notable changes to Tenets are documented here.
 
+## Unreleased
+
+### Added
+
+- Repository detection for coding agents, stack manifests, frameworks, project
+  layout, existing agent files, and initialized Spec-Kit projects.
+- Recommended multi-select setup when `tenets init` is run without integration
+  flags.
+- Automatic scoped post-install verification for generated rules, review
+  commands, and Spec-Kit presets.
+- Detection and verification details in noninteractive
+  `tenets init --yes --json` results.
+
 ## [0.10.1] - 2026-07-25
 
 ### Fixed

@@ -25,10 +25,34 @@ We currently provide a [Spec-Kit](https://github.com/github/spec-kit) preset, wi
 ### Install with the CLI
 
 ```bash
-npx tenets init --claude
+npx tenets init
+```
+
+Tenets detects repository-local coding agents, stack manifests, project layout,
+existing agent files, and Spec-Kit. The checked recommendations can be accepted
+with Enter or changed by entering a comma-separated list of integration numbers.
+After writing files, Tenets verifies that each selected tool's rules and review
+command exist in the supported repository locations.
+
+When no agent configuration is detected, Tenets recommends the portable
+`AGENTS.md` integration. Detection currently recognizes:
+
+- Claude Code, Cursor, Augment, GitHub Copilot, and existing `AGENTS.md` files.
+- Python, TypeScript/JavaScript, Java, Go, Rust, .NET, Ruby, and PHP manifests.
+- FastAPI, Django, Flask, NestJS, Next.js, Express, Spring Boot, Gin, Actix Web,
+  Axum, and Ruby on Rails dependencies.
+- Flat, source-root, layered, and workspace/monorepo layouts.
+
+For noninteractive setup, accept the detected recommendations and return the
+detection and verification details as JSON:
+
+```bash
+npx tenets init --yes --json
 ```
 
 ### Pick Your Tool
+
+Explicit flags remain available when the desired setup is already known:
 
 ```bash
 npx tenets init --claude        # Claude Code (multi-layer integration)
@@ -53,6 +77,9 @@ Flags are composable — install multiple integrations in one step:
 ```bash
 npx tenets init --claude --speckit
 ```
+
+Every successful initialization ends with a scoped verification result. Run
+`npx tenets doctor` later for a full installation diagnostic.
 
 Augment receives four repository-local rules and an architecture review command.
 Global rules always apply, while architecture, domain, and application rules are
