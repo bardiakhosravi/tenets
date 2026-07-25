@@ -159,6 +159,7 @@ function removeMarkedContent(filePath) {
 
 module.exports = {
   FileOwnershipConflictError,
+  hasValidMarkers,
   writeFile,
   writeOwnedFile,
   isTenetsOwnedContent,

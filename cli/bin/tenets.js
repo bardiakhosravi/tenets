@@ -3,20 +3,47 @@
 const { logger } = require('../src/ui/logger');
 
 const args = process.argv.slice(2);
-const command = args[0];
+const jsonMode = args.includes('--json');
+const filteredArgs = args.filter((arg) => arg !== '--json');
+const command = filteredArgs[0];
+const commandArgs = filteredArgs.slice(1);
+logger.setJsonMode(jsonMode);
 
 async function main() {
-  logger.banner();
+  const isVersionCommand = command === '--version' || command === '-v';
+  if (!isVersionCommand) logger.banner();
+  let result;
 
   switch (command) {
     case 'init': {
       const { initCommand } = require('../src/commands/init');
-      await initCommand(args.slice(1));
+      result = await initCommand(commandArgs);
       break;
     }
     case 'update': {
       const { updateCommand } = require('../src/commands/update');
-      await updateCommand();
+      result = await updateCommand(commandArgs);
+      break;
+    }
+    case 'diff': {
+      const { updateCommand } = require('../src/commands/update');
+      result = await updateCommand(['--dry-run', ...commandArgs]);
+      break;
+    }
+    case 'doctor': {
+      const { doctorCommand } = require('../src/commands/doctor');
+      result = await doctorCommand(commandArgs);
+      break;
+    }
+    case 'uninstall': {
+      const { uninstallCommand } = require('../src/commands/uninstall');
+      result = await uninstallCommand(commandArgs);
+      break;
+    }
+    case '--version':
+    case '-v': {
+      result = { version: require('../package.json').version };
+      if (!jsonMode) console.log(result.version);
       break;
     }
     case '--help':
@@ -29,14 +56,22 @@ async function main() {
       printUsage();
       process.exitCode = 1;
   }
+
+  if (jsonMode) {
+    logger.jsonResult(command, result);
+  }
 }
 
 function printUsage() {
-  console.log(`Usage: tenets <command> [options]
+  const usage = `Usage: tenets <command> [options]
 
 Commands:
   init              Install rules into your AI tool's config
   update            Update all installed rules to latest
+  diff              Preview the exact filesystem changes from update
+  doctor            Diagnose missing, stale, conflicting, or untracked integrations
+  uninstall         Remove only Tenets-owned files and marked content
+  --version, -v     Print the installed Tenets version
 
 Init options:
   --claude          Claude Code (rules + skill, optional hook)
@@ -47,6 +82,9 @@ Init options:
                     Write a code review agent prompt
   --agents          Write AGENTS.md and a generic review prompt
   --speckit         Install DDD preset into an existing Spec-Kit project
+  --dry-run         Preview exact filesystem changes without writing
+  --json            Return machine-readable JSON
+  --yes             Confirm uninstall or migration choices noninteractively
 
 Claude-specific options:
   --with-hook       Auto-install PostToolUse monitoring hook (skip prompt)
@@ -60,10 +98,24 @@ Examples:
   npx tenets init --augment
   npx tenets init --speckit
   npx tenets init --claude --speckit
-  npx tenets update`);
+  npx tenets init --cursor --dry-run
+  npx tenets update --dry-run
+  npx tenets diff
+  npx tenets doctor
+  npx tenets uninstall --dry-run
+  npx tenets uninstall --yes
+  npx tenets update`;
+  if (logger.isJsonMode()) {
+    logger.info(usage);
+  } else {
+    console.log(usage);
+  }
 }
 
 main().catch((err) => {
   logger.error(err.message);
   process.exitCode = 1;
+  if (jsonMode) {
+    logger.jsonResult(command, undefined, err.message);
+  }
 });

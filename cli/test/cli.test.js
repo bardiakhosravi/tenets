@@ -6,6 +6,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 const { MARKERS } = require('../src/constants');
+const PACKAGE_VERSION = require('../package.json').version;
 
 const CLI = path.resolve(__dirname, '..', 'bin', 'tenets.js');
 
@@ -258,5 +259,260 @@ test('review command conflicts are detected before shared rules change', (t) => 
   assert.equal(
     fs.readFileSync(commandPath, 'utf-8'),
     'User-authored review workflow\n'
+  );
+});
+
+test('init dry-run prints exact creates and writes nothing', (t) => {
+  const directory = temporaryDirectory(t);
+
+  const output = runCli(directory, ['init', '--cursor', '--dry-run']);
+  assert.match(output, /CREATE \.cursor\/rules\/tenets-global\.mdc/);
+  assert.match(output, /CREATE \.tenets\.json/);
+  assert.match(output, /No changes were applied/);
+  assert.deepEqual(fs.readdirSync(directory), []);
+});
+
+test('diff previews a missing-file repair without applying it', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--augment']);
+  const rulePath = path.join(directory, '.augment/rules/tenets-domain.md');
+  fs.unlinkSync(rulePath);
+
+  const output = runCli(directory, ['diff']);
+  assert.match(output, /CREATE \.augment\/rules\/tenets-domain\.md/);
+  assert.equal(fs.existsSync(rulePath), false);
+});
+
+test('doctor reports healthy and conflicting integrations in JSON', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--cursor']);
+
+  const healthy = spawnCli(directory, ['doctor', '--json']);
+  assert.equal(healthy.status, 0);
+  const healthyResult = JSON.parse(healthy.stdout);
+  assert.equal(healthyResult.ok, true);
+  assert.equal(healthyResult.result.healthy, true);
+  assert.equal(healthyResult.result.tools[0].tool, 'cursor');
+
+  const rulePath = path.join(directory, '.cursor/rules/tenets-domain.mdc');
+  fs.writeFileSync(rulePath, 'User-authored collision\n');
+  const broken = spawnCli(directory, ['doctor', '--json']);
+  assert.equal(broken.status, 1);
+  const brokenResult = JSON.parse(broken.stdout);
+  assert.equal(brokenResult.ok, false);
+  assert.ok(
+    brokenResult.result.tools[0].findings.some(
+      (item) => item.code === 'ownership_conflict'
+    )
+  );
+});
+
+test('doctor treats the optional Claude monitoring hook as optional', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--claude'], 'n\n');
+
+  const result = spawnCli(directory, ['doctor', '--json']);
+  assert.equal(result.status, 0);
+  assert.equal(JSON.parse(result.stdout).result.tools[0].status, 'healthy');
+});
+
+test('uninstall dry-run is non-destructive and uninstall preserves shared content', (t) => {
+  const directory = temporaryDirectory(t);
+  const agentsPath = path.join(directory, 'AGENTS.md');
+  fs.writeFileSync(agentsPath, '# Team guidance\n');
+  runCli(directory, ['init', '--agents'], '2\n');
+
+  const preview = runCli(directory, ['uninstall', '--dry-run']);
+  assert.match(preview, /DELETE \.tenets\/prompts\/tenets-review-architecture\.md/);
+  assert.ok(fs.existsSync(path.join(directory, '.tenets.json')));
+  assert.match(fs.readFileSync(agentsPath, 'utf-8'), /tenets:start/);
+
+  runCli(directory, ['uninstall', '--yes']);
+  assert.equal(fs.readFileSync(agentsPath, 'utf-8'), '# Team guidance\n');
+  assert.equal(fs.existsSync(path.join(directory, '.tenets.json')), false);
+  assert.equal(
+    fs.existsSync(
+      path.join(directory, '.tenets/prompts/tenets-review-architecture.md')
+    ),
+    false
+  );
+});
+
+test('version supports human and machine-readable output', (t) => {
+  const directory = temporaryDirectory(t);
+  assert.equal(runCli(directory, ['--version']).trim(), PACKAGE_VERSION);
+
+  const result = spawnCli(directory, ['--json', '--version']);
+  assert.equal(result.status, 0);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.ok, true);
+  assert.equal(output.result.version, PACKAGE_VERSION);
+});
+
+test('help and command errors remain valid JSON', (t) => {
+  const directory = temporaryDirectory(t);
+  const help = spawnCli(directory, ['--help', '--json']);
+  assert.equal(help.status, 0);
+  assert.match(
+    JSON.parse(help.stdout).messages[0].message,
+    /Usage: tenets/
+  );
+
+  const unknown = spawnCli(directory, ['unknown', '--json']);
+  assert.equal(unknown.status, 1);
+  const output = JSON.parse(unknown.stdout);
+  assert.equal(output.ok, false);
+  assert.match(output.messages[0].message, /Unknown command/);
+});
+
+test('JSON init and update return parseable command results', (t) => {
+  const directory = temporaryDirectory(t);
+  const initResult = spawnCli(directory, [
+    '--json',
+    'init',
+    '--cursor',
+    '--yes',
+  ]);
+  assert.equal(initResult.status, 0);
+  const initialized = JSON.parse(initResult.stdout);
+  assert.equal(initialized.ok, true);
+  assert.deepEqual(initialized.result.requestedTools, ['cursor']);
+
+  const updateResult = spawnCli(directory, ['update', '--json']);
+  assert.equal(updateResult.status, 0);
+  const updated = JSON.parse(updateResult.stdout);
+  assert.equal(updated.ok, true);
+  assert.equal(updated.result.updatedCount, 0);
+});
+
+test('doctor detects stale and untracked integrations', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--augment']);
+  const configPath = path.join(directory, '.tenets.json');
+  const config = readConfig(directory);
+  config.tools.augment.contentHash = 'stale';
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+  const staleResult = spawnCli(directory, ['doctor', '--json']);
+  assert.equal(staleResult.status, 1);
+  assert.ok(
+    JSON.parse(staleResult.stdout).result.tools[0].findings.some(
+      (item) => item.code === 'stale_content'
+    )
+  );
+
+  fs.unlinkSync(configPath);
+  const untrackedResult = spawnCli(directory, ['doctor', '--json']);
+  const untracked = JSON.parse(untrackedResult.stdout);
+  assert.ok(
+    untracked.result.tools[0].findings.some(
+      (item) => item.code === 'untracked_integration'
+    )
+  );
+});
+
+test('selective uninstall retains other integrations', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--cursor', '--augment']);
+
+  runCli(directory, ['uninstall', '--cursor', '--yes']);
+  const config = readConfig(directory);
+  assert.equal(config.tools.cursor, undefined);
+  assert.ok(config.tools.augment);
+  assert.equal(fs.existsSync(path.join(directory, '.cursor/rules')), false);
+  assert.ok(fs.existsSync(path.join(directory, '.augment/rules')));
+});
+
+test('uninstall preserves conflicts and keeps their configuration', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--cursor']);
+  const conflictPath = path.join(
+    directory,
+    '.cursor/rules/tenets-domain.mdc'
+  );
+  fs.writeFileSync(conflictPath, 'User-authored rules\n');
+
+  const result = spawnCli(directory, ['uninstall', '--yes', '--json']);
+  assert.equal(result.status, 1);
+  const output = JSON.parse(result.stdout);
+  assert.deepEqual(output.result.incompleteIntegrations, ['cursor']);
+  assert.equal(
+    fs.readFileSync(conflictPath, 'utf-8'),
+    'User-authored rules\n'
+  );
+  assert.ok(readConfig(directory).tools.cursor);
+});
+
+test('selective Spec-Kit uninstall leaves agent integrations configured', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.mkdirSync(path.join(directory, '.specify'), { recursive: true });
+  runCli(directory, ['init', '--speckit'], '', { PATH: '' });
+  runCli(directory, ['init', '--cursor']);
+
+  runCli(directory, ['uninstall', '--speckit', '--yes']);
+  const config = readConfig(directory);
+  assert.ok(config.tools.cursor);
+  assert.deepEqual(config.speckit, {});
+  assert.equal(
+    fs.existsSync(
+      path.join(directory, '.specify/presets/tenets-ddd/preset.yml')
+    ),
+    false
+  );
+});
+
+test('uninstall preserves modified Spec-Kit files and unrelated Claude hooks', (t) => {
+  const directory = temporaryDirectory(t);
+  fs.mkdirSync(path.join(directory, '.specify'), { recursive: true });
+  runCli(directory, ['init', '--speckit'], '', { PATH: '' });
+  const presetPath = path.join(
+    directory,
+    '.specify/presets/tenets-ddd/preset.yml'
+  );
+  fs.appendFileSync(presetPath, '# Local customization\n');
+
+  const speckitResult = spawnCli(directory, [
+    'uninstall',
+    '--speckit',
+    '--yes',
+    '--json',
+  ]);
+  assert.equal(speckitResult.status, 1);
+  assert.match(
+    JSON.parse(speckitResult.stdout).result.conflicts[0],
+    /modified preset file/
+  );
+  assert.ok(fs.existsSync(presetPath));
+  assert.ok(readConfig(directory).speckit['tenets-ddd']);
+
+  runCli(directory, ['init', '--claude', '--with-hook']);
+  const settingsPath = path.join(directory, '.claude/settings.json');
+  const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  settings.hooks.PostToolUse[0].hooks.push({
+    type: 'command',
+    command: 'node user-hook.js',
+  });
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2) + '\n');
+
+  runCli(directory, ['uninstall', '--claude', '--yes']);
+  const retained = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  assert.deepEqual(retained.hooks.PostToolUse[0].hooks, [{
+    type: 'command',
+    command: 'node user-hook.js',
+  }]);
+});
+
+test('interactive commands reject ambiguous JSON mode', (t) => {
+  const directory = temporaryDirectory(t);
+  const initResult = spawnCli(directory, ['init', '--cursor', '--json']);
+  assert.equal(initResult.status, 1);
+  assert.match(JSON.parse(initResult.stdout).error, /requires `--yes`/);
+
+  runCli(directory, ['init', '--cursor']);
+  const uninstallResult = spawnCli(directory, ['uninstall', '--json']);
+  assert.equal(uninstallResult.status, 1);
+  assert.match(
+    JSON.parse(uninstallResult.stdout).error,
+    /requires `--yes`/
   );
 });

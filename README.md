@@ -88,6 +88,8 @@ All variants share one review checklist and are refreshed by `npx tenets update`
 ### Keeping Up to Date
 
 ```bash
+npx tenets doctor
+npx tenets diff
 npx tenets update
 ```
 
@@ -113,6 +115,25 @@ Tenets distinguishes fully generated files from shared repository files:
   conflicting path and requires explicit confirmation before replacement.
 - Noninteractive `tenets update` refuses unowned conflicts and leaves the files
   unchanged. Review, move, or remove the listed files before retrying.
+
+### Diagnose, Preview, and Remove
+
+```bash
+npx tenets doctor                   # inspect installation health
+npx tenets doctor --json            # machine-readable diagnostics
+npx tenets diff                     # preview the next update as a unified diff
+npx tenets init --cursor --dry-run  # preview initialization
+npx tenets uninstall --dry-run      # preview ownership-safe removal
+npx tenets uninstall --yes          # remove configured integrations
+npx tenets --version
+```
+
+`tenets diff` and `--dry-run` execute the real command logic against a virtual
+filesystem and print every planned create, update, delete, and mode change.
+They do not modify the repository.
+
+See the [changelog](CHANGELOG.md) and [migration notes](docs/migrations.md)
+before upgrading across output-format changes.
 
 ---
 

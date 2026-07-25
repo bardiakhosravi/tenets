@@ -6,30 +6,63 @@ const YELLOW = '\x1b[33m';
 const RED = '\x1b[31m';
 const CYAN = '\x1b[36m';
 
+let jsonMode = false;
+let messages = [];
+
+function emit(level, msg, writer) {
+  if (jsonMode) {
+    messages.push({ level, message: msg });
+    return;
+  }
+  writer();
+}
+
 const logger = {
   info(msg) {
-    console.log(`${CYAN}info${RESET} ${msg}`);
+    emit('info', msg, () => console.log(`${CYAN}info${RESET} ${msg}`));
   },
   success(msg) {
-    console.log(`${GREEN}${BOLD}\u2714${RESET} ${msg}`);
+    emit('success', msg, () =>
+      console.log(`${GREEN}${BOLD}\u2714${RESET} ${msg}`)
+    );
   },
   warn(msg) {
-    console.log(`${YELLOW}warn${RESET} ${msg}`);
+    emit('warning', msg, () => console.log(`${YELLOW}warn${RESET} ${msg}`));
   },
   error(msg) {
-    console.error(`${RED}${BOLD}\u2716${RESET} ${msg}`);
+    emit('error', msg, () =>
+      console.error(`${RED}${BOLD}\u2716${RESET} ${msg}`)
+    );
   },
   dim(msg) {
-    console.log(`${DIM}${msg}${RESET}`);
+    emit('detail', msg, () => console.log(`${DIM}${msg}${RESET}`));
   },
   blank() {
-    console.log();
+    if (!jsonMode) console.log();
   },
   banner() {
+    if (jsonMode) return;
     console.log(
       `${BOLD}tenets${RESET} ${DIM}— DDD + Hexagonal Architecture rules for AI agents${RESET}`
     );
     console.log();
+  },
+  setJsonMode(enabled) {
+    jsonMode = enabled;
+    messages = [];
+  },
+  isJsonMode() {
+    return jsonMode;
+  },
+  jsonResult(command, result, error = null) {
+    const output = {
+      ok: !error && (!process.exitCode || process.exitCode === 0),
+      command,
+      ...(result === undefined ? {} : { result }),
+      messages,
+      ...(error ? { error } : {}),
+    };
+    process.stdout.write(`${JSON.stringify(output, null, 2)}\n`);
   },
 };
 

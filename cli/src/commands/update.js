@@ -53,6 +53,7 @@ const {
 } = require('../services/review-command-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
+const { runPreview } = require('../services/preview-runner');
 
 function isCommandAvailable(cmd) {
   try {
@@ -78,7 +79,7 @@ function copyDirRecursive(src, dest) {
   }
 }
 
-async function updateSpeckitPresets(config) {
+async function updateSpeckitPresets(config, options = {}) {
   const entries = getSpeckitEntries(config);
   const presetIds = Object.keys(entries);
   if (presetIds.length === 0) return;
@@ -87,7 +88,7 @@ async function updateSpeckitPresets(config) {
   if (!fs.existsSync(specifyDir)) return;
 
   for (const presetId of presetIds) {
-    if (isCommandAvailable('specify')) {
+    if (!options.dryRun && isCommandAvailable('specify')) {
       try {
         execSync(`specify preset update ${presetId}`, { stdio: 'inherit' });
         updateSpeckitEntry(presetId);
@@ -107,7 +108,19 @@ async function updateSpeckitPresets(config) {
   }
 }
 
-async function updateCommand() {
+async function updateCommand(args = [], options = {}) {
+  const dryRun = args.includes('--dry-run');
+  if (dryRun && !options.capturingPreview) {
+    const commandArgs = args.filter((arg) => arg !== '--dry-run');
+    return runPreview('tenets update', () =>
+      updateCommand(commandArgs, {
+        ...options,
+        capturingPreview: true,
+        dryRun: true,
+      })
+    );
+  }
+
   const config = readConfig();
 
   if (!config || (!config.tools && !config.speckit) ||
@@ -120,7 +133,7 @@ async function updateCommand() {
   }
 
   // Update speckit presets first (independent of tool content hash)
-  await updateSpeckitPresets(config);
+  await updateSpeckitPresets(config, options);
 
   if (!config.tools || Object.keys(config.tools).length === 0) {
     logger.blank();
@@ -139,6 +152,7 @@ async function updateCommand() {
   const copilotHash = computeCopilotHash(assembled);
 
   let updatedCount = 0;
+  const yes = args.includes('--yes');
 
   for (const [toolKey, entry] of Object.entries(config.tools)) {
     const tool = TOOLS[toolKey];
@@ -164,7 +178,14 @@ async function updateCommand() {
         logger.dim('  Run `npx tenets init --claude` any time to migrate.');
         continue;
       }
-      const migrated = await handleClaudeMigration(toolKey, entry, tool, content, newHash);
+      const migrated = await handleClaudeMigration(
+        toolKey,
+        entry,
+        tool,
+        content,
+        newHash,
+        { yes }
+      );
       if (migrated) {
         updatedCount++;
       }
@@ -315,13 +336,21 @@ async function updateCommand() {
   } else {
     logger.success(`Updated ${updatedCount} tool(s).`);
   }
+  return { updatedCount };
 }
 
 /**
  * Guide the user through migrating from v1 (single CLAUDE.md dump) to
  * v2 (rules files + skill + hook + concise CLAUDE.md snippet).
  */
-async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
+async function handleClaudeMigration(
+  toolKey,
+  entry,
+  tool,
+  content,
+  newHash,
+  options = {}
+) {
   logger.blank();
   logger.warn('Migration required: Claude Code integration has changed.');
   logger.blank();
@@ -338,7 +367,7 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   logger.info('The full rules move to .claude/rules/ where they auto-load contextually.');
   logger.blank();
 
-  const proceed = await promptYesNo('Migrate to the new format?');
+  const proceed = options.yes || await promptYesNo('Migrate to the new format?');
 
   if (!proceed) {
     markMigrationDeclined(toolKey);
@@ -359,9 +388,9 @@ async function handleClaudeMigration(toolKey, entry, tool, content, newHash) {
   updateToolEntry(toolKey, tool.targetFile, newHash, 'multi');
 
   // Offer hook installation
-  const installHook = await promptYesNo(
-    'Install PostToolUse hook for continuous architecture monitoring?'
-  );
+  const installHook = !options.yes && await promptYesNo(
+      'Install PostToolUse hook for continuous architecture monitoring?'
+    );
 
   if (installHook) {
     const settingsFile = writeHookSettings(projectRoot);

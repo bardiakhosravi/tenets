@@ -46,6 +46,7 @@ const {
 const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
 const { promptToolSelection, promptFileConflict, promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
+const { runPreview } = require('../services/preview-runner');
 
 const SPECKIT_PRESET_ID = 'tenets-ddd';
 
@@ -121,9 +122,16 @@ function updatePresetRegistry(presetsDir) {
   fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n', 'utf-8');
 }
 
-async function initSpeckit() {
+async function initSpeckit(options = {}) {
   const projectRoot = process.cwd();
   const specifyDir = path.resolve(projectRoot, '.specify');
+
+  if (options.dryRun && !fs.existsSync(specifyDir)) {
+    throw new Error(
+      'Cannot preview Spec-Kit bootstrap because `.specify` does not exist. ' +
+      'Initialize Spec-Kit first, then rerun with `--dry-run`.'
+    );
+  }
 
   if (!fs.existsSync(specifyDir)) {
     logger.blank();
@@ -180,9 +188,9 @@ async function initSpeckit() {
   const alreadyInstalled = fs.existsSync(presetDir);
 
   if (alreadyInstalled) {
-    const overwrite = await promptYesNo(
-      `Tenets DDD preset already installed at .specify/presets/${SPECKIT_PRESET_ID}/. Reinstall?`
-    );
+    const overwrite = options.yes || await promptYesNo(
+        `Tenets DDD preset already installed at .specify/presets/${SPECKIT_PRESET_ID}/. Reinstall?`
+      );
     if (!overwrite) {
       // Still write the config entry so `tenets update` knows the preset is installed.
       updateSpeckitEntry(SPECKIT_PRESET_ID);
@@ -192,7 +200,7 @@ async function initSpeckit() {
   }
 
   // Prefer the specify CLI so spec-kit manages its own registry
-  if (isCommandAvailable('specify')) {
+  if (!options.dryRun && isCommandAvailable('specify')) {
     logger.info('Installing via specify CLI...');
     try {
       execSync(`specify preset add --from ${SPECKIT_PRESET_RELEASE_URL}`, { stdio: 'inherit', env: process.env });
@@ -232,10 +240,25 @@ function _printSpeckitSummary() {
   logger.dim('  Run `npx tenets update` to update the preset later.');
 }
 
-async function initCommand(args) {
+async function initCommand(args, options = {}) {
+  const dryRun = args.includes('--dry-run');
+  if (dryRun && !options.capturingPreview) {
+    const commandArgs = args.filter((arg) => arg !== '--dry-run');
+    return runPreview('tenets init', () =>
+      initCommand(commandArgs, {
+        ...options,
+        capturingPreview: true,
+        dryRun: true,
+      })
+    );
+  }
+  if (logger.isJsonMode() && !args.includes('--yes')) {
+    throw new Error('`tenets init --json` requires `--yes` for noninteractive use.');
+  }
+
   // --speckit is orthogonal — handle it independently before tool selection
   if (args.includes('--speckit')) {
-    await initSpeckit();
+    await initSpeckit({ ...options, yes: args.includes('--yes') });
     // If --speckit was the only flag, we're done
     const hasToolFlag = Object.values(TOOLS).some(t => args.includes(t.flag));
     if (!hasToolFlag) return;
@@ -244,6 +267,11 @@ async function initCommand(args) {
   let toolKeys = resolveToolsFromFlags(args);
 
   if (toolKeys.length === 0) {
+    if (logger.isJsonMode()) {
+      throw new Error(
+        'JSON mode requires at least one explicit integration flag.'
+      );
+    }
     const toolKey = await promptToolSelection(TOOLS);
     if (!toolKey) {
       logger.error('Invalid selection. Aborting.');
@@ -265,7 +293,9 @@ async function initCommand(args) {
     if (tool.codeReviewAgent) {
       const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
       const hash = computeHash(codeReviewAgentContent);
-      await initSingleFile(toolKey, tool, codeReviewAgentContent, hash);
+      await initSingleFile(toolKey, tool, codeReviewAgentContent, hash, {
+        yes: args.includes('--yes'),
+      });
     } else if (tool.multiOutput) {
       const hash = computeClaudeHash(assembled);
       await initClaudeMultiOutput(args, toolKey, tool, content, hash, {
@@ -276,40 +306,49 @@ async function initCommand(args) {
         toolKey,
         tool,
         content,
-        computeAugmentHash(assembled)
+        computeAugmentHash(assembled),
+        { yes: args.includes('--yes') }
       );
     } else if (tool.cursorMultiOutput) {
       await initCursorMultiOutput(
         toolKey,
         tool,
         content,
-        computeCursorHash(assembled)
+        computeCursorHash(assembled),
+        { yes: args.includes('--yes') }
       );
     } else if (tool.copilotMultiOutput) {
       await initCopilotMultiOutput(
         toolKey,
         tool,
         content,
-        computeCopilotHash(assembled)
+        computeCopilotHash(assembled),
+        { yes: args.includes('--yes') }
       );
     } else {
       const hash = tool.reviewCommand
         ? computeReviewCommandHash(assembled, toolKey)
         : computeHash(assembled);
-      await initSingleFile(toolKey, tool, assembled, hash);
+      await initSingleFile(toolKey, tool, assembled, hash, {
+        yes: args.includes('--yes'),
+      });
     }
   }
+  return {
+    requestedTools: toolKeys,
+    speckitRequested: args.includes('--speckit'),
+  };
 }
 
-async function initCursorMultiOutput(toolKey, tool, content, hash) {
+async function initCursorMultiOutput(toolKey, tool, content, hash, options = {}) {
   const projectRoot = process.cwd();
   let overwriteConflicts = false;
 
   if (cursorRulesExist(projectRoot)) {
     printOwnershipConflicts(cursorOwnedPaths(projectRoot));
-    const overwrite = await promptYesNo(
-      'Cursor integration target files already exist. Replace or update them?'
-    );
+    const overwrite = options.yes || await promptYesNo(
+        'Cursor integration target files already exist. Replace or update them?'
+      );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
@@ -338,15 +377,15 @@ async function initCursorMultiOutput(toolKey, tool, content, hash) {
   logger.dim('  Run `npx tenets update` to update rules later.');
 }
 
-async function initCopilotMultiOutput(toolKey, tool, content, hash) {
+async function initCopilotMultiOutput(toolKey, tool, content, hash, options = {}) {
   const projectRoot = process.cwd();
   let overwriteConflicts = false;
 
   if (copilotInstructionsExist(projectRoot)) {
     printOwnershipConflicts(copilotOwnedPaths(projectRoot));
-    const overwrite = await promptYesNo(
-      'Copilot integration target files already exist. Replace or update them?'
-    );
+    const overwrite = options.yes || await promptYesNo(
+        'Copilot integration target files already exist. Replace or update them?'
+      );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
@@ -373,15 +412,15 @@ async function initCopilotMultiOutput(toolKey, tool, content, hash) {
   logger.dim('  Run `npx tenets update` to update instructions later.');
 }
 
-async function initAugmentMultiOutput(toolKey, tool, content, hash) {
+async function initAugmentMultiOutput(toolKey, tool, content, hash, options = {}) {
   const projectRoot = process.cwd();
   let overwriteConflicts = false;
 
   if (augmentRulesExist(projectRoot)) {
     printOwnershipConflicts(augmentOwnedPaths(projectRoot));
-    const overwrite = await promptYesNo(
-      'Augment integration target files already exist. Replace or update them?'
-    );
+    const overwrite = options.yes || await promptYesNo(
+        'Augment integration target files already exist. Replace or update them?'
+      );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
@@ -420,9 +459,9 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
 
   if (existingOwnedTargets.length > 0) {
     printOwnershipConflicts(existingOwnedTargets);
-    const overwrite = await promptYesNo(
-      'Claude integration target files already exist. Update them?'
-    );
+    const overwrite = args.includes('--yes') || await promptYesNo(
+        'Claude integration target files already exist. Update them?'
+      );
     if (!overwrite) {
       logger.info('Cancelled.');
       return;
@@ -448,8 +487,10 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
   logger.dim('  Yes  → adds a hook to .claude/settings.json (reversible: delete that file to remove)');
   logger.dim('  No   → skip for now; re-run `npx tenets init --claude` any time to add it later');
   logger.blank();
-  const installHook = args.includes('--with-hook') || await promptYesNo(
+  const installHook = args.includes('--with-hook') || (
+    !args.includes('--yes') && await promptYesNo(
     'Install continuous monitoring hook?'
+    )
   );
 
   if (installHook) {
@@ -496,7 +537,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
 /**
  * Single-file tools such as AGENTS.md.
  */
-async function initSingleFile(toolKey, tool, assembled, hash) {
+async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
   const targetPath = path.resolve(process.cwd(), tool.targetFile);
   const commandPath = tool.reviewCommand
     ? reviewCommandPath(process.cwd(), toolKey)
@@ -508,9 +549,9 @@ async function initSingleFile(toolKey, tool, assembled, hash) {
     fs.existsSync(commandPath) &&
     !isTenetsOwnedFile(commandPath)
   ) {
-    overwriteCommandConflict = await promptYesNo(
-      `Review command file already exists at ${commandPath}. Replace it?`
-    );
+    overwriteCommandConflict = options.yes || await promptYesNo(
+        `Review command file already exists at ${commandPath}. Replace it?`
+      );
     if (!overwriteCommandConflict) {
       logger.info('Cancelled.');
       return;
@@ -519,7 +560,7 @@ async function initSingleFile(toolKey, tool, assembled, hash) {
 
   let mode = 'replace';
   if (fs.existsSync(targetPath)) {
-    mode = await promptFileConflict(targetPath);
+    mode = options.yes ? 'replace' : await promptFileConflict(targetPath);
     if (mode === 'cancel') {
       logger.info('Cancelled.');
       return;

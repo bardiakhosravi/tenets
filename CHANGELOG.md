@@ -1,0 +1,39 @@
+# Changelog
+
+All notable changes to Tenets are documented here.
+
+## [0.10.0] - 2026-07-25
+
+### Added
+
+- `tenets diff` to preview the exact filesystem changes produced by an update.
+- `--dry-run` support for initialization, updates, and uninstall.
+- `tenets doctor` diagnostics for missing, stale, conflicting, legacy, and
+  untracked integrations.
+- `tenets uninstall` with selective integration flags and ownership-safe removal.
+- `tenets --version` and machine-readable `--json` command results.
+
+### Changed
+
+- Generated files now carry explicit Tenets ownership markers.
+- Shared instruction files are modified only within Tenets marker blocks.
+- Claude settings are merged structurally and malformed shared JSON is preserved.
+
+### Migration
+
+- Run `npx tenets@latest update` after upgrading.
+- Existing generated files from earlier releases are recognized through legacy
+  Tenets signatures.
+- If a generated target path contains an unowned file, update now stops instead
+  of replacing it. Run `tenets doctor`, review the conflict, and use an explicit
+  `tenets init ... --yes` only when replacement is intended.
+- See [Migration Notes](docs/migrations.md) for integration-specific details.
+
+## [0.9.7] - 2026-07-25
+
+- Added deterministic bundled rules, current Cursor and Copilot formats,
+  cross-platform tests, safe migrations, and Spec-Kit source correction.
+
+## [0.9.6] - 2026-07-24
+
+- Added semantic repository lookup naming guidance and refreshed agent outputs.
