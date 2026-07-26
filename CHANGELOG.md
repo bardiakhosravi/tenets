@@ -4,6 +4,8 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.12.0] - 2026-07-26
+
 ### Added
 
 - Canonical atomic rule and pattern catalog with stable IDs, schema validation,
