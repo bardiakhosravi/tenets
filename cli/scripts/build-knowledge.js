@@ -35,6 +35,10 @@ const ALLOWED_FIELDS = new Set([
   'source',
 ]);
 
+function normalizeNewlines(content) {
+  return content.replace(/\r\n?/g, '\n');
+}
+
 function listMarkdownFiles(directory) {
   if (!fs.existsSync(directory)) return [];
 
@@ -75,7 +79,7 @@ function parseScalar(value, filePath, key) {
 }
 
 function parseKnowledgeFile(filePath) {
-  const source = fs.readFileSync(filePath, 'utf-8').replace(/\r\n?/g, '\n');
+  const source = normalizeNewlines(fs.readFileSync(filePath, 'utf-8'));
   const match = source.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     throw new Error(
@@ -272,7 +276,7 @@ function assertOrWrite(filePath, content, errors) {
       errors.push(`${path.relative(REPO_ROOT, filePath)}: generated file is missing`);
       return;
     }
-    if (fs.readFileSync(filePath, 'utf-8') !== content) {
+    if (normalizeNewlines(fs.readFileSync(filePath, 'utf-8')) !== content) {
       errors.push(
         `${path.relative(REPO_ROOT, filePath)}: generated file is stale; run npm run catalog from cli/`
       );
@@ -356,6 +360,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  normalizeNewlines,
   parseKnowledgeFile,
   validateCatalog,
   renderCatalog,
