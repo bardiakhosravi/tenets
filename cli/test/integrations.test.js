@@ -50,9 +50,16 @@ test('Cursor writes always-on and path-scoped MDC rules', async (t) => {
     path.join(directory, '.cursor/rules/tenets-domain.mdc'),
     'utf-8'
   );
+  const applicationRule = fs.readFileSync(
+    path.join(directory, '.cursor/rules/tenets-application.mdc'),
+    'utf-8'
+  );
   assert.match(globalRule, /alwaysApply: true/);
   assert.match(domainRule, /globs: "\*\*\/domain\/\*\*"/);
   assert.match(domainRule, /alwaysApply: false/);
+  assert.match(applicationRule, /TENETS-UOW-001/);
+  assert.match(applicationRule, /TENETS-EVENT-008/);
+  assert.match(globalRule, /TENETS-ASYNC-008/);
   const reviewCommand = fs.readFileSync(
     path.join(directory, '.cursor/commands/tenets-review-architecture.md'),
     'utf-8'
@@ -90,6 +97,16 @@ test('Copilot preserves global user content and writes scoped instructions', asy
     applicationInstructions,
     /applyTo: "\*\*\/application\/\*\*,\*\*\/use_cases\/\*\*,\*\*\/handlers\/\*\*"/
   );
+  assert.match(applicationInstructions, /TENETS-UOW-001/);
+  assert.match(applicationInstructions, /TENETS-EVENT-008/);
+  const globalTenetsInstructions = fs.readFileSync(
+    path.join(
+      directory,
+      '.github/instructions/tenets-global.instructions.md'
+    ),
+    'utf-8'
+  );
+  assert.match(globalTenetsInstructions, /TENETS-ASYNC-008/);
   assert.ok(
     fs.existsSync(
       path.join(
@@ -114,6 +131,14 @@ test('bundled content loads without making a network request', async () => {
     assert.ok(content.introduction.length > 0);
     assert.equal(content.sections.length, 4);
     assert.ok(content.sections.every((section) => section.files.length > 0));
+    const application = content.sections.find(
+      (section) => section.section === 'Application'
+    );
+    assert.ok(
+      application.files.some(
+        (file) => file.title === 'Unit of Work'
+      )
+    );
   } finally {
     global.fetch = originalFetch;
   }

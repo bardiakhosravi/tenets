@@ -75,6 +75,31 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     fs.existsSync(path.join(directory, '.tenets/agents/code-review-agent.md'))
   );
   assert.ok(fs.existsSync(path.join(directory, 'AGENTS.md')));
+  assert.match(
+    fs.readFileSync(
+      path.join(directory, '.claude/rules/tenets-application.md'),
+      'utf-8'
+    ),
+    /TENETS-UOW-001/
+  );
+  assert.match(
+    fs.readFileSync(
+      path.join(directory, '.augment/rules/tenets-application.md'),
+      'utf-8'
+    ),
+    /TENETS-EVENT-008/
+  );
+  assert.match(
+    fs.readFileSync(
+      path.join(directory, '.augment/rules/tenets-global.md'),
+      'utf-8'
+    ),
+    /TENETS-ASYNC-008/
+  );
+  assert.match(
+    fs.readFileSync(path.join(directory, 'AGENTS.md'), 'utf-8'),
+    /TENETS-UOW-001/
+  );
 
   const cursorPath = path.join(
     directory,

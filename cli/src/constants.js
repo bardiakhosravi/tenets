@@ -41,6 +41,7 @@ const CONTENT_SECTIONS = [
       { path: 'context/application/03-event-integration.md', title: 'Event Integration' },
       { path: 'context/application/04-cross-context-communication.md', title: 'Cross-Context Communication' },
       { path: 'context/application/05-secondary-port-data-flow.md', title: 'Secondary Port Data Flow' },
+      { path: 'context/application/06-unit-of-work.md', title: 'Unit of Work' },
     ],
   },
   {
@@ -123,7 +124,7 @@ const CLAUDE_RULE_DEFINITIONS = [
   },
   {
     fileName: 'tenets-application.md',
-    description: 'Application layer rules: use cases, DDD+hexagonal synergy, event integration, cross-context communication, secondary port data flow',
+    description: 'Application layer rules: use cases, event integration, Unit of Work, cross-context communication, secondary port data flow',
     globs: '**/application/**,**/use_cases/**,**/handlers/**',
     contentSection: 'Application',
   },
@@ -164,7 +165,7 @@ const AUGMENT_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-application.md',
     type: 'agent_requested',
-    description: 'Apply when designing or changing use cases, application services, orchestration, cross-context communication, or secondary port data flow',
+    description: 'Apply when designing or changing use cases, application services, event integration, Unit of Work, orchestration, cross-context communication, or secondary port data flow',
     contentSection: 'Application',
   },
 ];
@@ -194,7 +195,7 @@ const CURSOR_RULE_DEFINITIONS = [
   },
   {
     fileName: 'tenets-application.mdc',
-    description: 'Apply when designing or changing use cases, application services, orchestration, cross-context communication, or secondary port data flow',
+    description: 'Apply when designing or changing use cases, application services, event integration, Unit of Work, orchestration, cross-context communication, or secondary port data flow',
     globs: '**/application/**,**/use_cases/**,**/handlers/**',
     alwaysApply: false,
     contentSection: 'Application',
@@ -240,6 +241,9 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Creation and hydration are different** — create new domain objects with module-level creation functions; repository adapters hydrate existing objects with constructors.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
 - **Use cases load domain objects before calling secondary ports** — ports receive domain models, never repositories.
+- **One Unit of Work owns one transaction** — use cases commit explicitly; incomplete work rolls back and transaction resources are released.
+- **Reliable state-change events use an outbox** — domain events remain internal and complete versioned integration events are recorded atomically.
+- **Asynchronous consumers protect repeated delivery** — inbox identity is payload-bound, acknowledgement follows durability, and external effects use separate idempotency.
 - **Primary adapters translate** external requests to domain commands; they contain NO business logic.
 - **Secondary adapters implement ports** — they handle all external system complexity.
 - **Domain events use ubiquitous language only** — no vendor or technology names.
@@ -273,6 +277,8 @@ Tenets installs scoped instructions in \`.github/instructions/tenets-*.instructi
 - Aggregates protect invariants and own state changes.
 - Creation functions create new domain objects; repository constructors hydrate existing ones.
 - Use cases orchestrate and secondary ports never load from repositories.
+- One Unit of Work owns one transaction; writes commit explicitly and incomplete work rolls back.
+- Reliable publication uses an outbox, and asynchronous consumers acknowledge only after durable idempotent completion.
 - Adapters translate and perform I/O without owning business rules.
 
 Run the Tenets architecture review prompt after changes that cross architecture boundaries.

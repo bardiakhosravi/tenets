@@ -259,6 +259,38 @@ Return the domain object directly when it is the natural result, or define an im
 
 Verify result ownership and challenge wrappers that contain only one domain object without adding meaning.
 
+## TENETS-NAME-003: Use-case class names end with UseCase
+
+## Rule
+
+Name application use-case classes with the business capability followed by the `UseCase` suffix.
+
+## Rationale
+
+The suffix makes orchestration classes distinguishable from domain services, adapters, handlers, and commands wherever they appear.
+
+## Incorrect
+
+```python
+class SubmitOrder:
+    ...
+```
+
+## Correct
+
+```python
+class SubmitOrderUseCase:
+    ...
+```
+
+## Remediation
+
+Rename the class and update composition-root providers and references consistently.
+
+## Review check
+
+Verify that every application workflow class ends with `UseCase`.
+
 ## TENETS-PATTERN-005: Flask request-scoped use-case factory
 
 ## Purpose

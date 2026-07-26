@@ -17,12 +17,23 @@ All notable changes to Tenets are documented here.
   secondary adapters, external dependency access, and API boundaries.
 - Stable rules for entities, value objects, aggregates, domain services,
   bounded-context ownership, and ubiquitous language.
+- Stable Unit of Work rules covering application ownership, one-shot
+  transactions, explicit commit, rollback and cleanup, shared resources,
+  multi-transaction factories, retry ownership, nesting, and read scope.
+- Stable event and reliability rules covering domain and integration events,
+  transactional outbox and inbox workflows, acknowledgement, payload-bound
+  idempotency, external effects, retention, and precise guarantees.
+- SQLAlchemy and framework-free SQLite Unit of Work patterns plus event mapping,
+  outbox relay, consumer inbox, and external-effect idempotency examples.
 
 ### Changed
 
 - Architecture review findings must cite an existing stable Tenets rule ID.
-- Generated agent guidance now derives the first six high-value boundary topics
-  from canonical knowledge entries.
+- Generated agent guidance now includes canonical Unit of Work, event
+  integration, domain-event, and asynchronous-idempotency views.
+- Architecture-review and code-review agents now check transaction lifecycle,
+  outbox and inbox atomicity, acknowledgement timing, and external-effect
+  idempotency using stable rule IDs.
 
 ## [0.11.0] - 2026-07-25
 

@@ -1,67 +1,106 @@
-# Domain Event Rules
+<!-- tenets:generated-source -->
+# Domain Events
 
-## Domain Event Rules
-- Domain events should be immutable domain records; they are not entities or value objects
-- Events should represent something that happened in the past (use past tense)
-- Events should contain all necessary data to handle the event
-- Use `@dataclass(frozen=True)` for events
-- Events should be raised by aggregates, not external code
-- Domain event names MUST use ubiquitous language from the business domain only — no technology-specific or external-system terms (e.g., no vendor names like "Auth0", "Clerk", "Stripe"; no infrastructure terms like "SQL", "SQS", "Lambda", "DynamoDB"). The event name should be meaningful to a domain expert who knows nothing about the implementation. For example: `UserCreated` is correct, `Auth0UserCreated` is wrong; `PaymentProcessed` is correct, `StripePaymentProcessed` is wrong.
-- **Inheritance caveat**: When using a `DomainEvent` base class with a default field (e.g., `occurred_at: datetime = field(default_factory=...)`), all subclass fields MUST also have defaults. Python dataclass inheritance does not allow non-default fields to follow default fields from a parent class. Use empty-value defaults (e.g., `user_id: str = ""`) or make the base class field non-default and always pass it explicitly.
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
+
+## TENETS-EVENT-001: Domain events are immutable internal records
+
+## Rule
+
+A domain event is an immutable record of a completed domain occurrence, named in the bounded context's ubiquitous language and carrying its business occurrence time.
+
+## Rationale
+
+Events describe facts that happened and must not change after domain behavior records them.
+
+## Incorrect
 
 ```python
-@dataclass(frozen=True)
-class DomainEvent:
-    """Base class — has a default field."""
-    occurred_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
-
-@dataclass(frozen=True)
-class UserEmailChanged(DomainEvent):
-    """Subclass fields MUST have defaults because parent has occurred_at with a default."""
-    user_id: str = ""
-    old_email: str = ""
-    new_email: str = ""
+class OrderSubmitted:
+    status: str
 ```
 
-## Event Handling Rules
-- Domain event handlers should be in the application layer
-- Handlers should be idempotent
-- Use dependency injection for handler dependencies
-- Handlers should not directly modify other aggregates
-- Consider eventual consistency for cross-aggregate operations
-
-## Event Naming and Structure Convention Rules
-- Event names MUST use past tense to indicate something that already happened
-- Follow the pattern: `{AggregateRoot}{WhatHappened}` (e.g., `OrderSubmitted`, `UserEmailChanged`)
-- Events MUST be immutable (`@dataclass(frozen=True)`)
-- Events MUST include: the aggregate ID, all relevant data needed by handlers, and a timestamp
-- Events SHOULD include a unique event ID for deduplication and traceability
-- Events MUST NOT contain domain objects — use primitive types or value object values only
-- Version events when their schema changes (e.g., `UserCreatedV2`)
+## Correct
 
 ```python
 @dataclass(frozen=True)
-class DomainEvent:
-    """Base class for all domain events."""
-    event_id: EventId
+class OrderSubmittedDomainEvent:
+    order_id: OrderId
     occurred_at: datetime
-
-@dataclass(frozen=True)
-class OrderSubmitted(DomainEvent):
-    order_id: str          # Primitive, not OrderId — events cross context boundaries
-    customer_id: str
-    total_amount_cents: int
-    line_item_count: int
-
-@dataclass(frozen=True)
-class ChildEnrolledInProgram(DomainEvent):
-    child_id: str
-    program_id: str
-    enrollment_date: str   # ISO 8601 string, not date object
-    guardian_id: str
-
-# BAD event names
-class ProcessOrder(DomainEvent): ...     # Imperative — sounds like a command
-class OrderEvent(DomainEvent): ...       # Too vague
-class OrderData(DomainEvent): ...        # Not an event name
 ```
+
+## Remediation
+
+Use an immutable domain type with semantic values, a completed-occurrence name, and explicit `occurred_at`.
+
+## Review check
+
+Verify immutability, past-tense domain naming, semantic values, and occurrence time.
+
+## TENETS-EVENT-002: Domain behavior records domain events
+
+## Rule
+
+The aggregate or domain behavior that completes a state transition records its domain event only after the transition succeeds. Repositories and adapters do not infer events from persistence changes.
+
+## Rationale
+
+Only domain behavior knows whether the business occurrence actually happened and which semantics it carries.
+
+## Incorrect
+
+```python
+if order_row.status == "submitted":
+    publish(OrderSubmittedDomainEvent(...))
+```
+
+## Correct
+
+```python
+def submit(self, submitted_at: datetime) -> None:
+    self._status = OrderStatus.SUBMITTED
+    self._domain_events.append(
+        OrderSubmittedDomainEvent(self.id, submitted_at)
+    )
+```
+
+## Remediation
+
+Move event recording into the successful domain behavior and remove adapter-side inference.
+
+## Review check
+
+Trace each domain event to the domain state transition that records it.
+
+## TENETS-EVENT-003: Domain events are not external contracts
+
+## Rule
+
+Never serialize or publish a domain event directly to external consumers. Map selected domain events to explicit integration events.
+
+## Rationale
+
+Domain events may evolve with the internal model, while external contracts require independently controlled schemas and compatibility.
+
+## Incorrect
+
+```python
+broker.publish(asdict(order_submitted_domain_event))
+```
+
+## Correct
+
+```python
+integration_event = (
+    self._order_submitted_integration_event_factory.create(domain_event)
+)
+self._integration_event_outbox.add(integration_event)
+```
+
+## Remediation
+
+Introduce an application-owned integration event and a directional mapping factory.
+
+## Review check
+
+Verify that messaging adapters never accept domain-event types as published contracts.

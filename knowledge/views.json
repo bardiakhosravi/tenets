@@ -46,7 +46,42 @@
         "TENETS-APP-005",
         "TENETS-APP-006",
         "TENETS-APP-007",
+        "TENETS-NAME-003",
         "TENETS-PATTERN-005"
+      ]
+    },
+    {
+      "output": "context/application/03-event-integration.md",
+      "title": "Event Integration",
+      "entries": [
+        "TENETS-EVENT-004",
+        "TENETS-EVENT-005",
+        "TENETS-EVENT-006",
+        "TENETS-EVENT-007",
+        "TENETS-EVENT-008",
+        "TENETS-EVENT-009",
+        "TENETS-NAME-004",
+        "TENETS-NAME-005",
+        "TENETS-PATTERN-007",
+        "TENETS-PATTERN-008"
+      ]
+    },
+    {
+      "output": "context/application/06-unit-of-work.md",
+      "title": "Unit of Work",
+      "entries": [
+        "TENETS-UOW-001",
+        "TENETS-UOW-002",
+        "TENETS-UOW-003",
+        "TENETS-UOW-004",
+        "TENETS-UOW-005",
+        "TENETS-UOW-006",
+        "TENETS-UOW-007",
+        "TENETS-UOW-008",
+        "TENETS-UOW-009",
+        "TENETS-UOW-010",
+        "TENETS-UOW-011",
+        "TENETS-PATTERN-006"
       ]
     },
     {
@@ -229,6 +264,15 @@
       ]
     },
     {
+      "output": "context/domain/06-domain-events.md",
+      "title": "Domain Events",
+      "entries": [
+        "TENETS-EVENT-001",
+        "TENETS-EVENT-002",
+        "TENETS-EVENT-003"
+      ]
+    },
+    {
       "output": "context/domain/07-bounded-contexts.md",
       "title": "Bounded Contexts",
       "entries": [
@@ -261,6 +305,22 @@
         "TENETS-CONTEXT-005",
         "TENETS-CONTEXT-006",
         "TENETS-PATTERN-004"
+      ]
+    },
+    {
+      "output": "context/global/async-idempotency.md",
+      "title": "Asynchronous Idempotency",
+      "entries": [
+        "TENETS-ASYNC-001",
+        "TENETS-ASYNC-002",
+        "TENETS-ASYNC-003",
+        "TENETS-ASYNC-004",
+        "TENETS-ASYNC-005",
+        "TENETS-ASYNC-006",
+        "TENETS-ASYNC-007",
+        "TENETS-ASYNC-008",
+        "TENETS-PATTERN-009",
+        "TENETS-PATTERN-010"
       ]
     }
   ]

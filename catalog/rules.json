@@ -471,6 +471,152 @@
       "source": "knowledge/rules/application/TENETS-APP-007.md"
     },
     {
+      "id": "TENETS-ASYNC-001",
+      "title": "Asynchronous consumers define repeated-delivery outcomes",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-002",
+        "TENETS-ASYNC-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nFor every asynchronous consumer, define how repeated delivery affects each business state change, emitted event, external effect, and operational metric.\n\n## Rationale\n\nMessage brokers commonly redeliver. Declaring only that a handler is \"idempotent\" hides which observable outcomes are actually protected.\n\n## Incorrect\n\n```text\nReserveInventory is idempotent.\n```\n\n## Correct\n\n```text\nOne reservation and one resulting outbox event per consumer operation;\nduplicate-delivery metrics may increment; customer email is protected separately.\n```\n\n## Remediation\n\nInventory every observable effect and specify the repeated-delivery outcome for each one.\n\n## Review check\n\nVerify explicit duplicate behavior for local state, emitted messages, external calls, and metrics.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-001.md"
+    },
+    {
+      "id": "TENETS-ASYNC-002",
+      "title": "Idempotency identity is scoped to consumer and operation",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-001",
+        "TENETS-ASYNC-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nScope asynchronous idempotency identity by logical message identity, consuming capability, and operation.\n\n## Rationale\n\nThe same integration event may legitimately produce one independent outcome in each consumer or operation.\n\n## Incorrect\n\n```sql\nUNIQUE (message_id)\n```\n\n## Correct\n\n```sql\nUNIQUE (consumer_name, operation_name, message_id)\n```\n\n## Remediation\n\nExpand the receipt key to include stable consumer and operation identities.\n\n## Review check\n\nVerify that unrelated consumers cannot suppress each other's valid work.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-002.md"
+    },
+    {
+      "id": "TENETS-ASYNC-003",
+      "title": "Idempotency identity is bound to payload",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-002",
+        "TENETS-ASYNC-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nStore a canonical payload fingerprint with the idempotency identity. Reuse of the same identity with a different payload is a contract conflict, not a duplicate success.\n\n## Rationale\n\nIdentity alone cannot distinguish legitimate redelivery from producer corruption or accidental key reuse.\n\n## Incorrect\n\n```python\nif inbox.exists(message.id):\n    return AlreadyProcessed()\n```\n\n## Correct\n\n```python\nreceipt = inbox.get(key)\nif receipt and receipt.payload_hash != payload_hash:\n    raise IdempotencyIdentityConflict(key)\n```\n\n## Remediation\n\nDefine canonical payload serialization or selected semantic fields and persist their fingerprint with the receipt.\n\n## Review check\n\nVerify that same-identity, different-payload delivery is rejected and observable.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-003.md"
+    },
+    {
+      "id": "TENETS-ASYNC-004",
+      "title": "Local consumer effects and inbox receipts are atomic",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-003",
+        "TENETS-EVENT-008",
+        "TENETS-PATTERN-009"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAtomically persist the consumer-scoped inbox receipt, local business updates, and resulting outbox records in one local transaction.\n\n## Rationale\n\nSeparate commits allow a crash to record completion without business work or repeat business work without a receipt.\n\n## Incorrect\n\n```python\ninbox.record(receipt)\nunit_of_work.commit()\ninventory.reserve(order)\n```\n\n## Correct\n\n```python\nwith unit_of_work:\n    inbox.add(receipt)\n    inventory.save(reservation)\n    outbox.add(inventory_reserved_event)\n    unit_of_work.commit()\n```\n\n## Remediation\n\nGive the inbox, business repository, outbox, and Unit of Work one shared transaction resource.\n\n## Review check\n\nVerify atomic visibility and rollback of the receipt, local state, and emitted publication intent.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-004.md"
+    },
+    {
+      "id": "TENETS-ASYNC-005",
+      "title": "Acknowledge asynchronous input after durable completion",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-009",
+        "TENETS-ASYNC-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe primary messaging adapter acknowledges delivery only after the application transaction commits or confirms that an identical message was already completed.\n\n## Rationale\n\nAcknowledging before durability can permanently lose work if the process fails before commit.\n\n## Incorrect\n\n```python\nchannel.ack(message)\nconsumer_use_case.execute(event)\n```\n\n## Correct\n\n```python\nresult = consumer_use_case.execute(event)\nif result.is_durably_complete:\n    channel.ack(message)\n```\n\n## Remediation\n\nMove acknowledgement after durable application completion and map retryable, permanent, and conflict failures explicitly.\n\n## Review check\n\nVerify acknowledgement order for success, identical duplicate, validation failure, retryable failure, and identity conflict.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-005.md"
+    },
+    {
+      "id": "TENETS-ASYNC-006",
+      "title": "External effects require independent idempotency protection",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-001",
+        "TENETS-PATTERN-010"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nProtect each non-transactional external effect with a stable provider-supported idempotency key, reconciliation, compensation, or explicit documentation of duplicate and loss risk.\n\n## Rationale\n\nA local inbox transaction cannot atomically cover an email provider, payment API, or other external system.\n\n## Incorrect\n\n```python\npayment_gateway.charge(payment)\ninbox.add(receipt)\n```\n\n## Correct\n\n```python\npayment_gateway.charge(\n    payment,\n    idempotency_key=PaymentChargeKey.from_operation(operation_id),\n)\n```\n\n## Remediation\n\nAssign stable effect identity, use the provider's protection where available, and document reconciliation or residual risk.\n\n## Review check\n\nVerify independent protection and failure recovery for every external side effect.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-006.md"
+    },
+    {
+      "id": "TENETS-ASYNC-007",
+      "title": "Idempotency records cover the supported replay window",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-002",
+        "TENETS-ASYNC-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRetain inbox receipts and external-effect identities for the complete supported retry, redelivery, and manual replay period plus an operational margin.\n\n## Rationale\n\nDeleting an idempotency record while its message can still return makes duplicate effects possible.\n\n## Incorrect\n\n```text\nReceipts expire after 24 hours; manual replay is supported for 30 days.\n```\n\n## Correct\n\n```text\nReceipts are retained for the 30-day replay window plus a 7-day margin.\n```\n\n## Remediation\n\nAlign retention, broker redelivery, dead-letter replay, provider key windows, and operational replay policy.\n\n## Review check\n\nCompare every identity retention period with all supported paths by which the operation can be repeated.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-007.md"
+    },
+    {
+      "id": "TENETS-ASYNC-008",
+      "title": "Reliability guarantees are stated per atomic boundary",
+      "kind": "rule",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ASYNC-001",
+        "TENETS-ASYNC-004",
+        "TENETS-ASYNC-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDescribe delivery and effect guarantees separately for each atomic mechanism. Do not claim end-to-end exactly-once behavior across systems that do not share one atomic boundary.\n\n## Rationale\n\nOutbox, broker, inbox, and external providers protect different boundaries and leave different duplicate or loss windows.\n\n## Incorrect\n\n```text\nThe order workflow is exactly once.\n```\n\n## Correct\n\n```text\nOrder state and outbox recording are atomic. Publication is at least once.\nInventory state and its inbox receipt are atomic. Email duplication is governed\nby the notification provider's idempotency window.\n```\n\n## Remediation\n\nReplace broad reliability labels with guarantees and residual risks for each database, broker, consumer, and external effect.\n\n## Review check\n\nVerify that every reliability claim names its protected boundary and remaining failure windows.",
+      "source": "knowledge/rules/async/TENETS-ASYNC-008.md"
+    },
+    {
       "id": "TENETS-COMPOSE-001",
       "title": "Dependency wiring occurs in the composition root",
       "kind": "rule",
@@ -715,6 +861,174 @@
       "source": "knowledge/rules/entities/TENETS-ENTITY-002.md"
     },
     {
+      "id": "TENETS-EVENT-001",
+      "title": "Domain events are immutable internal records",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-002",
+        "TENETS-EVENT-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA domain event is an immutable record of a completed domain occurrence, named in the bounded context's ubiquitous language and carrying its business occurrence time.\n\n## Rationale\n\nEvents describe facts that happened and must not change after domain behavior records them.\n\n## Incorrect\n\n```python\nclass OrderSubmitted:\n    status: str\n```\n\n## Correct\n\n```python\n@dataclass(frozen=True)\nclass OrderSubmittedDomainEvent:\n    order_id: OrderId\n    occurred_at: datetime\n```\n\n## Remediation\n\nUse an immutable domain type with semantic values, a completed-occurrence name, and explicit `occurred_at`.\n\n## Review check\n\nVerify immutability, past-tense domain naming, semantic values, and occurrence time.",
+      "source": "knowledge/rules/events/TENETS-EVENT-001.md"
+    },
+    {
+      "id": "TENETS-EVENT-002",
+      "title": "Domain behavior records domain events",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-001",
+        "TENETS-AGGREGATE-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe aggregate or domain behavior that completes a state transition records its domain event only after the transition succeeds. Repositories and adapters do not infer events from persistence changes.\n\n## Rationale\n\nOnly domain behavior knows whether the business occurrence actually happened and which semantics it carries.\n\n## Incorrect\n\n```python\nif order_row.status == \"submitted\":\n    publish(OrderSubmittedDomainEvent(...))\n```\n\n## Correct\n\n```python\ndef submit(self, submitted_at: datetime) -> None:\n    self._status = OrderStatus.SUBMITTED\n    self._domain_events.append(\n        OrderSubmittedDomainEvent(self.id, submitted_at)\n    )\n```\n\n## Remediation\n\nMove event recording into the successful domain behavior and remove adapter-side inference.\n\n## Review check\n\nTrace each domain event to the domain state transition that records it.",
+      "source": "knowledge/rules/events/TENETS-EVENT-002.md"
+    },
+    {
+      "id": "TENETS-EVENT-003",
+      "title": "Domain events are not external contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-001",
+        "TENETS-EVENT-005",
+        "TENETS-CONTEXT-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nNever serialize or publish a domain event directly to external consumers. Map selected domain events to explicit integration events.\n\n## Rationale\n\nDomain events may evolve with the internal model, while external contracts require independently controlled schemas and compatibility.\n\n## Incorrect\n\n```python\nbroker.publish(asdict(order_submitted_domain_event))\n```\n\n## Correct\n\n```python\nintegration_event = (\n    self._order_submitted_integration_event_factory.create(domain_event)\n)\nself._integration_event_outbox.add(integration_event)\n```\n\n## Remediation\n\nIntroduce an application-owned integration event and a directional mapping factory.\n\n## Review check\n\nVerify that messaging adapters never accept domain-event types as published contracts.",
+      "source": "knowledge/rules/events/TENETS-EVENT-003.md"
+    },
+    {
+      "id": "TENETS-EVENT-004",
+      "title": "Application handlers select publishable occurrences",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-003",
+        "TENETS-EVENT-006",
+        "TENETS-NAME-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn application domain-event handler decides whether a domain occurrence becomes an externally publishable integration event.\n\n## Rationale\n\nPublication is an application policy: aggregates should not know external consumers, and adapters should not decide business significance.\n\n## Incorrect\n\n```python\nclass Order:\n    def submit(self):\n        self._publisher.publish(OrderSubmittedIntegrationEventV1(...))\n```\n\n## Correct\n\n```python\nclass RecordOrderSubmittedForPublicationDomainEventHandler:\n    def handle(self, event: OrderSubmittedDomainEvent) -> None:\n        self._integration_event_outbox.add(\n            self._order_submitted_integration_event_factory.create(event)\n        )\n```\n\n## Remediation\n\nMove publication selection into an explicitly named application domain-event handler.\n\n## Review check\n\nVerify that publication policy lives in the application layer and is triggered synchronously inside the owning use case transaction.",
+      "source": "knowledge/rules/events/TENETS-EVENT-004.md"
+    },
+    {
+      "id": "TENETS-EVENT-005",
+      "title": "Integration events are explicit versioned contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-003",
+        "TENETS-CONTEXT-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn integration event has an explicit boundary name, stable schema, and visible version. It contains published contract values, not aggregates, ORM models, or database records.\n\n## Rationale\n\nVersioned contracts let producers and consumers evolve independently without exposing internal domain or persistence representation.\n\n## Incorrect\n\n```python\npublisher.publish(order)\n```\n\n## Correct\n\n```python\n@dataclass(frozen=True)\nclass OrderSubmittedIntegrationEventV1:\n    event_id: IntegrationEventId\n    order_id: PublishedOrderId\n    occurred_at: datetime\n```\n\n## Remediation\n\nDefine a versioned integration-event type and map only the stable values external consumers need.\n\n## Review check\n\nVerify explicit `IntegrationEventV<n>` naming, schema ownership, and absence of internal aggregate or persistence types.",
+      "source": "knowledge/rules/events/TENETS-EVENT-005.md"
+    },
+    {
+      "id": "TENETS-EVENT-006",
+      "title": "Integration-event factories own event creation",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-004",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-NAME-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn application-owned, event-specific factory creates each integration event, generates its identity through an explicit dependency, and preserves the source domain event's occurrence time.\n\n## Rationale\n\nThe factory centralizes complete contract creation without forcing use cases to assemble identifiers, timestamps, or fields manually.\n\n## Incorrect\n\n```python\nevent = OrderSubmittedIntegrationEventV1(\n    event_id=uuid4(),\n    occurred_at=datetime.now(),\n    order_id=domain_event.order_id,\n)\n```\n\n## Correct\n\n```python\nevent = self._order_submitted_integration_event_factory.create(domain_event)\n```\n\n## Remediation\n\nIntroduce a capability-specific integration-event factory with an injected ID generator and copy `occurred_at` from the domain event.\n\n## Review check\n\nVerify event-specific factory naming, complete construction, injected identity generation, and occurrence-time preservation.",
+      "source": "knowledge/rules/events/TENETS-EVENT-006.md"
+    },
+    {
+      "id": "TENETS-EVENT-007",
+      "title": "Publisher ports receive complete integration events",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-005",
+        "TENETS-PORT-005",
+        "TENETS-PORT-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn application-owned publisher port receives a complete integration event. Its messaging adapter serializes and routes that event without loading repositories or deriving missing domain state.\n\n## Rationale\n\nComplete semantic input keeps orchestration in the application and messaging infrastructure focused on publication.\n\n## Incorrect\n\n```python\npublisher.publish_order_submitted(order_id)\n```\n\n## Correct\n\n```python\nclass IntegrationEventPublisher(Protocol):\n    def publish(\n        self, event: OrderSubmittedIntegrationEventV1\n    ) -> None: ...\n```\n\n## Remediation\n\nAdd missing data to the integration-event contract and remove repository access from the messaging adapter.\n\n## Review check\n\nVerify that publisher methods receive complete events and adapters perform no domain loading.",
+      "source": "knowledge/rules/events/TENETS-EVENT-007.md"
+    },
+    {
+      "id": "TENETS-EVENT-008",
+      "title": "Reliable state-change publication uses a transactional outbox",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-004",
+        "TENETS-AGGREGATE-008",
+        "TENETS-PATTERN-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nStore publication intent in an outbox in the same local transaction as the state change. Direct publication requires acceptable loss, equivalent atomicity, or an ADR documenting the reliability trade-off.\n\n## Rationale\n\nPublishing inside a database transaction cannot atomically guarantee both database commit and broker acceptance.\n\n## Incorrect\n\n```python\nwith self._unit_of_work:\n    self._order_repository.save(order)\n    self._integration_event_publisher.publish(event)\n    self._unit_of_work.commit()\n```\n\n## Correct\n\n```python\nwith self._unit_of_work:\n    self._order_repository.save(order)\n    self._integration_event_outbox.add(event)\n    self._unit_of_work.commit()\n```\n\n## Remediation\n\nRecord a complete outbox message atomically and publish it later through a relay.\n\n## Review check\n\nVerify same-resource atomicity for business state and outbox records and inspect every direct-publication exception.",
+      "source": "knowledge/rules/events/TENETS-EVENT-008.md"
+    },
+    {
+      "id": "TENETS-EVENT-009",
+      "title": "External events enter through primary messaging adapters",
+      "kind": "rule",
+      "status": "stable",
+      "category": "events",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-001",
+        "TENETS-ADAPTER-003",
+        "TENETS-ASYNC-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA primary messaging adapter validates the broker envelope, deserializes the published contract, maps it to local application input, invokes one consumer capability, and acknowledges according to the durable outcome.\n\n## Rationale\n\nBroker types and acknowledgement mechanics are transport concerns, while business handling belongs to the application and domain.\n\n## Incorrect\n\n```python\ndef handle(message: BrokerMessage) -> None:\n    inventory.reserve(message.payload[\"sku\"])\n```\n\n## Correct\n\n```python\nevent = map_message_to_order_submitted_integration_event_v1(message)\nreserve_inventory_for_order_use_case.execute(event)\nchannel.ack(message)\n```\n\n## Remediation\n\nMove envelope validation and acknowledgement into a primary adapter and map to a semantic application input.\n\n## Review check\n\nVerify that application consumers never receive broker message types and that acknowledgements follow durable outcomes.",
+      "source": "knowledge/rules/events/TENETS-EVENT-009.md"
+    },
+    {
       "id": "TENETS-LIFECYCLE-001",
       "title": "Creation and hydration are distinct",
       "kind": "rule",
@@ -864,6 +1178,60 @@
       "source": "knowledge/rules/naming/TENETS-NAME-002.md"
     },
     {
+      "id": "TENETS-NAME-003",
+      "title": "Use-case class names end with UseCase",
+      "kind": "rule",
+      "status": "stable",
+      "category": "naming",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-001",
+        "TENETS-NAME-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nName application use-case classes with the business capability followed by the `UseCase` suffix.\n\n## Rationale\n\nThe suffix makes orchestration classes distinguishable from domain services, adapters, handlers, and commands wherever they appear.\n\n## Incorrect\n\n```python\nclass SubmitOrder:\n    ...\n```\n\n## Correct\n\n```python\nclass SubmitOrderUseCase:\n    ...\n```\n\n## Remediation\n\nRename the class and update composition-root providers and references consistently.\n\n## Review check\n\nVerify that every application workflow class ends with `UseCase`.",
+      "source": "knowledge/rules/naming/TENETS-NAME-003.md"
+    },
+    {
+      "id": "TENETS-NAME-004",
+      "title": "Event handler names identify their event boundary",
+      "kind": "rule",
+      "status": "stable",
+      "category": "naming",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-EVENT-004",
+        "TENETS-EVENT-009"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEnd application domain-event handler classes with `DomainEventHandler` and external integration-event consumer handler classes with `IntegrationEventHandler`.\n\n## Rationale\n\nExplicit suffixes prevent ambiguity when internal domain events and published integration events appear in the same codebase.\n\n## Incorrect\n\n```python\nclass RecordOrderSubmitted:\n    ...\n```\n\n## Correct\n\n```python\nclass RecordOrderSubmittedForPublicationDomainEventHandler:\n    ...\n\nclass ReserveInventoryForOrderIntegrationEventHandler:\n    ...\n```\n\n## Remediation\n\nRename handlers to include both their capability and event-boundary suffix.\n\n## Review check\n\nVerify that event handlers are distinguishable by name without relying on package placement.",
+      "source": "knowledge/rules/naming/TENETS-NAME-004.md"
+    },
+    {
+      "id": "TENETS-NAME-005",
+      "title": "Dependency names identify the capability they provide",
+      "kind": "rule",
+      "status": "stable",
+      "category": "naming",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-NAME-001",
+        "TENETS-COMPOSE-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nName injected dependencies and stored fields after their specific capability or contract. Avoid ambiguous names such as `factory`, `repository`, `client`, `handler`, or `publisher`.\n\n## Rationale\n\nCapability-specific names keep constructors and orchestration readable when several dependencies share the same technical role.\n\n## Incorrect\n\n```python\nself._factory = factory\nself._publisher = publisher\n```\n\n## Correct\n\n```python\nself._order_submitted_integration_event_factory = (\n    order_submitted_integration_event_factory\n)\nself._integration_event_publisher = integration_event_publisher\n```\n\n## Remediation\n\nRename parameters and fields to the narrow capability they implement.\n\n## Review check\n\nInspect dependency variables and verify that each name remains clear without reading its type annotation.",
+      "source": "knowledge/rules/naming/TENETS-NAME-005.md"
+    },
+    {
       "id": "TENETS-PATTERN-001",
       "title": "Use-case-loaded outbound capability",
       "kind": "pattern",
@@ -964,6 +1332,122 @@
       "aliases": [],
       "body": "## Purpose\n\nCreate a fresh use-case instance and its transaction resources for each Flask request without introducing an unnecessary provider abstraction.\n\n## Implementation\n\n```python\nclass Container:\n    def create_submit_order(self) -> SubmitOrderUseCase:\n        session = self._session_factory()\n        return SubmitOrderUseCase(\n            orders=SqlOrderRepository(session),\n            unit_of_work=SqlUnitOfWork(session),\n        )\n\ndef create_app(container: Container) -> Flask:\n    app = Flask(__name__)\n\n    @app.post(\"/orders\")\n    def submit_order():\n        command = SubmitOrderCommand.from_json(request.get_json())\n        order = container.create_submit_order().execute(command)\n        return jsonify(map_order_to_response(order)), 201\n\n    return app\n```\n\nThe bound container method is the factory. A separate `CreateSubmitOrderProvider` alias is unnecessary unless it provides independent value.\n\n## Trade-offs\n\nPer-request construction allocates small objects but avoids accidental mutable or transaction state sharing. Long-lived stateless clients and configuration may still be shared by the container.\n\n## Related rules\n\nSee `TENETS-PORT-001`, `TENETS-APP-001`, and `TENETS-APP-002`.",
       "source": "knowledge/patterns/TENETS-PATTERN-005.md"
+    },
+    {
+      "id": "TENETS-PATTERN-006",
+      "title": "Python Unit of Work with SQLAlchemy or SQLite",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python",
+        "flask"
+      ],
+      "related": [
+        "TENETS-UOW-001",
+        "TENETS-UOW-002",
+        "TENETS-UOW-003",
+        "TENETS-UOW-004",
+        "TENETS-UOW-005",
+        "TENETS-UOW-010",
+        "TENETS-UOW-011"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nGive Python use cases one explicit transaction contract while allowing SQLAlchemy or framework-free SQLite adapters to implement the same lifecycle.\n\n## Implementation\n\nThe application owns the contract:\n\n```python\nfrom types import TracebackType\nfrom typing import Protocol, Self\n\n\nclass UnitOfWork(Protocol):\n    def __enter__(self) -> Self: ...\n    def commit(self) -> None: ...\n    def rollback(self) -> None: ...\n\n    def __exit__(\n        self,\n        exception_type: type[BaseException] | None,\n        exception: BaseException | None,\n        traceback: TracebackType | None,\n    ) -> bool: ...\n```\n\nExpected Unit of Work failures such as `PersistenceConstraintViolation` and\n`PersistenceRollbackFailed` live beside this application port. A\n`TransactionObserver` is an inward-owned observability capability used only to\nreport cleanup failure without replacing an active primary failure.\n\nA use case declares repositories and the Unit of Work separately:\n\n```python\nclass SubmitOrderUseCase:\n    def __init__(\n        self,\n        order_repository: OrderRepository,\n        domain_event_dispatcher: DomainEventDispatcher,\n        unit_of_work: UnitOfWork,\n    ) -> None:\n        self._order_repository = order_repository\n        self._domain_event_dispatcher = domain_event_dispatcher\n        self._unit_of_work = unit_of_work\n\n    def execute(self, command: SubmitOrderCommand) -> Order:\n        with self._unit_of_work:\n            order = self._order_repository.get(command.order_id)\n            order.submit(command.submitted_at)\n            self._order_repository.save(order)\n\n            for event in order.release_domain_events():\n                self._domain_event_dispatcher.dispatch(event)\n\n            self._unit_of_work.commit()\n            return order\n```\n\nAn SQLAlchemy adapter owns the session mechanics:\n\n```python\nclass SqlAlchemyUnitOfWork:\n    def __init__(\n        self,\n        session: Session,\n        transaction_observer: TransactionObserver,\n    ) -> None:\n        self._session = session\n        self._transaction_observer = transaction_observer\n        self._entered = False\n        self._committed = False\n\n    def __enter__(self) -> Self:\n        if self._entered:\n            raise RuntimeError(\"Unit of Work instances cannot be reused\")\n        try:\n            self._session.begin()\n        except Exception:\n            self._session.close()\n            raise\n        self._entered = True\n        return self\n\n    def commit(self) -> None:\n        if not self._entered or self._committed:\n            raise RuntimeError(\"Invalid Unit of Work commit\")\n        try:\n            self._session.commit()\n        except IntegrityError as error:\n            self._rollback_preserving(error)\n            raise PersistenceConstraintViolation() from error\n        self._committed = True\n\n    def rollback(self) -> None:\n        if not self._entered:\n            raise RuntimeError(\"Unit of Work has not been entered\")\n        try:\n            self._session.rollback()\n        except SQLAlchemyError as error:\n            raise PersistenceRollbackFailed() from error\n\n    def _rollback_preserving(self, primary_error: BaseException) -> None:\n        try:\n            self._session.rollback()\n        except Exception as rollback_error:\n            self._transaction_observer.report_rollback_failure(\n                rollback_error=rollback_error,\n                primary_error=primary_error,\n            )\n\n    def __exit__(\n        self,\n        exception_type,\n        exception,\n        traceback,\n    ) -> bool:\n        try:\n            if exception is not None:\n                self._rollback_preserving(exception)\n            elif not self._committed:\n                self.rollback()\n        finally:\n            self._session.close()\n        return False\n```\n\nA framework-free SQLite adapter uses explicit transaction statements. Setting\n`isolation_level=None` disables `sqlite3` implicit transaction management:\n\n```python\ndef create_sqlite_connection(\n    database_path: Path,\n) -> sqlite3.Connection:\n    connection = sqlite3.connect(\n        database_path,\n        isolation_level=None,\n    )\n    connection.row_factory = sqlite3.Row\n    return connection\n\n\nclass SqliteUnitOfWork:\n    def __init__(\n        self,\n        connection: sqlite3.Connection,\n        transaction_observer: TransactionObserver,\n    ) -> None:\n        self._connection = connection\n        self._transaction_observer = transaction_observer\n        self._entered = False\n        self._committed = False\n\n    def __enter__(self) -> Self:\n        if self._entered:\n            raise RuntimeError(\"Unit of Work instances cannot be reused\")\n        try:\n            self._connection.execute(\"BEGIN\")\n        except Exception:\n            self._connection.close()\n            raise\n        self._entered = True\n        return self\n\n    def commit(self) -> None:\n        if not self._entered or self._committed:\n            raise RuntimeError(\"Invalid Unit of Work commit\")\n        try:\n            self._connection.execute(\"COMMIT\")\n        except sqlite3.IntegrityError as error:\n            self._rollback_preserving(error)\n            raise PersistenceConstraintViolation() from error\n        self._committed = True\n\n    def rollback(self) -> None:\n        if not self._entered:\n            raise RuntimeError(\"Unit of Work has not been entered\")\n        try:\n            self._rollback_if_active()\n        except sqlite3.Error as error:\n            raise PersistenceRollbackFailed() from error\n\n    def _rollback_if_active(self) -> None:\n        if self._connection.in_transaction:\n            self._connection.execute(\"ROLLBACK\")\n\n    def _rollback_preserving(self, primary_error: BaseException) -> None:\n        try:\n            self._rollback_if_active()\n        except Exception as rollback_error:\n            self._transaction_observer.report_rollback_failure(\n                rollback_error=rollback_error,\n                primary_error=primary_error,\n            )\n\n    def __exit__(\n        self,\n        exception_type,\n        exception,\n        traceback,\n    ) -> bool:\n        try:\n            if exception is not None:\n                self._rollback_preserving(exception)\n            elif not self._committed:\n                self.rollback()\n        finally:\n            self._connection.close()\n        return False\n```\n\nSQLite repositories hydrate domain objects through directional mappers and\nconvert semantic values only inside the adapter:\n\n```python\nclass SqliteOrderRepository:\n    def __init__(self, connection: sqlite3.Connection) -> None:\n        self._connection = connection\n\n    def get(self, order_id: OrderId) -> Order:\n        row = self._connection.execute(\n            \"\"\"\n            SELECT id, tenant_id, customer_id, status, submitted_at, version\n            FROM orders\n            WHERE id = ?\n            \"\"\",\n            (order_id.value,),\n        ).fetchone()\n        if row is None:\n            raise OrderNotFound(order_id)\n        return map_order_row_to_order(row)\n\n    def save(self, order: Order) -> None:\n        previous_version = order.version.previous()\n        cursor = self._connection.execute(\n            \"\"\"\n            UPDATE orders\n            SET status = ?, submitted_at = ?, version = ?\n            WHERE id = ? AND version = ?\n            \"\"\",\n            (\n                order.status.value,\n                order.submitted_at.isoformat(),\n                order.version.value,\n                order.id.value,\n                previous_version.value,\n            ),\n        )\n        if cursor.rowcount != 1:\n            raise OrderVersionConflict(order.id)\n```\n\nThe mapper reconstructs an existing object through its hydration constructor,\nnot its creation function:\n\n```python\ndef map_order_row_to_order(row: sqlite3.Row) -> Order:\n    submitted_at = (\n        datetime.fromisoformat(row[\"submitted_at\"])\n        if row[\"submitted_at\"] is not None\n        else None\n    )\n    return Order(\n        order_id=OrderId(row[\"id\"]),\n        tenant_id=TenantId(row[\"tenant_id\"]),\n        customer_id=CustomerId(row[\"customer_id\"]),\n        status=OrderStatus(row[\"status\"]),\n        submitted_at=submitted_at,\n        version=OrderVersion(row[\"version\"]),\n    )\n```\n\nThe framework-free outbox adapter shares the connection and converts semantic\nvalues only at the persistence boundary:\n\n```python\nclass SqliteIntegrationEventOutbox:\n    def __init__(self, connection: sqlite3.Connection) -> None:\n        self._connection = connection\n\n    def add(self, message: IntegrationEventOutboxMessage) -> None:\n        self._connection.execute(\n            \"\"\"\n            INSERT INTO integration_event_outbox (\n                id,\n                event_name,\n                occurred_at,\n                payload\n            )\n            VALUES (?, ?, ?, ?)\n            \"\"\",\n            (\n                message.id.value,\n                message.event_name.value,\n                message.occurred_at.isoformat(),\n                message.payload.to_json(),\n            ),\n        )\n```\n\nThe composition root provides one resource to every transaction participant:\n\n```python\nclass Container:\n    def create_submit_order_use_case(self) -> SubmitOrderUseCase:\n        session = self._session_factory()\n        integration_event_outbox = SqlAlchemyIntegrationEventOutbox(session)\n        order_submitted_domain_event_handler = (\n            RecordOrderSubmittedForPublicationDomainEventHandler(\n                order_submitted_integration_event_factory=(\n                    self._order_submitted_integration_event_factory\n                ),\n                integration_event_outbox=integration_event_outbox,\n            )\n        )\n        domain_event_dispatcher = DomainEventDispatcher(\n            {\n                OrderSubmittedDomainEvent: [\n                    order_submitted_domain_event_handler\n                ],\n            }\n        )\n        return SubmitOrderUseCase(\n            order_repository=SqlAlchemyOrderRepository(session),\n            domain_event_dispatcher=domain_event_dispatcher,\n            unit_of_work=SqlAlchemyUnitOfWork(\n                session,\n                self._transaction_observer,\n            ),\n        )\n```\n\nThe same composition works without an ORM:\n\n```python\ndef create_sqlite_submit_order_use_case(\n    database_path: Path,\n    order_submitted_integration_event_factory:\n        OrderSubmittedIntegrationEventV1Factory,\n    transaction_observer: TransactionObserver,\n) -> SubmitOrderUseCase:\n    connection = create_sqlite_connection(database_path)\n    integration_event_outbox = SqliteIntegrationEventOutbox(connection)\n    domain_event_dispatcher = DomainEventDispatcher(\n        {\n            OrderSubmittedDomainEvent: [\n                RecordOrderSubmittedForPublicationDomainEventHandler(\n                    order_submitted_integration_event_factory=(\n                        order_submitted_integration_event_factory\n                    ),\n                    integration_event_outbox=integration_event_outbox,\n                )\n            ],\n        }\n    )\n    return SubmitOrderUseCase(\n        order_repository=SqliteOrderRepository(connection),\n        domain_event_dispatcher=domain_event_dispatcher,\n        unit_of_work=SqliteUnitOfWork(\n            connection,\n            transaction_observer,\n        ),\n    )\n```\n\nThe event dispatcher and handlers are transaction-scoped because their outbox\nadapter must share the same session or connection. Stateless factories, ID\ngenerators, configuration, and clients may remain long-lived container\ndependencies.\n\nThe Flask handler asks for a fresh use case per request. It maps transport input\nand output but does not own commit:\n\n```python\n@orders_blueprint.post(\"/orders/<order_id>/submit\")\ndef submit_order(order_id: str) -> tuple[dict[str, object], int]:\n    command = map_request_to_submit_order_command(\n        order_id=order_id,\n        payload=request.get_json(),\n    )\n    use_case = current_app.extensions[\n        \"container\"\n    ].create_submit_order_use_case()\n    order = use_case.execute(command)\n    return map_order_to_response(order), 200\n```\n\nA fake Unit of Work verifies orchestration order. Adapter integration tests use\na real database and prove commit, rollback, shared-resource atomicity, cleanup,\nnon-reuse, and failure translation.\n\n## Trade-offs\n\nExplicit Unit of Work injection adds ceremony but makes transaction ownership,\nfailure behavior, and tests visible. SQLAlchemy reduces SQL mapping code;\n`sqlite3` demonstrates the same architecture without an ORM. A one-shot Unit of\nWork requires a specialized factory for workflows that intentionally use\nseveral transactions.\n\n## Related rules\n\nSee `TENETS-UOW-001` through `TENETS-UOW-011`, `TENETS-EVENT-008`, and\n`TENETS-PATTERN-008`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-006.md"
+    },
+    {
+      "id": "TENETS-PATTERN-007",
+      "title": "Domain-to-integration event mapping",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "events",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-EVENT-001",
+        "TENETS-EVENT-003",
+        "TENETS-EVENT-004",
+        "TENETS-EVENT-005",
+        "TENETS-EVENT-006",
+        "TENETS-NAME-004",
+        "TENETS-NAME-005"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nKeep internal domain occurrences distinct from versioned external contracts while centralizing complete integration-event creation.\n\n## Implementation\n\nThe aggregate records an immutable domain event:\n\n```python\n@dataclass(frozen=True)\nclass OrderSubmittedDomainEvent:\n    order_id: OrderId\n    tenant_id: TenantId\n    customer_id: CustomerId\n    occurred_at: datetime\n\n\nclass Order:\n    def submit(self, submitted_at: datetime) -> None:\n        if self._status is not OrderStatus.DRAFT:\n            raise OrderCannotBeSubmitted(self.id)\n        self._status = OrderStatus.SUBMITTED\n        self._submitted_at = submitted_at\n        self._domain_events.append(\n            OrderSubmittedDomainEvent(\n                order_id=self.id,\n                tenant_id=self.tenant_id,\n                customer_id=self.customer_id,\n                occurred_at=submitted_at,\n            )\n        )\n```\n\nThe application owns a distinct versioned contract:\n\n```python\n@dataclass(frozen=True)\nclass OrderSubmittedIntegrationEventV1:\n    event_id: IntegrationEventId\n    order_id: PublishedOrderId\n    tenant_id: PublishedTenantId\n    customer_id: PublishedCustomerId\n    occurred_at: datetime\n```\n\nAn event-specific factory generates technical identity and preserves business\noccurrence time:\n\n```python\nclass OrderSubmittedIntegrationEventV1Factory:\n    def __init__(\n        self,\n        integration_event_id_generator: IntegrationEventIdGenerator,\n    ) -> None:\n        self._integration_event_id_generator = (\n            integration_event_id_generator\n        )\n\n    def create(\n        self,\n        event: OrderSubmittedDomainEvent,\n    ) -> OrderSubmittedIntegrationEventV1:\n        return OrderSubmittedIntegrationEventV1(\n            event_id=self._integration_event_id_generator.next_id(),\n            order_id=PublishedOrderId(event.order_id.value),\n            tenant_id=PublishedTenantId(event.tenant_id.value),\n            customer_id=PublishedCustomerId(event.customer_id.value),\n            occurred_at=event.occurred_at,\n        )\n```\n\nAn application handler selects the occurrence for publication and records the\ncomplete integration event through the outbox port:\n\n```python\nclass RecordOrderSubmittedForPublicationDomainEventHandler:\n    def __init__(\n        self,\n        order_submitted_integration_event_factory:\n            OrderSubmittedIntegrationEventV1Factory,\n        integration_event_outbox: IntegrationEventOutbox,\n    ) -> None:\n        self._order_submitted_integration_event_factory = (\n            order_submitted_integration_event_factory\n        )\n        self._integration_event_outbox = integration_event_outbox\n\n    def handle(self, event: OrderSubmittedDomainEvent) -> None:\n        integration_event = (\n            self._order_submitted_integration_event_factory.create(event)\n        )\n        self._integration_event_outbox.add(integration_event)\n```\n\nThe handler runs synchronously inside the use case's transaction. It does not\ncommit, publish to a broker, load repositories, or choose wire serialization.\n\nUse explicit wire names such as:\n\n```text\nordering.order-submitted.v1\ninventory.inventory-reserved.v1\nbilling.payment-authorized.v2\n```\n\n## Trade-offs\n\nSeparate event types and mapping add code, but preserve bounded-context\nautonomy and allow external contracts to evolve independently. Event factories\navoid parameter assembly in use cases while adding a small application service.\n\n## Related rules\n\nSee `TENETS-EVENT-001` through `TENETS-EVENT-007`,\n`TENETS-NAME-004`, and `TENETS-NAME-005`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-007.md"
+    },
+    {
+      "id": "TENETS-PATTERN-008",
+      "title": "Transactional outbox and relay",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "events",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python",
+        "flask"
+      ],
+      "related": [
+        "TENETS-EVENT-007",
+        "TENETS-EVENT-008",
+        "TENETS-UOW-004",
+        "TENETS-UOW-007",
+        "TENETS-ASYNC-008"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nCommit business state and publication intent atomically, then publish through bounded relay transactions without holding a database transaction open during broker calls.\n\n## Implementation\n\nThe use case saves the aggregate and synchronously dispatches its domain events.\nThe publication handler writes the resulting integration event through the\noutbox adapter sharing the same transaction:\n\n```python\nwith self._unit_of_work:\n    order = self._order_repository.get(command.order_id)\n    order.submit(command.submitted_at)\n    self._order_repository.save(order)\n\n    for event in order.release_domain_events():\n        self._domain_event_dispatcher.dispatch(event)\n\n    self._unit_of_work.commit()\n```\n\nA claim-and-lease relay needs several short transactions, so it receives a\ncapability-specific transaction factory:\n\n```python\n@dataclass(frozen=True)\nclass IntegrationEventRelayTransaction:\n    integration_event_outbox: IntegrationEventOutbox\n    unit_of_work: UnitOfWork\n\n\nclass IntegrationEventRelayTransactionFactory(Protocol):\n    def create(self) -> IntegrationEventRelayTransaction: ...\n```\n\nThe relay commits claims, publishes outside database transactions, and marks\neach accepted message through a fresh transaction:\n\n```python\nclass RelayPendingIntegrationEventsUseCase:\n    def __init__(\n        self,\n        integration_event_relay_transaction_factory:\n            IntegrationEventRelayTransactionFactory,\n        integration_event_publisher: IntegrationEventPublisher,\n        clock: Clock,\n        claim_duration: OutboxClaimDuration,\n    ) -> None:\n        self._integration_event_relay_transaction_factory = (\n            integration_event_relay_transaction_factory\n        )\n        self._integration_event_publisher = integration_event_publisher\n        self._clock = clock\n        self._claim_duration = claim_duration\n\n    def execute(self, batch_size: BatchSize) -> None:\n        claim_transaction = (\n            self._integration_event_relay_transaction_factory.create()\n        )\n        with claim_transaction.unit_of_work:\n            messages = (\n                claim_transaction.integration_event_outbox.claim_pending(\n                    batch_size=batch_size,\n                    claimed_until=(\n                        self._clock.now() + self._claim_duration\n                    ),\n                )\n            )\n            claim_transaction.unit_of_work.commit()\n\n        for message in messages:\n            try:\n                self._integration_event_publisher.publish(message.event)\n            except IntegrationEventPublicationFailed as failure:\n                mark_failed_transaction = (\n                    self._integration_event_relay_transaction_factory.create()\n                )\n                with mark_failed_transaction.unit_of_work:\n                    (\n                        mark_failed_transaction.integration_event_outbox\n                        .mark_failed(\n                            message.id,\n                            failed_at=self._clock.now(),\n                            failure=PublicationFailure.from_exception(failure),\n                        )\n                    )\n                    mark_failed_transaction.unit_of_work.commit()\n                continue\n\n            mark_published_transaction = (\n                self._integration_event_relay_transaction_factory.create()\n            )\n            with mark_published_transaction.unit_of_work:\n                (\n                    mark_published_transaction.integration_event_outbox\n                    .mark_published(\n                        message.id,\n                        published_at=self._clock.now(),\n                    )\n                )\n                mark_published_transaction.unit_of_work.commit()\n```\n\nThe composition root guarantees shared resources inside each transaction:\n\n```python\nclass SqlAlchemyIntegrationEventRelayTransactionFactory:\n    def create(self) -> IntegrationEventRelayTransaction:\n        session = self._session_factory()\n        return IntegrationEventRelayTransaction(\n            integration_event_outbox=SqlAlchemyIntegrationEventOutbox(session),\n            unit_of_work=SqlAlchemyUnitOfWork(\n                session,\n                self._transaction_observer,\n            ),\n        )\n```\n\nFor modest latency and throughput, run one bounded relay batch from a Flask CLI\ncommand under a platform scheduler:\n\n```python\n@app.cli.command(\"relay-integration-events\")\ndef relay_integration_events() -> None:\n    use_case = current_app.extensions[\n        \"container\"\n    ].create_relay_pending_integration_events_use_case()\n    use_case.execute(BatchSize(100))\n```\n\nUse a Kubernetes `CronJob` for this scheduled form. When continuous processing\nor parallel replicas are required, use a dedicated `Deployment`, durable\nclaims or leases, graceful shutdown, and a fresh use case per polling batch.\nNever run both forms concurrently unless they share a correct claim mechanism.\n\nThe relay provides at-least-once publication. A crash after broker acceptance\nbut before `mark_published` causes duplicate publication. Message identity\nremains stable across retries so consumers can deduplicate.\n\nClaims record attempts and expire through a durable lease. `mark_failed`\nrecords an observable retryable outcome without pretending that broker\nacceptance is known. The next eligible claim uses the same message identity.\n\nDirect publication is an exception only when loss is acceptable, selected\ntechnology provides equivalent atomicity, or an ADR documents the accepted\nfailure behavior.\n\n## Trade-offs\n\nThe outbox adds storage, polling, cleanup, and duplicate-delivery handling but\nremoves the database-versus-broker atomicity gap. A scheduled single-instance\nrelay is simpler; claims, leases, and parallel workers add operational\ncomplexity only when throughput and latency justify them.\n\n## Related rules\n\nSee `TENETS-EVENT-008`, `TENETS-UOW-002`, `TENETS-UOW-004`,\n`TENETS-UOW-007`, and `TENETS-ASYNC-008`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-008.md"
+    },
+    {
+      "id": "TENETS-PATTERN-009",
+      "title": "Transactional consumer inbox",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-EVENT-009",
+        "TENETS-ASYNC-002",
+        "TENETS-ASYNC-003",
+        "TENETS-ASYNC-004",
+        "TENETS-ASYNC-005",
+        "TENETS-UOW-004"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nMake a local asynchronous consumer safely repeatable by binding message identity to its payload and committing the receipt with all local effects.\n\n## Implementation\n\nUse a consumer- and operation-scoped key:\n\n```python\n@dataclass(frozen=True)\nclass InboxReceiptKey:\n    consumer_name: ConsumerName\n    operation_name: OperationName\n    message_id: IntegrationEventId\n```\n\nThe application consumer computes a canonical payload fingerprint and performs\nduplicate resolution inside the transaction:\n\n```python\nclass ReserveInventoryForOrderIntegrationEventHandler:\n    def __init__(\n        self,\n        inbox_receipt_repository: InboxReceiptRepository,\n        inventory_reservation_repository: InventoryReservationRepository,\n        domain_event_dispatcher: DomainEventDispatcher,\n        payload_fingerprint: IntegrationEventPayloadFingerprint,\n        clock: Clock,\n        unit_of_work: UnitOfWork,\n    ) -> None:\n        self._inbox_receipt_repository = inbox_receipt_repository\n        self._inventory_reservation_repository = (\n            inventory_reservation_repository\n        )\n        self._domain_event_dispatcher = domain_event_dispatcher\n        self._payload_fingerprint = payload_fingerprint\n        self._clock = clock\n        self._unit_of_work = unit_of_work\n\n    def handle(\n        self,\n        event: OrderSubmittedIntegrationEventV1,\n    ) -> ConsumerResult:\n        receipt_key = InboxReceiptKey(\n            consumer_name=ConsumerName(\"inventory\"),\n            operation_name=OperationName(\"reserve-inventory-for-order\"),\n            message_id=event.event_id,\n        )\n        payload_hash = self._payload_fingerprint.calculate(event)\n\n        with self._unit_of_work:\n            existing_receipt = (\n                self._inbox_receipt_repository.get(receipt_key)\n            )\n            if existing_receipt is not None:\n                if existing_receipt.payload_hash != payload_hash:\n                    raise IdempotencyIdentityConflict(receipt_key)\n                return ConsumerResult.already_completed()\n\n            reservation = create_inventory_reservation(\n                order_id=OrderReferenceId(event.order_id.value),\n                requested_at=event.occurred_at,\n            )\n            self._inventory_reservation_repository.save(reservation)\n            for domain_event in reservation.release_domain_events():\n                self._domain_event_dispatcher.dispatch(domain_event)\n            self._inbox_receipt_repository.add(\n                InboxReceipt(\n                    key=receipt_key,\n                    payload_hash=payload_hash,\n                    completed_at=self._clock.now(),\n                )\n            )\n            self._unit_of_work.commit()\n            return ConsumerResult.completed()\n```\n\nThe synchronous domain-event handlers use an outbox adapter sharing this Unit\nof Work resource, so the inbox receipt, reservation, and resulting integration\nevents commit or roll back together.\n\nThe database enforces uniqueness on consumer, operation, and message identity.\nConcurrent duplicate attempts either observe the existing receipt or translate\nthe unique conflict into the same duplicate-versus-payload-conflict decision.\n\nThe primary messaging adapter acknowledges only durable completion:\n\n```python\ndef consume(message: BrokerMessage) -> None:\n    try:\n        event = map_message_to_order_submitted_integration_event_v1(message)\n        result = reserve_inventory_for_order_handler.handle(event)\n    except InvalidPublishedContract:\n        channel.reject(message, requeue=False)\n    except IdempotencyIdentityConflict:\n        channel.reject(message, requeue=False)\n    except RetryableConsumerFailure:\n        channel.reject(message, requeue=True)\n    else:\n        assert result.is_durably_complete\n        channel.ack(message)\n```\n\nRetain receipts for the supported broker retry, dead-letter replay, and manual\nreplay window plus operational margin.\n\n## Trade-offs\n\nThe inbox adds storage and retention management. It protects local state and\nresulting outbox messages, but it cannot atomically protect external providers;\nthose effects need their own stable identity and recovery policy.\n\n## Related rules\n\nSee `TENETS-ASYNC-001` through `TENETS-ASYNC-005`,\n`TENETS-ASYNC-007`, and `TENETS-UOW-004`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-009.md"
+    },
+    {
+      "id": "TENETS-PATTERN-010",
+      "title": "External-effect idempotency",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "async-reliability",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-ASYNC-001",
+        "TENETS-ASYNC-006",
+        "TENETS-ASYNC-007",
+        "TENETS-ASYNC-008"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nProtect non-transactional effects such as charges, email delivery, or external API mutations when local database atomicity cannot cover the provider.\n\n## Implementation\n\nDerive one stable effect identity from the consumer operation rather than from\nan individual delivery attempt:\n\n```python\n@dataclass(frozen=True)\nclass PaymentChargeKey:\n    value: str\n\n    @classmethod\n    def for_order(\n        cls,\n        order_id: OrderReferenceId,\n        payment_account_id: PaymentAccountId,\n    ) -> \"PaymentChargeKey\":\n        return cls(\n            f\"charge-order:{order_id.value}:{payment_account_id.value}\"\n        )\n```\n\nPass that semantic key through the application-owned port:\n\n```python\nclass PaymentGateway(Protocol):\n    def charge(\n        self,\n        request: PaymentChargeRequest,\n        idempotency_key: PaymentChargeKey,\n    ) -> PaymentChargeResult: ...\n```\n\nThe secondary adapter translates it to the provider mechanism:\n\n```python\nclass AcmePaymentGateway:\n    def charge(\n        self,\n        request: PaymentChargeRequest,\n        idempotency_key: PaymentChargeKey,\n    ) -> PaymentChargeResult:\n        response = self._acme_payment_client.create_charge(\n            amount_minor=request.amount.minor_units,\n            currency=request.amount.currency.code,\n            idempotency_key=idempotency_key.value,\n        )\n        return map_acme_charge_to_payment_charge_result(response)\n```\n\nPersist enough local operation state to reconcile an uncertain outcome:\n\n```text\npending -> provider accepted but local completion unknown -> reconcile by key\nsucceeded -> return the previously accepted result\nfailed permanently -> reject without issuing a new effect\n```\n\nIf a provider offers no idempotency support, choose and document one of:\n\n- Query or reconcile provider state before repeating.\n- Compensate a confirmed duplicate effect.\n- Serialize the operation through another durable mechanism.\n- Accept and document the duplicate and loss risk.\n\nRetain the local identity for at least the provider's idempotency window and the\nfull supported application replay period. State guarantees independently:\n\n```text\nBilling state and its inbox receipt are atomic.\nThe payment provider deduplicates PaymentChargeKey for 30 days.\nReconciliation handles unknown provider outcomes during that period.\n```\n\n## Trade-offs\n\nProvider idempotency reduces duplicate effects but does not create a distributed\ntransaction. Reconciliation and compensation add operational work, while\naccepting residual risk may be correct only for low-impact effects.\n\n## Related rules\n\nSee `TENETS-ASYNC-006`, `TENETS-ASYNC-007`, and `TENETS-ASYNC-008`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-010.md"
     },
     {
       "id": "TENETS-PORT-001",
@@ -1337,6 +1821,206 @@
       "aliases": [],
       "body": "## Rule\n\nDomain services operate only on supplied semantic domain data. They retain no workflow state and perform no persistence, network access, messaging, configuration lookup, or orchestration.\n\n## Rationale\n\nUse cases own loading and external coordination; domain services express deterministic business behavior.\n\n## Incorrect\n\n```python\nclass PricingPolicy:\n    def calculate(self, order_id: OrderId) -> Money:\n        order = self._orders.get(order_id)\n```\n\n## Correct\n\n```python\nclass PricingPolicy:\n    def calculate(self, order: Order, tier: CustomerTier) -> Money: ...\n```\n\n## Remediation\n\nMove I/O and loading into the use case and pass the required domain objects into the service.\n\n## Review check\n\nInspect domain-service constructors and methods for repositories, ports, mutable state, and external calls.",
       "source": "knowledge/rules/services/TENETS-SERVICE-002.md"
+    },
+    {
+      "id": "TENETS-UOW-001",
+      "title": "The application owns the Unit of Work contract",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-002",
+        "TENETS-UOW-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDefine the Unit of Work as an application-owned port. Persistence adapters implement its transaction mechanics without exposing sessions, connections, cursors, ORMs, or SQL inward.\n\n## Rationale\n\nThe use case decides when application work succeeds; infrastructure decides how the technical transaction commits, rolls back, and releases resources.\n\n## Incorrect\n\n```python\nfrom sqlalchemy.orm import Session\n\nclass SubmitOrderUseCase:\n    def __init__(self, session: Session) -> None: ...\n```\n\n## Correct\n\n```python\nclass UnitOfWork(Protocol):\n    def __enter__(self) -> Self: ...\n    def commit(self) -> None: ...\n    def rollback(self) -> None: ...\n    def __exit__(self, exception_type, exception, traceback) -> bool: ...\n```\n\n## Remediation\n\nMove the transaction contract into the application layer and keep driver-specific resources inside secondary adapters.\n\n## Review check\n\nVerify that use cases depend on an inward-owned Unit of Work abstraction and never import persistence transaction types.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-001.md"
+    },
+    {
+      "id": "TENETS-UOW-002",
+      "title": "One Unit of Work instance represents one transaction",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-003",
+        "TENETS-UOW-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nTreat each Unit of Work instance as a one-shot transaction boundary. Do not enter or reuse it after it exits.\n\n## Rationale\n\nOne lifecycle prevents stale sessions, identity maps, and transaction state from crossing application operations.\n\n## Incorrect\n\n```python\nwith unit_of_work:\n    save_order()\n    unit_of_work.commit()\n\nwith unit_of_work:\n    mark_event_published()\n    unit_of_work.commit()\n```\n\n## Correct\n\n```python\nfirst_unit_of_work = unit_of_work_factory.create()\nwith first_unit_of_work:\n    ...\n    first_unit_of_work.commit()\n\nsecond_unit_of_work = unit_of_work_factory.create()\nwith second_unit_of_work:\n    ...\n    second_unit_of_work.commit()\n```\n\n## Remediation\n\nCreate a fresh Unit of Work for each deliberate transaction and reject adapter reuse explicitly.\n\n## Review check\n\nTrace every Unit of Work instance and verify that it is entered at most once.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-002.md"
+    },
+    {
+      "id": "TENETS-UOW-003",
+      "title": "Successful writes require explicit commit",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-002",
+        "TENETS-UOW-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA writing use case explicitly calls `commit()` after all required domain changes and transactional records succeed. An exception or clean exit without commit rolls back.\n\n## Rationale\n\nExplicit commit makes the application success boundary visible and makes omitted commits and early returns fail closed.\n\n## Incorrect\n\n```python\nwith self._unit_of_work:\n    self._order_repository.save(order)\n# Adapter commits automatically.\n```\n\n## Correct\n\n```python\nwith self._unit_of_work:\n    self._order_repository.save(order)\n    self._integration_event_outbox.add(message)\n    self._unit_of_work.commit()\n```\n\n## Remediation\n\nDisable clean-exit auto-commit, add an explicit success commit, and roll back every incomplete exit.\n\n## Review check\n\nVerify that every writing Unit of Work path commits exactly once only after all required transactional work.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-003.md"
+    },
+    {
+      "id": "TENETS-UOW-004",
+      "title": "Transaction participants share one resource without hidden dependencies",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-001",
+        "TENETS-COMPOSE-001",
+        "TENETS-PORT-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe composition root gives every repository, outbox, and Unit of Work adapter in one transaction the same transaction-scoped resource while injecting each application port explicitly.\n\n## Rationale\n\nAtomicity requires shared transaction state, while explicit constructor dependencies keep orchestration visible and prevent the Unit of Work from becoming a service locator.\n\n## Incorrect\n\n```python\nwith self._unit_of_work:\n    order = self._unit_of_work.repositories.orders.get(order_id)\n```\n\n## Correct\n\n```python\nsession = session_factory()\nSubmitOrderUseCase(\n    order_repository=SqlOrderRepository(session),\n    integration_event_outbox=SqlOutbox(session),\n    unit_of_work=SqlUnitOfWork(session),\n)\n```\n\n## Remediation\n\nMove resource sharing into the composition root and inject every consumed port by its capability-specific name.\n\n## Review check\n\nVerify both that transaction participants share one resource and that use-case dependencies are not discovered through the Unit of Work.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-004.md"
+    },
+    {
+      "id": "TENETS-UOW-005",
+      "title": "Unit of Work adapters release transaction resources",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-003",
+        "TENETS-UOW-010"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe Unit of Work adapter rolls back incomplete work and closes or releases its transaction-scoped resource on every exit path.\n\n## Rationale\n\nCommit alone does not release sessions or connections. Deterministic cleanup prevents leaks and transaction state from escaping its application boundary.\n\n## Incorrect\n\n```python\ndef __exit__(self, *args) -> bool:\n    return False\n```\n\n## Correct\n\n```python\ndef __exit__(self, exception_type, exception, traceback) -> bool:\n    try:\n        if exception is not None or not self._committed:\n            self._session.rollback()\n    finally:\n        self._session.close()\n    return False\n```\n\n## Remediation\n\nAdd rollback-on-incomplete-exit and unconditional resource cleanup, then test success and failure paths.\n\n## Review check\n\nVerify that commit, application failure, commit failure, and early return all release the transaction resource.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-005.md"
+    },
+    {
+      "id": "TENETS-UOW-006",
+      "title": "Units of Work do not orchestrate workflows",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-001",
+        "TENETS-UOW-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA Unit of Work owns transaction mechanics only. It does not load aggregates, apply business rules, dispatch handlers, publish events, construct adapters, read configuration, or coordinate workflows.\n\n## Rationale\n\nPutting application behavior inside transaction infrastructure hides dependencies and mixes orchestration with persistence mechanics.\n\n## Incorrect\n\n```python\nunit_of_work.submit_order_and_publish(order_id)\n```\n\n## Correct\n\n```python\nwith self._unit_of_work:\n    order = self._order_repository.get(command.order_id)\n    order.submit(command.submitted_at)\n    self._order_repository.save(order)\n    self._unit_of_work.commit()\n```\n\n## Remediation\n\nMove workflow decisions into the use case and leave only begin, commit, rollback, and cleanup in the Unit of Work adapter.\n\n## Review check\n\nInspect Unit of Work methods for repository access, domain behavior, publication, handlers, construction, or configuration.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-006.md"
+    },
+    {
+      "id": "TENETS-UOW-007",
+      "title": "Multi-transaction workflows create fresh scoped transactions",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-002",
+        "TENETS-EVENT-008",
+        "TENETS-PATTERN-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA workflow that deliberately crosses multiple transaction boundaries obtains a fresh Unit of Work and matching adapters for each boundary through a capability-specific factory.\n\n## Rationale\n\nRelays and similar workflows must not reuse closed transaction resources or hold database transactions open during external calls.\n\n## Incorrect\n\n```python\nwith self._unit_of_work:\n    messages = self._outbox.claim_pending(batch_size)\nwith self._unit_of_work:\n    self._outbox.mark_published(message.id)\n```\n\n## Correct\n\n```python\nclaim_transaction = self._integration_event_relay_transaction_factory.create()\nmark_transaction = self._integration_event_relay_transaction_factory.create()\n```\n\n## Remediation\n\nReplace reusable Unit of Work instances with a narrowly named transaction factory that creates correctly shared transaction-scoped dependencies.\n\n## Review check\n\nVerify that every transaction in a multi-transaction workflow receives a distinct Unit of Work and resource.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-007.md"
+    },
+    {
+      "id": "TENETS-UOW-008",
+      "title": "Units of Work do not retry business workflows",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-006",
+        "TENETS-ASYNC-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA Unit of Work never silently retries the complete application workflow. The use case or primary worker policy decides whether replaying business behavior is safe.\n\n## Rationale\n\nTransaction retries may repeat domain behavior, clocks, identifier generation, external calls, and event creation.\n\n## Incorrect\n\n```python\n@retry_on_serialization_failure\ndef execute_inside_unit_of_work(callback):\n    callback()\n```\n\n## Correct\n\n```python\ntry:\n    submit_order_use_case.execute(command)\nexcept OrderVersionConflict:\n    retry_policy.handle(command)\n```\n\n## Remediation\n\nRemove hidden callback replay from transaction infrastructure and place explicit retry policy where the complete workflow is understood.\n\n## Review check\n\nSearch Unit of Work adapters for retry loops, callback execution, or decorators that can replay application behavior.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-008.md"
+    },
+    {
+      "id": "TENETS-UOW-009",
+      "title": "Nested Units of Work are prohibited by default",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-002",
+        "TENETS-UOW-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDo not nest Units of Work. Application handlers invoked inside a transaction participate through their injected ports and do not create or commit another Unit of Work.\n\n## Rationale\n\nImplicit nesting makes commit ownership ambiguous, and database `BEGIN` transactions generally do not provide portable nesting semantics.\n\n## Incorrect\n\n```python\nwith outer_unit_of_work:\n    handler.handle(event)  # Handler opens another Unit of Work.\n```\n\n## Correct\n\n```python\nwith self._unit_of_work:\n    self._domain_event_dispatcher.dispatch(event)\n    self._unit_of_work.commit()\n```\n\n## Remediation\n\nReuse transaction-participating ports in synchronous handlers. Model required savepoints as an explicit specialized capability and document the decision.\n\n## Review check\n\nTrace synchronous call paths inside a Unit of Work and verify that none opens or commits another Unit of Work.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-009.md"
+    },
+    {
+      "id": "TENETS-UOW-010",
+      "title": "Rollback failures do not mask primary failures",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-006",
+        "TENETS-UOW-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nWhen rollback fails during another application or commit failure, preserve the original failure and report the rollback failure through transaction observability. When rollback is the only failure, raise a precise inward-owned rollback failure with the driver cause.\n\n## Rationale\n\nReplacing the primary failure destroys the reason the transaction was abandoned, while ignoring cleanup failure hides uncertain resource state.\n\n## Incorrect\n\n```python\nexcept Exception:\n    session.rollback()  # A rollback error replaces the active failure.\n    raise\n```\n\n## Correct\n\n```python\ntry:\n    session.rollback()\nexcept Exception as rollback_error:\n    transaction_observer.report_rollback_failure(\n        rollback_error=rollback_error,\n        primary_error=primary_error,\n    )\n```\n\n## Remediation\n\nImplement and test separate rollback paths for an active primary failure and a standalone rollback failure.\n\n## Review check\n\nVerify exception precedence, cause chaining, and observability when rollback itself fails.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-010.md"
+    },
+    {
+      "id": "TENETS-UOW-011",
+      "title": "Read resources have explicit cleanup scope",
+      "kind": "rule",
+      "status": "stable",
+      "category": "unit-of-work",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-UOW-005",
+        "TENETS-REPO-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse an explicit Unit of Work for reads requiring a consistent multi-query snapshot. A single-operation query adapter may own and release its own short-lived resource.\n\n## Rationale\n\nRead-only code still consumes sessions or connections, but command-style transaction ceremony is unnecessary when one self-contained query operation can guarantee cleanup.\n\n## Incorrect\n\n```python\nsession = session_factory()\nrepository = SqlOrderRepository(session)\nreturn repository.get(order_id)  # Session ownership is abandoned.\n```\n\n## Correct\n\n```python\ndef get(self, order_id: OrderId) -> Order:\n    with self._session_factory() as session:\n        return map_order_row_to_order(session.get(OrderRow, order_id.value))\n```\n\n## Remediation\n\nChoose either a transactionally consistent Unit of Work or a self-contained query adapter and make resource cleanup deterministic.\n\n## Review check\n\nVerify that every read-created session or connection has a visible owner and bounded cleanup path.",
+      "source": "knowledge/rules/unit-of-work/TENETS-UOW-011.md"
     },
     {
       "id": "TENETS-VALUE-001",

@@ -95,7 +95,15 @@ Ask only questions that block a correct architectural decision.
 - Cross-aggregate workflows remain outside aggregates, concurrency is explicit, and multi-aggregate transactions require the documented policy (`TENETS-AGGREGATE-006` through `TENETS-AGGREGATE-008`).
 - Domain services contain ownerless domain behavior and remain pure and stateless (`TENETS-SERVICE-001`, `TENETS-SERVICE-002`).
 - Bounded contexts own their models and use technology-free ubiquitous language (`TENETS-CONTEXT-001`, `TENETS-NAME-001`, `TENETS-NAME-002`).
-- Domain events use ubiquitous language and do not mention vendors or infrastructure.
+- Use-case and event-handler names identify their application role, and dependency variables identify their capability (`TENETS-NAME-003` through `TENETS-NAME-005`).
+- Domain events are immutable internal records produced by domain behavior and are mapped rather than published directly (`TENETS-EVENT-001` through `TENETS-EVENT-003`).
+- Application handlers select publication, event-specific factories create complete versioned integration events, and publisher ports receive those complete events (`TENETS-EVENT-004` through `TENETS-EVENT-007`).
+- Reliable state-change publication records a transactional outbox entry; external events enter through primary messaging adapters (`TENETS-EVENT-008`, `TENETS-EVENT-009`).
+- The application owns a one-shot Unit of Work, explicitly commits writes, and keeps transaction-participating ports explicit while sharing one resource (`TENETS-UOW-001` through `TENETS-UOW-004`).
+- Unit of Work adapters release resources, do not orchestrate or retry workflows, create fresh transactions for multi-transaction workflows, prohibit implicit nesting, and preserve primary failures (`TENETS-UOW-005` through `TENETS-UOW-010`).
+- Read-created resources have a bounded cleanup owner (`TENETS-UOW-011`).
+- Asynchronous consumers scope and payload-bind idempotency identity, atomically commit inbox and local effects, acknowledge after durability, and protect external effects independently (`TENETS-ASYNC-001` through `TENETS-ASYNC-006`).
+- Idempotency retention covers supported replay and reliability claims name each atomic boundary (`TENETS-ASYNC-007`, `TENETS-ASYNC-008`).
 - Tests should match the layer: domain unit tests, use-case orchestration tests with fakes, adapter contract/integration tests at the boundary.
 
 ## Full Tenets Rulebook

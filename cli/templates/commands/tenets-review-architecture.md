@@ -37,7 +37,7 @@ For each file, verify:
 - Repository interfaces represent aggregate persistence in domain language (`TENETS-REPO-001`)
 - Repository writes accept aggregate roots (`TENETS-REPO-002`); queries use domain IDs, value objects, or named criteria (`TENETS-REPO-003`)
 - Repository methods use result-semantic names; `find_*` is not used (`TENETS-REPO-004`)
-- Domain events are immutable and use ubiquitous language only
+- Domain events are immutable internal records (`TENETS-EVENT-001`), are recorded by successful domain behavior (`TENETS-EVENT-002`), and are never published directly as external contracts (`TENETS-EVENT-003`)
 - New Python entities, aggregates, and value objects use module-level `create_<domain_object>()` functions (`TENETS-LIFECYCLE-002`)
 - Constructors used by repositories hydrate explicit persisted state without generating identities, defaults, or creation events (`TENETS-LIFECYCLE-005`)
 
@@ -54,6 +54,13 @@ For each file, verify:
 - Secondary ports use the smallest cohesive semantic type (`TENETS-PORT-008`)
 - Identity-only port methods receive domain or local reference ID value objects (`TENETS-PORT-010`)
 - Cross-context reference IDs are validated through public contracts before persistence (`TENETS-CONTEXT-006`)
+- Use-case classes end with `UseCase`, event handlers identify their event boundary, and dependencies use capability-specific names (`TENETS-NAME-003`, `TENETS-NAME-004`, `TENETS-NAME-005`)
+- The application owns the Unit of Work contract, explicitly commits successful writes, and keeps repositories explicit (`TENETS-UOW-001`, `TENETS-UOW-003`, `TENETS-UOW-004`)
+- One Unit of Work instance is used for one transaction; multi-transaction workflows create fresh scoped transactions (`TENETS-UOW-002`, `TENETS-UOW-007`)
+- Units of Work do not orchestrate or retry business workflows, and nested Units of Work are prohibited (`TENETS-UOW-006`, `TENETS-UOW-008`, `TENETS-UOW-009`)
+- Application domain-event handlers select publishable occurrences and event-specific factories create complete versioned integration events (`TENETS-EVENT-004`, `TENETS-EVENT-005`, `TENETS-EVENT-006`)
+- Publisher ports receive complete integration events and reliable state-change publication uses the transactional outbox (`TENETS-EVENT-007`, `TENETS-EVENT-008`)
+- Consumer handlers atomically persist inbox receipts, local effects, and resulting outbox records (`TENETS-ASYNC-004`)
 
 ### Infrastructure and adapter layers (`**/infrastructure/**`, `**/adapters/**`)
 - Secondary adapters implement and translate inward-facing port contracts (`TENETS-ADAPTER-004`)
@@ -67,6 +74,17 @@ For each file, verify:
 - Primary adapters translate, delegate, and map protocol outcomes (`TENETS-ADAPTER-001`, `TENETS-ADAPTER-002`, `TENETS-ADAPTER-003`)
 - External request and response schemas remain in primary adapters (`TENETS-API-002`)
 - Primary adapters never expose persistence models and explicitly map returned values (`TENETS-API-001`, `TENETS-API-003`)
+- Unit of Work adapters roll back incomplete work, release resources on every path, preserve primary failures when rollback also fails, and do not leak driver types inward (`TENETS-UOW-001`, `TENETS-UOW-005`, `TENETS-UOW-010`)
+- Transaction participants receive the same resource from the composition root without becoming hidden behind the Unit of Work (`TENETS-UOW-004`)
+- Messaging adapters serialize complete integration events without repository loading (`TENETS-EVENT-007`)
+- Primary messaging adapters validate and map external events, invoke one application capability, and acknowledge only after durable completion (`TENETS-EVENT-009`, `TENETS-ASYNC-005`)
+
+### Asynchronous reliability
+- Every consumer defines duplicate outcomes for local state, emitted events, external effects, and metrics (`TENETS-ASYNC-001`)
+- Idempotency identity is scoped to consumer and operation and bound to the canonical payload (`TENETS-ASYNC-002`, `TENETS-ASYNC-003`)
+- Inbox receipts, local effects, and resulting outbox records commit atomically (`TENETS-ASYNC-004`)
+- External effects have independent idempotency or documented reconciliation, compensation, and residual risk (`TENETS-ASYNC-006`)
+- Receipt retention covers supported replay, and guarantees are stated per atomic boundary rather than as end-to-end exactly once (`TENETS-ASYNC-007`, `TENETS-ASYNC-008`)
 
 ### Dependency direction
 - Domain code is independent of frameworks and infrastructure (`TENETS-DEPEND-001`)
@@ -81,6 +99,7 @@ For each file, verify:
 - Modules contain cohesive concepts; multiple classes alone are not an architecture violation
 - No implementation code in `__init__.py`
 - Configuration or a DI container wires adapters to ports at startup (`TENETS-COMPOSE-001`)
+- Flask requests, worker batches, and scheduled commands receive fresh use cases and transaction resources; long-lived workers do not retain sessions between batches (`TENETS-UOW-002`, `TENETS-UOW-005`, `TENETS-UOW-007`)
 
 ## Step 4: Report
 
@@ -99,7 +118,7 @@ than presenting them as Tenets violations.
 Use these severity levels:
 
 - **Critical**: Dependency-direction violations or domain-layer impurity
-- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, or missing port abstractions
+- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, unsafe transaction ownership, non-atomic outbox or inbox work, premature acknowledgement, or missing idempotency protection
 - **Minor**: Naming conventions or file organization
 
 Then report:
