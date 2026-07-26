@@ -56,6 +56,14 @@ for (const section of sections) {
   }
 }
 
+// Copy the generated canonical catalog for offline `tenets explain`.
+const catalogSrc = path.join(REPO_ROOT, 'catalog', 'rules.json');
+if (fs.existsSync(catalogSrc)) {
+  copyFile(catalogSrc, path.join(BUNDLED_DIR, 'catalog', 'rules.json'));
+} else {
+  throw new Error('catalog/rules.json is missing. Run the knowledge build first.');
+}
+
 // Copy speckit-preset for --speckit offline installs
 const speckitSrc = path.join(REPO_ROOT, 'speckit-preset');
 const speckitDest = path.join(BUNDLED_DIR, 'speckit-preset');

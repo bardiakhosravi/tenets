@@ -1,118 +1,238 @@
-# Cross-Context Communication Rules
+<!-- tenets:generated-source -->
+# Cross-Context Communication
 
-## In-Process Cross-Context Communication (Modular Monolith)
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
 
-When one bounded context module needs data from another module in the same monolith:
+## TENETS-PORT-002: Port placement follows capability ownership
 
-- The consuming module defines its own **port** (ABC) in its domain layer describing what it needs
-- The providing module exposes a **public query service** as a dedicated file — the only thing other modules may import
-- An **adapter** in the consuming module's infrastructure layer wraps the query service behind the port
-- The consuming module's domain and application layers MUST NOT import the providing module's internal code (entities, repositories, value objects)
-- This enables extraction to microservices later — swap the in-process adapter for an HTTP adapter with zero domain changes
+## Rule
 
-```python
-@dataclass(frozen=True)
-class InventoryAvailabilityRequest:
-    product_id: str
-    quantity: int
+Place a port in the domain when it expresses a domain-required capability. Place it in the application when it exists for orchestration, reporting, enrichment, or another application workflow concern.
 
+## Rationale
 
-@dataclass(frozen=True)
-class InventoryAvailabilityResponse:
-    is_available: bool
+Port ownership is determined by the consumer's language and purpose, not by the provider, protocol, or adapter technology.
 
-
-# Providing module exposes a published request/response contract.
-class InventoryQueryService:
-    def check_availability(
-        self,
-        request: InventoryAvailabilityRequest,
-    ) -> InventoryAvailabilityResponse:
-        ...
-
-# Consuming module defines local semantic types and its own port.
-@dataclass(frozen=True)
-class InventoryProductId:
-    value: str
-
-
-def create_inventory_product_id(raw_value: str) -> InventoryProductId:
-    return InventoryProductId(value=raw_value)
-
-
-@dataclass(frozen=True)
-class Quantity:
-    value: int
-
-
-def create_quantity(value: int) -> Quantity:
-    if value <= 0:
-        raise InvalidQuantityError(value)
-    return Quantity(value=value)
-
-
-@dataclass(frozen=True)
-class Availability:
-    is_available: bool
-
-
-def create_availability(is_available: bool) -> Availability:
-    return Availability(is_available=is_available)
-
-
-class InventoryPort(ABC):
-    @abstractmethod
-    def check_availability(
-        self,
-        product_id: InventoryProductId,
-        quantity: Quantity,
-    ) -> Availability:
-        ...
-
-# Consuming module's adapter unwraps local values at the external boundary.
-class InProcessInventoryAdapter(InventoryPort):
-    def __init__(self, service: InventoryQueryService):
-        self._service = service
-
-    def check_availability(
-        self,
-        product_id: InventoryProductId,
-        quantity: Quantity,
-    ) -> Availability:
-        response = self._service.check_availability(
-            InventoryAvailabilityRequest(
-                product_id=product_id.value,
-                quantity=quantity.value,
-            )
-        )
-        return create_availability(response.is_available)
-```
-
-## Validating Cross-Context Reference IDs
-
-When a use case creates or updates a relationship to an entity owned by another bounded context:
-
-- Store the external entity's ID as a local reference ID value object
-- Use primitive IDs only in serialized transport, persistence, integration-event, or external-system representations
-- Validate the referenced entity through the owning context's public contract before persisting the relationship
-- Do not import the owning context's repositories, aggregates, entities, or domain value objects
-- Keep the validation in the application workflow or adapter boundary; do not make the referencing aggregate query another context
-
-Example:
+## Incorrect
 
 ```text
-Staff Management receives school_id.
-Staff Management validates the school through School Management's public contract.
-Staff Management stores school_id as a local SchoolId reference on StaffSchoolAssignment.
-Staff Management does not import School Management's SchoolId value object.
+All outbound ports are forced into domain/ports because they call external systems.
 ```
 
-## Cross-Service Communication (Different Processes)
+## Correct
 
-When a bounded context needs to call an external service or a context running as a separate service:
+```text
+domain/ports/fraud_assessment.py
+application/ports/customer_directory.py
+```
 
-- The consuming module defines a **port** (ABC) in its domain layer
-- An **HTTP adapter** in infrastructure implements the port using an HTTP client
-- Only the bounded context that **owns** an external system should talk to it directly — other modules call that context's API through their own port + adapter
-- Service-to-service authentication should use dedicated service account credentials, not user tokens
-- The adapter maps HTTP errors to domain or adapter exceptions — the domain layer never sees HTTP status codes
+## Remediation
+
+Describe the capability from the consuming context's perspective, then move the contract to the layer that owns that meaning.
+
+## Review check
+
+Ask whether domain behavior requires the capability or whether only a use case needs it to coordinate work.
+
+## TENETS-CONTEXT-002: Bounded contexts do not import each other's internals
+
+## Rule
+
+A bounded context must not import another context's entities, value objects, repositories, use cases, or internal modules.
+
+## Rationale
+
+Internal models encode local language and invariants. Sharing them couples contexts and erodes their independent ownership.
+
+## Incorrect
+
+```python
+from customer_accounts.domain.customer import Customer
+
+class SubmitOrderUseCase:
+    def execute(self, customer: Customer) -> Order: ...
+```
+
+## Correct
+
+```python
+class CustomerEligibilityPort(Protocol):
+    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...
+```
+
+## Remediation
+
+Replace the internal import with a consuming-context port expressed in local language and an adapter to a published provider contract.
+
+## Review check
+
+Verify imports do not cross bounded-context internal package boundaries.
+
+## TENETS-CONTEXT-003: Cross-context contracts use the consumer's language
+
+## Rule
+
+A consuming bounded context defines the capability it needs using its own ubiquitous language and semantic types.
+
+## Rationale
+
+The consumer should depend on a stable business need, not the provider's storage model or internal vocabulary.
+
+## Incorrect
+
+```python
+class CustomerTableReader(Protocol):
+    def select_customer_row(self, customer_pk: str) -> dict: ...
+```
+
+## Correct
+
+```python
+class CustomerEligibilityPort(Protocol):
+    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...
+```
+
+## Remediation
+
+Rename the contract around the consuming capability and replace provider-specific parameters and results with local semantic types.
+
+## Review check
+
+Verify a reader can understand the contract without knowing the provider's schema or internal model.
+
+## TENETS-CONTEXT-004: Cross-context adapters translate published contracts
+
+## Rule
+
+An adapter between bounded contexts calls a published provider contract and translates its representations into the consuming port's semantic types.
+
+## Rationale
+
+An explicit translation boundary prevents either context's internal model from becoming a shared model by accident.
+
+## Incorrect
+
+```python
+def get_eligibility(customer_id):
+    return customer_repository.get(customer_id)
+```
+
+## Correct
+
+```python
+def get_eligibility(customer_id: CustomerReferenceId) -> CustomerEligibility:
+    response = self._customer_api.get_customer(str(customer_id))
+    return CustomerEligibility(active=response.status == "active")
+```
+
+## Remediation
+
+Call only a published API, event, or application contract and map its response into types owned by the consumer.
+
+## Review check
+
+Verify the adapter is the only place that understands both published provider data and consuming-context semantics.
+
+## TENETS-CONTEXT-005: Consuming port placement follows capability ownership
+
+## Rule
+
+Place a cross-context consuming port in the domain layer when it supplies a domain-required capability used directly by domain behavior. Place it in the application layer when it supports orchestration, external-reference validation, reporting, enrichment, or query coordination.
+
+## Rationale
+
+Port placement follows who owns the capability, not a blanket rule that every external dependency belongs in one layer.
+
+## Incorrect
+
+```python
+# Domain-owned only because every secondary port was put in domain/ports/.
+class CustomerReportingQuery(Protocol): ...
+```
+
+## Correct
+
+```python
+# ordering/application/ports/customer_eligibility.py
+class CustomerEligibilityPort(Protocol):
+    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...
+```
+
+## Remediation
+
+Identify whether the capability is part of domain behavior or application workflow coordination, then move the contract to that owning layer.
+
+## Review check
+
+Verify the port's location is justified by the capability's owner and that a use case invokes it.
+
+## TENETS-CONTEXT-006: External references are validated through public contracts
+
+## Rule
+
+When a workflow requires an external reference to be valid, the application use case validates it through a consuming port before persisting the local reference.
+
+## Rationale
+
+Local repositories cannot validate another context's ownership or lifecycle, and domain objects must not perform external I/O.
+
+## Incorrect
+
+```python
+order = create_order(CustomerReferenceId(command.customer_id))
+order_repository.save(order)
+```
+
+## Correct
+
+```python
+customer_id = CustomerReferenceId(command.customer_id)
+if not customer_eligibility.get_eligibility(customer_id).may_order:
+    raise CustomerNotEligible(customer_id)
+order_repository.save(create_order(customer_id))
+```
+
+## Remediation
+
+Add an application-invoked consuming port and perform required validation before local creation or persistence.
+
+## Review check
+
+Verify externally owned references are validated at the application boundary when the workflow requires current validity.
+
+## TENETS-PATTERN-004: Cross-context consuming adapter
+
+## Purpose
+
+Let one bounded context consume another through a local capability without importing provider internals.
+
+## Implementation
+
+```python
+# ordering/application/ports/customer_eligibility.py
+class CustomerEligibilityPort(Protocol):
+    def get_eligibility(
+        self, customer_id: CustomerReferenceId
+    ) -> CustomerEligibility: ...
+
+# ordering/adapters/customer_accounts_http.py
+class CustomerAccountsHttpAdapter(CustomerEligibilityPort):
+    def get_eligibility(
+        self, customer_id: CustomerReferenceId
+    ) -> CustomerEligibility:
+        response = self._client.get_customer(str(customer_id))
+        return CustomerEligibility(
+            may_order=response.status == "active",
+            credit_hold=response.credit_hold,
+        )
+```
+
+The use case invokes `CustomerEligibilityPort`; the adapter translates the Customer Accounts published response into Ordering semantics.
+
+## Trade-offs
+
+The translation adds code and may duplicate similar-looking types. That duplication preserves bounded-context autonomy and allows either model to evolve independently.
+
+## Related rules
+
+See `TENETS-CONTEXT-002` through `TENETS-CONTEXT-006`.

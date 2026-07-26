@@ -1,46 +1,108 @@
-# Adapter Configuration Rules
-- Use Dependency Injection container to wire adapters to ports
-- Configuration should happen at application startup in a composition root
-- Adapters should be configurable through environment variables or config files
-- Use factory patterns for complex adapter creation
-- Keep configuration separate from business logic
-- Configuration layer manages all technology-specific adapter instantiation
+<!-- tenets:generated-source -->
+# Adapter Configuration
+
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
+
+## TENETS-COMPOSE-001: Dependency wiring occurs in the composition root
+
+## Rule
+
+Concrete adapter selection, dependency construction, lifecycle scope, and port-to-adapter wiring occur in an outer composition root.
+
+## Rationale
+
+Only the composition root needs knowledge of both inward-facing contracts and their concrete implementations.
+
+## Incorrect
 
 ```python
-# Configuration Layer - configuration/di_container.py
-class DIContainer:
-    def __init__(self, config: Config):
-        self._config = config
-        self._sql_session = self._create_sql_session()
-        self._mongo_client = self._create_mongo_client()
-        self._http_client = self._create_http_client()
-
-    # Domain port implementations (SQL technology)
-    def sql_user_repository(self) -> UserRepository:
-        return SqlUserRepository(self._sql_session)
-
-    # Domain port implementations (MongoDB technology)
-    def mongo_user_repository(self) -> UserRepository:
-        return MongoUserRepository(self._mongo_client)
-
-    # Infrastructure port implementations
-    def http_email_notification_service(self) -> EmailNotificationPort:
-        return HttpEmailNotificationAdapter(
-            self._http_client,
-            self._config.email_api_config
-        )
-
-    def rabbitmq_event_publisher(self) -> EventPublisherPort:
-        return RabbitMqEventPublisher(
-            connection=self._create_rabbitmq_connection()
-        )
-
-    # Use case implementations
-    def create_user_use_case(self) -> CreateUserPort:
-        return CreateUserUseCase(
-            user_repository=self.sql_user_repository(),  # Choose technology
-            email_service=self.http_email_notification_service(),
-            event_publisher=self.rabbitmq_event_publisher(),
-            unit_of_work=UnitOfWork(self._sql_session)
-        )
+class SubmitOrderUseCase:
+    def __init__(self) -> None:
+        self._orders = SqlOrderRepository(create_engine(os.environ["DB_URL"]))
 ```
+
+## Correct
+
+```python
+def create_submit_order() -> SubmitOrderUseCase:
+    return SubmitOrderUseCase(orders=SqlOrderRepository(session_factory()))
+```
+
+## Remediation
+
+Move construction and adapter selection out of use cases, domain objects, and adapters into the application bootstrap or container.
+
+## Review check
+
+Search inward layers for concrete adapter construction, service location, and environment-driven implementation selection.
+
+## TENETS-COMPOSE-002: Technology configuration remains outside business logic
+
+## Rule
+
+Environment variables, connection settings, credentials, vendor selection, framework configuration, and deployment concerns remain in configuration and composition modules.
+
+## Rationale
+
+Business behavior should not change shape based on how a service is deployed or which adapter is selected.
+
+## Incorrect
+
+```python
+if os.environ["PAYMENT_PROVIDER"] == "stripe":
+    order.mark_payment_pending()
+```
+
+## Correct
+
+```python
+payment_gateway = StripePaymentGateway(settings.stripe)
+submit_order = SubmitOrderUseCase(payment_gateway=payment_gateway)
+```
+
+## Remediation
+
+Move technology and environment decisions to typed configuration and the composition root.
+
+## Review check
+
+Inspect domain and application code for environment access, credentials, connection strings, and vendor-selection branches.
+
+## TENETS-PATTERN-005: Flask request-scoped use-case factory
+
+## Purpose
+
+Create a fresh use-case instance and its transaction resources for each Flask request without introducing an unnecessary provider abstraction.
+
+## Implementation
+
+```python
+class Container:
+    def create_submit_order(self) -> SubmitOrderUseCase:
+        session = self._session_factory()
+        return SubmitOrderUseCase(
+            orders=SqlOrderRepository(session),
+            unit_of_work=SqlUnitOfWork(session),
+        )
+
+def create_app(container: Container) -> Flask:
+    app = Flask(__name__)
+
+    @app.post("/orders")
+    def submit_order():
+        command = SubmitOrderCommand.from_json(request.get_json())
+        order = container.create_submit_order().execute(command)
+        return jsonify(map_order_to_response(order)), 201
+
+    return app
+```
+
+The bound container method is the factory. A separate `CreateSubmitOrderProvider` alias is unnecessary unless it provides independent value.
+
+## Trade-offs
+
+Per-request construction allocates small objects but avoids accidental mutable or transaction state sharing. Long-lived stateless clients and configuration may still be shared by the container.
+
+## Related rules
+
+See `TENETS-PORT-001`, `TENETS-APP-001`, and `TENETS-APP-002`.

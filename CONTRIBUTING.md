@@ -14,7 +14,8 @@ Thank you for your interest in contributing to this project! This repository pro
 ### Getting Started
 
 1. **Fork the repository** and create a feature branch
-2. **Read the existing rules** in `domain_driven_design_hexagonal_arhictecture_python_rules.md`
+2. **Read the canonical rules** under `knowledge/rules/` and the
+   [knowledge authoring guide](docs/knowledge-authoring.md)
 3. **Check existing issues** to see what's needed or create a new issue to discuss your idea
 4. **Make your changes** following the guidelines below
 
@@ -27,7 +28,7 @@ Thank you for your interest in contributing to this project! This repository pro
 
 ### Guidelines for Code Examples
 
-- **Follow all 24 rules** in your implementation
+- **Follow the applicable stable rules** in your implementation
 - **Use modern Python**: Type hints, Pydantic, FastAPI, etc.
 - **Include tests**: Demonstrate testing strategies from the rules
 - **Document patterns**: Explain how DDD/Hexagonal patterns are applied
@@ -41,12 +42,14 @@ Thank you for your interest in contributing to this project! This repository pro
 4. **Update documentation** if you're changing or adding rules
 5. **Request review** - all PRs require approval before merging
 
-### Rule Numbering
+### Rule IDs and Generated Views
 
-When adding new rules:
-- Continue the sequential numbering (25, 26, etc.)
-- Insert new rules in logical sections if needed
-- Update rule references in other sections
+- Request the next unused `TENETS-{AREA}-{NNN}` ID; never renumber or reuse an
+  existing ID.
+- Put one independently remediable policy in each rule file.
+- Keep aliases for renamed or deprecated IDs and identify replacements.
+- Edit `knowledge/`, not generated `context/` views.
+- Run `cd cli && npm run catalog && npm test && npm run bundle`.
 
 ### Style Guidelines
 

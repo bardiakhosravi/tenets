@@ -1,98 +1,237 @@
-# Domain Object Creation and Hydration Rules
+<!-- tenets:generated-source -->
+# Creation and Hydration
 
-## Creation and Hydration Are Different Operations
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
 
-- **Creation** establishes a domain entity, aggregate, or value object for the first time from the business's perspective.
-- **Hydration** reconstructs an existing domain object from persisted state.
-- Creation and hydration MUST use different entry points because they have different semantics and side effects.
+## TENETS-LIFECYCLE-001: Creation and hydration are distinct
 
-## Creation Rules
+## Rule
 
-- Create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in the same module as that domain object.
-- Do not use class factory methods such as `User.create(...)`.
-- Do not call the class constructor directly when creating a new domain object in application or domain workflow code.
-- A creation function MUST receive all inputs that are already available and belong to the object's valid initial state.
-- A creation function is responsible for creation-specific behavior such as normalization, invariant enforcement, identity generation, initial defaults, and creation-event recording.
-- Do not create an intentionally incomplete object and then immediately call mutation methods to supply creation data that was already available.
-- Mutation methods remain valid for genuine business transitions that happen after creation or when new information becomes available later.
+Creation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.
+
+## Rationale
+
+Creation may generate identity, defaults, and events that must never run while reconstructing existing state.
+
+## Incorrect
 
 ```python
-@dataclass(eq=False)
-class User:
-    id: UserId
-    email: Email
-    name: str
+return create_order(customer_id=row.customer_id)
+```
 
-    def change_name(self, new_name: str) -> None:
-        self.name = new_name
+## Correct
 
+```python
+new_order = create_order(customer_id)
+existing_order = Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))
+```
 
-def create_user(email: Email, name: str) -> User:
-    return User(
-        id=UserId.generate(),
-        email=email,
-        name=name,
+## Remediation
+
+Separate new-object creation from persistence mapping and identify every creation-only side effect.
+
+## Review check
+
+Verify that repositories do not invoke creation entry points and workflows do not directly construct new objects.
+
+## TENETS-LIFECYCLE-002: Python creation uses module functions
+
+## Rule
+
+In Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.
+
+## Rationale
+
+A named module function makes creation semantics explicit while leaving the constructor available for controlled reconstruction.
+
+## Incorrect
+
+```python
+order = Order(customer_id=customer_id)
+order = Order.create(customer_id)
+```
+
+## Correct
+
+```python
+order = create_order(customer_id)
+```
+
+## Remediation
+
+Add a colocated creation function and replace direct workflow construction and class factory calls.
+
+## Review check
+
+Search application and domain workflow code for direct constructors or class factory methods used for new domain objects.
+
+## TENETS-LIFECYCLE-003: Creation receives complete initial state
+
+## Rule
+
+A creation entry point receives every available input that belongs to the object's valid initial state.
+
+## Rationale
+
+Incomplete creation spreads initialization policy across callers and permits invalid intermediate objects.
+
+## Incorrect
+
+```python
+order = create_order(customer_id)
+order.set_billing_address(command.billing_address)
+```
+
+## Correct
+
+```python
+order = create_order(customer_id, billing_address)
+```
+
+## Remediation
+
+Add already-available creation data to the creation function and construct the valid initial object atomically.
+
+## Review check
+
+Inspect mutations immediately following creation and determine whether their input was already available.
+
+## TENETS-LIFECYCLE-004: Creation owns creation-specific behavior
+
+## Rule
+
+Creation entry points own creation-time normalization, identity generation, valid defaults, initial state selection, and creation-event recording.
+
+## Rationale
+
+Centralizing these decisions produces consistent new objects regardless of the calling workflow.
+
+## Incorrect
+
+```python
+order = Order(id=OrderId.generate(), status=OrderStatus.DRAFT)
+order.record(OrderCreated(order.id))
+```
+
+## Correct
+
+```python
+order = create_order(customer_id, billing_address)
+```
+
+## Remediation
+
+Move creation-only decisions from callers and constructors into the named creation entry point.
+
+## Review check
+
+Search use cases for identity generation, initial defaults, and creation-event construction.
+
+## TENETS-LIFECYCLE-005: Constructors hydrate persisted state
+
+## Rule
+
+Repository adapters reconstruct objects by mapping persistence representations to constructors with explicit persisted identity and state. Hydration does not generate identity, apply new-object defaults, or record creation events.
+
+## Rationale
+
+Persisted state represents an existing lifecycle and must be reconstructed faithfully.
+
+## Incorrect
+
+```python
+def hydrate_order(row):
+    return create_order(CustomerId(row.customer_id))
+```
+
+## Correct
+
+```python
+def _map_order_row_to_order(row: OrderRow) -> Order:
+    return Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))
+```
+
+## Remediation
+
+Replace creation calls and `hydrate_*` helpers with explicit `_map_<source>_to_<target>` mapping functions.
+
+## Review check
+
+Verify persisted identity and state are passed explicitly and mapping helpers name their direction.
+
+## TENETS-LIFECYCLE-006: Mutation does not finish creation
+
+## Rule
+
+Do not create an incomplete object and immediately invoke mutation methods to apply creation data that was already available. Mutation remains valid for later business transitions or newly available information.
+
+## Rationale
+
+The issue is incomplete creation, not mutation itself. Domain methods should represent actual transitions after a valid object exists.
+
+## Incorrect
+
+```python
+order = create_order(customer_id)
+order.change_shipping_address(command.initial_shipping_address)
+```
+
+## Correct
+
+```python
+order = create_order(customer_id, command.initial_shipping_address)
+# Later:
+order.change_shipping_address(new_address)
+```
+
+## Remediation
+
+Move initial data into the creation entry point while retaining the mutation method for later transitions.
+
+## Review check
+
+Review the first operations after creation and compare their inputs with the creation command.
+
+## TENETS-PATTERN-003: Python creation and hydration entry points
+
+## Purpose
+
+Make first-time creation and persistence hydration visibly different operations.
+
+## Implementation
+
+```python
+# ordering/domain/order.py
+def create_order(
+    order_id: OrderId,
+    customer_id: CustomerId,
+    shipping_address: ShippingAddress,
+) -> Order:
+    order = Order(
+        id=order_id,
+        customer_id=customer_id,
+        shipping_address=shipping_address,
+        status=OrderStatus.DRAFT,
+    )
+    order.record(OrderCreated(order_id))
+    return order
+
+# ordering/adapters/repositories/sql_order_repository.py
+def _map_order_row_to_order(row: OrderRow) -> Order:
+    return Order(
+        id=OrderId(row.id),
+        customer_id=CustomerId(row.customer_id),
+        shipping_address=_map_json_to_shipping_address(row.shipping_address),
+        status=OrderStatus(row.status),
     )
 ```
 
-```python
-# GOOD: all available initial state is supplied at creation.
-email = create_email(command.email)
-user = create_user(email=email, name=command.name)
+Creation functions receive all available required initial data. Directional mapper helpers reconstruct persisted state through constructors without creation events or defaults.
 
-# BAD API and workflow: name was already available but omitted from creation.
-def create_user_incomplete(email: Email) -> User:
-    return User(id=UserId.generate(), email=email, name="")
+## Trade-offs
 
+This creates two explicit entry paths, but removes ambiguity about identity, defaults, validation, and side effects. Other languages may use named constructors or factories instead.
 
-user = create_user_incomplete(email)
-user.change_name(command.name)
-```
+## Related rules
 
-Optional state that is unavailable or does not belong to the valid initial state does not need to be accepted by the creation function. A later domain method may apply that state when the corresponding business transition occurs.
-
-## Value Object Creation
-
-Value objects follow the same entry-point rule. The creation function may normalize external input before constructing the immutable value.
-
-```python
-@dataclass(frozen=True)
-class Email:
-    value: str
-
-    def __post_init__(self) -> None:
-        if "@" not in self.value:
-            raise InvalidEmailError(self.value)
-
-
-def create_email(raw_value: str) -> Email:
-    return Email(value=raw_value.strip().lower())
-```
-
-## Hydration Rules
-
-- Repository adapters hydrate domain objects with their class constructors, not their creation functions.
-- Hydration MUST provide persisted identity and state explicitly.
-- Hydration MUST NOT generate a new identity, apply new-object defaults, record creation events, or perform other creation-only behavior.
-- Constructors may enforce invariants that must hold for both newly created and hydrated objects, but they MUST NOT contain creation-specific side effects.
-- Repository mapping code is responsible for reconstructing the complete aggregate, including its child entities and value objects.
-
-```python
-class SqlUserRepository(UserRepository):
-    def _hydrate(self, row: UserRow) -> User:
-        return User(
-            id=UserId(row.id),
-            email=Email(row.email),
-            name=row.name,
-        )
-```
-
-## Responsibility Summary
-
-> **Creation functions establish new domain objects.**
->
-> **Constructors hydrate existing domain objects.**
->
-> **Creation functions receive complete initial creation data.**
->
-> **Mutation methods represent later business transitions, not unfinished creation.**
+See `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`.

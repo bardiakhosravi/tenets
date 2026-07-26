@@ -105,6 +105,30 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
   );
 });
 
+test('explain resolves canonical rules in text and JSON modes', (t) => {
+  const directory = temporaryDirectory(t);
+
+  const textOutput = runCli(directory, ['explain', 'tenets-port-005']);
+  assert.match(textOutput, /TENETS-PORT-005: Secondary capabilities never receive repositories/);
+  assert.match(textOutput, /## Rule/);
+
+  const result = spawnCli(directory, ['explain', 'TENETS-PORT-005', '--json']);
+  assert.equal(result.status, 0);
+  const output = JSON.parse(result.stdout);
+  assert.equal(output.ok, true);
+  assert.equal(output.result.id, 'TENETS-PORT-005');
+  assert.equal(output.result.kind, 'rule');
+});
+
+test('explain suggests nearby IDs for an unknown rule', (t) => {
+  const directory = temporaryDirectory(t);
+  const result = spawnCli(directory, ['explain', 'TENETS-PORT-015']);
+
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /Unknown Tenets rule ID: TENETS-PORT-015/);
+  assert.match(result.stderr, /Did you mean TENETS-PORT-/);
+});
+
 test('zero-argument init detects agents and accepts recommended setup', (t) => {
   const directory = temporaryDirectory(t);
   fs.mkdirSync(path.join(directory, '.cursor'));

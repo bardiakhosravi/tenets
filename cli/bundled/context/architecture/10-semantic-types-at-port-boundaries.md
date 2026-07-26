@@ -1,114 +1,173 @@
+<!-- tenets:generated-source -->
 # Semantic Types at Port Boundaries
 
-## Core Rule
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
 
-Public methods on repository interfaces and secondary ports MUST NOT accept naked primitives for values that have domain meaning.
+## TENETS-PORT-007: Port contracts reject naked domain primitives
 
-A **naked domain primitive** is a `str`, `int`, `float`, `bool`, collection, dictionary, tuple, or callable used directly where the value represents a domain identity, quantity, amount, address, code, status, date range, or other named business concept.
+## Rule
 
-Use the smallest cohesive type that expresses the capability:
+Public repository and secondary-port methods do not accept primitive strings, numbers, booleans, dictionaries, or callables when those values carry domain meaning.
 
-1. An aggregate or entity when the capability genuinely requires its cohesive state or behavior.
-2. A domain value object when one domain concept is sufficient.
-3. An immutable, application-owned capability contract when the port needs a deliberate subset of values.
-4. A domain specification or query-criteria value object when a repository needs flexible querying.
+## Rationale
 
-## Repository Contract Rules
+Semantic types preserve validation, units, identity, and intent at boundaries where primitive confusion is expensive.
 
-- Repository write methods accept aggregate roots.
-- Repository lookup methods accept domain identity or value-object types such as `UserId` or `Email`.
-- Repository query methods accept named domain criteria or specification objects.
-- Repository methods MUST NOT accept raw domain-semantic primitives, dictionaries, arbitrary tuples, callables, ORM expressions, database predicates, or adapter DTOs.
-- Repository methods return aggregates, entities where explicitly permitted by the aggregate rules, value objects, or absence. They never return persistence rows or untyped dictionaries.
+## Incorrect
 
 ```python
-# GOOD
-def get(self, user_id: UserId) -> User | None: ...
-def get_by_email(self, email: Email) -> User | None: ...
-def search(self, criteria: UserSearchCriteria) -> list[User]: ...
-def save(self, user: User) -> None: ...
-
-# BAD
-def get(self, user_id: str) -> User | None: ...
-def search(self, filters: dict[str, object]) -> list[User]: ...
-def query_where(self, predicate: Callable[[User], bool]) -> list[User]: ...
-def query_by_sql(self, expression: ColumnElement[bool]) -> list[User]: ...
+orders.get("ord-123")
+gateway.authorize(1299, "USD", "acct-7")
 ```
 
-Arbitrary callables are especially prohibited in repository contracts. They describe an execution mechanism rather than domain intent and cannot be implemented consistently by SQL, document, HTTP, and in-memory adapters. Model the intent with a named method, domain specification, or query-criteria value object.
+## Correct
 
-## Other Secondary Port Contracts
+```python
+orders.get(create_order_id("ord-123"))
+gateway.authorize(PaymentAuthorization(amount, billing_account_id))
+```
 
-- Pass a complete aggregate or entity only when the outbound capability genuinely needs that concept's cohesive state.
-- Pass a value object when the capability needs one domain concept.
-- When the capability needs a deliberate subset of data, define an immutable application-owned contract beside the port.
-- Application-owned capability contracts MUST use domain value objects for fields with domain meaning.
-- Do not replace a meaningful contract with a parameter list of primitives.
-- Do not pass a full aggregate merely to avoid defining a focused capability contract when the capability needs only a small, stable subset.
+## Remediation
+
+Introduce or reuse a domain value object, named criteria, specification, or immutable capability contract.
+
+## Review check
+
+Inspect public port signatures and challenge each primitive parameter that represents identity, money, quantity, status, date, or business criteria.
+
+## TENETS-PORT-008: Ports use the smallest cohesive semantic type
+
+## Rule
+
+Choose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract.
+
+## Rationale
+
+Passing an entire aggregate unnecessarily increases coupling, while exploding it into primitives loses semantics.
+
+## Incorrect
+
+```python
+send_receipt(order_id, email, first_name, total_cents, currency)
+```
+
+## Correct
+
+```python
+send_receipt(ReceiptDelivery(order, customer, payment_confirmation))
+```
+
+## Remediation
+
+Model the capability input around what the operation needs, preserving domain objects where their full meaning is required.
+
+## Review check
+
+Verify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept.
+
+## TENETS-PORT-009: Port contracts exclude external representations
+
+## Rule
+
+Port contracts never expose ORM models, database rows, transport DTOs, vendor SDK objects, serialized records, or adapter-owned types.
+
+## Rationale
+
+External representations make the application depend on replaceable implementation details.
+
+## Incorrect
+
+```python
+class OrderRepository(Protocol):
+    def save(self, row: SqlAlchemyOrderModel) -> None: ...
+```
+
+## Correct
+
+```python
+class OrderRepository(Protocol):
+    def save(self, order: Order) -> None: ...
+```
+
+## Remediation
+
+Move representation mapping into the adapter and expose only inward-owned semantic types.
+
+## Review check
+
+Check port imports and annotations for framework, persistence, transport, or vendor packages.
+
+## TENETS-PORT-010: Identities cross ports as value objects
+
+## Rule
+
+When identity alone is sufficient, pass a domain ID or local cross-context reference ID value object through the port, never its primitive representation.
+
+## Rationale
+
+Typed identity prevents accidental substitution and keeps ownership explicit.
+
+## Incorrect
+
+```python
+inventory.get_availability(product_id: str)
+```
+
+## Correct
+
+```python
+inventory.get_availability(product_id: InventoryProductId)
+```
+
+## Remediation
+
+Create the local ID value object at the primary boundary and unwrap it only inside persistence or transport mapping.
+
+## Review check
+
+Find primitive ID annotations on repository and secondary-port methods.
+
+## TENETS-PATTERN-002: Semantic port contract selection
+
+## Purpose
+
+Choose the smallest cohesive semantic type for each inward-facing contract without defaulting to primitives or oversized aggregates.
+
+## Implementation
+
+Use an aggregate or entity when the capability needs its behavior or coherent state:
+
+```python
+def save(order: Order) -> None: ...
+```
+
+Use a value object for one domain concept:
+
+```python
+def get(order_id: OrderId) -> Order | None: ...
+```
+
+Use named criteria for a cohesive query:
 
 ```python
 @dataclass(frozen=True)
-class WelcomeEmail:
-    recipient: Email
-    display_name: str  # Incidental presentation text with no domain behavior.
+class OrderSearchCriteria:
+    customer_id: CustomerId | None = None
+    status: OrderStatus | None = None
 
-
-class EmailNotificationPort(ABC):
-    @abstractmethod
-    def send_welcome_email(self, message: WelcomeEmail) -> None:
-        pass
+def list_matching(criteria: OrderSearchCriteria) -> Sequence[Order]: ...
 ```
 
-An application-owned capability contract is part of the inward-facing port API. It is not an HTTP request model, persistence model, vendor SDK object, or adapter-specific DTO.
+Use an application-owned capability contract for a projection or integration result:
 
-## Identity Rules
+```python
+def quote_shipping(destination: ShippingAddress, parcel: Parcel) -> ShippingQuote: ...
+```
 
-- Within a bounded context, identities crossing repository or secondary-port contracts use domain ID value objects.
-- A consuming bounded context represents an external entity's identity with its own local reference ID value object.
-- Do not import the owning context's ID type into the consuming context.
-- Primitive IDs are allowed only in serialized transport, integration-event, persistence, and external-system representations. Adapters convert between those primitives and the local ID value objects.
+## Trade-offs
 
-## Where Primitives Are Allowed
+Semantic types add small definitions but prevent parameter ambiguity and representation leakage. Do not create a wrapper that has no domain or contract meaning merely to avoid every primitive.
 
-Primitives are expected at the system's outer edges and inside adapter implementation details:
+## Related rules
 
-- Primary-adapter request and response DTOs
-- Serialized integration events and external API payloads
-- Persistence rows, ORM models, and database query parameters
-- Adapter configuration and constructor dependencies
-- Private adapter mapping helpers
-- Genuinely technical values that carry no domain meaning
-- Incidental fields inside a named capability contract when introducing a value object would add no semantics, validation, units, or type safety
-
-These exceptions do not permit naked domain primitives in public repository or secondary-port methods.
-
-## Conversion Responsibility
-
-- Primary adapters translate external primitives into application commands.
-- The application layer creates any required value objects before invoking repositories or secondary ports.
-- Secondary adapters unwrap domain and application contract values into external primitives.
-- Repository adapters hydrate domain objects from persisted primitives.
-- Public adapter methods exactly implement their port contracts; adapter constructors and private helpers are not subject to domain-method parameter rules.
-
-## Value Object Decision Test
-
-Create a value object when a primitive has one or more of these characteristics:
-
-- Domain-specific meaning or ubiquitous-language name
-- Validation or normalization rules
-- Units, ranges, formatting, or precision requirements
-- Identity semantics
-- Risk of being confused with another value of the same primitive type
-- Domain behavior or operations
-
-Do not create wrapper types for values that have no domain meaning or behavior solely to eliminate every primitive from the codebase.
-
-## Review Checklist
-
-- Do public repository methods use aggregate roots, domain IDs, value objects, or named query criteria?
-- Are arbitrary callables, dictionaries, ORM expressions, and raw domain primitives absent from repository contracts?
-- Do repository method names use `get`, `get_by_*`, `list_*`, `search`, or `exists_by_*` according to result semantics, without `find_*`?
-- Does each secondary port use the smallest cohesive domain type or capability contract?
-- Do application-owned contracts use value objects for domain-semantic fields?
-- Are primitive IDs confined to serialization, persistence, or external-system mapping?
-- Are adapters responsible for unwrapping and hydrating at external boundaries?
+See `TENETS-PORT-007` through `TENETS-PORT-010`.

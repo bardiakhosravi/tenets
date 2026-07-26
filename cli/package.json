@@ -6,8 +6,10 @@
     "tenets": "bin/tenets.js"
   },
   "scripts": {
-    "bundle": "node scripts/bundle-content.js",
-    "test": "node --test",
+    "catalog": "node scripts/build-knowledge.js",
+    "validate": "node scripts/build-knowledge.js --check",
+    "bundle": "npm run catalog && node scripts/bundle-content.js",
+    "test": "npm run validate && node --test",
     "prepublishOnly": "npm run bundle"
   },
   "keywords": [

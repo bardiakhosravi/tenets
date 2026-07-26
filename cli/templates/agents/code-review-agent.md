@@ -45,10 +45,14 @@ For each finding include:
 
 - Severity: `critical`, `major`, or `minor`
 - File and line when available
-- Rule violated
+- Valid stable Tenets rule ID and title
 - What is wrong
 - Why it matters
 - Specific fix for the parent agent
+
+Do not invent rule IDs. A finding is a Tenets violation only when its cited ID
+exists in the embedded rulebook and the evidence violates that rule. Put useful
+concerns without a canonical rule under Questions or residual risk.
 
 ### Repair Plan
 
@@ -66,21 +70,24 @@ Ask only questions that block a correct architectural decision.
 
 ## Non-Negotiable Checks
 
-- Domain code must not import frameworks, ORMs, HTTP clients, queues, databases, or adapter modules.
+- Domain code must not import frameworks, ORMs, HTTP clients, queues, databases, or adapter modules (`TENETS-DEPEND-001`).
 - Domain code must not import another bounded context's domain model, entities, aggregates, repositories, or domain value objects.
 - Application use cases orchestrate workflows; they do not own business rules.
-- External systems are accessed through ports, not directly from domain or use cases.
+- External systems are accessed through ports, not directly from domain or use cases (`TENETS-PORT-004`).
 - Use cases load required domain objects before invoking secondary ports; secondary ports receive domain models or application-owned values, never repositories, ORM models, database records, or adapter DTOs.
 - Secondary adapters do not call repositories or perform additional domain-object loading behind the port contract.
 - Repository contracts use aggregate roots, domain IDs, value objects, or named query criteria, never raw domain primitives, dictionaries, callables, ORM expressions, or adapter DTOs.
 - Repository methods use `get`, `get_by_*`, `list_*`, `search`, or `exists_by_*` according to result semantics; flag `find_*` as naming drift.
 - Secondary ports use the smallest cohesive domain type or immutable application-owned capability contract and do not expose naked domain primitives.
-- Public adapter methods preserve semantic port types and unwrap them only while mapping to persistence or external payloads.
+- Public adapter methods preserve semantic port types and keep external models private (`TENETS-ADAPTER-004`, `TENETS-ADAPTER-005`).
 - New entities, aggregates, and value objects use module-level creation functions that receive complete initial creation data.
 - Repository adapters hydrate explicit persisted state through constructors and never call creation functions.
 - Flag creation followed by immediate mutation when the mutated value was already available as creation input.
 - Cross-context relationships and port contracts use local reference ID value objects, confine primitive IDs to serialization/persistence/external mapping, and validate referenced entities through the owning context's public contract.
-- Adapters translate, validate transport concerns, map data, and delegate; they do not make domain decisions.
+- Primary adapters translate, validate transport concerns, map data, and delegate (`TENETS-ADAPTER-001` through `TENETS-ADAPTER-003`).
+- Secondary adapters translate expected technical failures into port-declared failures (`TENETS-ADAPTER-006`).
+- Repository adapters reconstruct persisted objects without invoking creation (`TENETS-ADAPTER-007`).
+- Concrete wiring occurs in the composition root and configuration remains outside business logic (`TENETS-COMPOSE-001`, `TENETS-COMPOSE-002`).
 - Aggregates protect invariants and are the entry point for state changes inside their consistency boundary.
 - Domain events use ubiquitous language and do not mention vendors or infrastructure.
 - Tests should match the layer: domain unit tests, use-case orchestration tests with fakes, adapter contract/integration tests at the boundary.

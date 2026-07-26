@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tenets knowledge entry",
+  "type": "object",
+  "required": [
+    "id",
+    "title",
+    "kind",
+    "status",
+    "category",
+    "severity",
+    "profiles",
+    "related",
+    "aliases"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1
+    },
+    "kind": {
+      "enum": ["rule", "pattern"]
+    },
+    "status": {
+      "enum": ["draft", "stable", "deprecated"]
+    },
+    "category": {
+      "type": "string",
+      "minLength": 1
+    },
+    "severity": {
+      "enum": ["error", "warning", "guidance"]
+    },
+    "profiles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "uniqueItems": true
+    },
+    "related": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+      },
+      "uniqueItems": true
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+      },
+      "uniqueItems": true
+    },
+    "replaced_by": {
+      "type": "string",
+      "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+    },
+    "requires": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+      },
+      "uniqueItems": true
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^TENETS-[A-Z]+-[0-9]{3}$"
+      },
+      "uniqueItems": true
+    }
+  },
+  "additionalProperties": false
+}

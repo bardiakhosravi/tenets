@@ -111,6 +111,16 @@ workflow in its native format:
 Invoke `/tenets-review-architecture` in tools with slash-command support. The
 generic prompt can be loaded directly by any agent that follows `AGENTS.md`.
 All variants share one review checklist and are refreshed by `npx tenets update`.
+Each reported Tenets violation cites a stable rule ID that can be inspected
+offline:
+
+```bash
+npx tenets explain TENETS-PORT-005
+npx tenets explain TENETS-PORT-005 --json
+```
+
+Unknown IDs return close-match suggestions. Deprecated IDs remain resolvable
+through catalog aliases and identify their replacement.
 
 ### Keeping Up to Date
 
@@ -287,7 +297,10 @@ Or skip and add it later by re-running `init`.
 
 ## What's Inside
 
-33 rule files organized into four sections:
+Tenets has a canonical catalog of atomic rules and reusable patterns under
+`knowledge/`. Stable IDs make policies independently explainable, reviewable,
+and selectable by future profiles. The CLI generates 33 agent-facing guide
+files organized into four compatibility sections:
 
 ### Architecture (10 files)
 Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries, semantic types at port boundaries.
@@ -317,6 +330,12 @@ This is a living set of tenets based on real-world experience, and there's alway
 2. **Submit a PR** -- Add new patterns, fix examples, or improve clarity
 3. **Share Examples** -- Real-world implementations that follow Tenets rules
 4. **Language Adaptations** -- Help translate tenets to other languages
+
+Canonical policies are authored under `knowledge/rules/` and reusable
+implementations under `knowledge/patterns/`. Do not edit a guide carrying the
+`tenets:generated-source` marker directly. See
+[Knowledge Authoring](docs/knowledge-authoring.md) for the schema, ID policy,
+validation, and generation workflow.
 
 ### What We're Looking For
 

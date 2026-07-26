@@ -13,7 +13,11 @@ This document defines the standard folder structure for Python backend services 
 - **Configuration layer**: Cross-cutting concerns that wire all layers together
 - Domain and application layers should only depend on their respective port interfaces
 - Adapters layer contains all adapter implementations
-- **One class per file** — each entity, value object, port, use case, and adapter should be in its own file. This makes classes easy to find and prevents large files.
+- **Cohesive modules** — a module may contain a primary type, its creation
+  function, closely related value types, exceptions, and private helpers when
+  they form one understandable concept. Split unrelated responsibilities or
+  independently evolving concepts. Multiple classes alone are not an
+  architecture violation.
 - **No implementation code in `__init__.py`** — `__init__.py` files should be empty or contain only re-exports. Public interfaces, services, and classes must be in dedicated files.
 
 **Domain layer organization** — two valid approaches (pick one and be consistent within a module):
@@ -153,12 +157,12 @@ src/
    - Infrastructure ports (external services) → `application/ports/secondary/`
 
 2. **Adapter Organization**:
-   - Primary adapters → `infrastructure/adapters/primary/` (organized by adapter type)
-   - Secondary adapters → `infrastructure/adapters/secondary/` (organized by technology)
+   - Primary adapters → `adapters/primary/` (organized by adapter type)
+   - Secondary adapters → `adapters/secondary/` (organized by technology)
 
 3. **Technology-Specific Models**:
-   - SQLAlchemy models → `infrastructure/adapters/secondary/sql/models/`
-   - MongoDB schemas → `infrastructure/adapters/secondary/mongodb/schemas/`
+   - SQLAlchemy models → `adapters/secondary/sql/models/`
+   - MongoDB schemas → `adapters/secondary/mongodb/schemas/`
    - Keep persistence models close to their adapter implementations
 
 4. **Dependency Direction**:

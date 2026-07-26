@@ -2,6 +2,26 @@
 
 All notable changes to Tenets are documented here.
 
+## Unreleased
+
+### Added
+
+- Canonical atomic rule and pattern catalog with stable IDs, schema validation,
+  generated compatibility views, aliases, and deprecation support.
+- Offline `tenets explain <rule-id>` output in text and JSON formats with
+  close-ID suggestions.
+- Stable rules for secondary-port data flow, semantic port types,
+  repositories, use cases, creation and hydration, and cross-context
+  communication.
+- Stable rules for dependency direction, composition roots, primary and
+  secondary adapters, external dependency access, and API boundaries.
+
+### Changed
+
+- Architecture review findings must cite an existing stable Tenets rule ID.
+- Generated agent guidance now derives the first six high-value boundary topics
+  from canonical knowledge entries.
+
 ## [0.11.0] - 2026-07-25
 
 ### Added

@@ -1,0 +1,187 @@
+{
+  "views": [
+    {
+      "output": "context/application/05-secondary-port-data-flow.md",
+      "title": "Secondary Port Data Flow",
+      "entries": [
+        "TENETS-PORT-005",
+        "TENETS-PORT-006",
+        "TENETS-PORT-011",
+        "TENETS-PATTERN-001"
+      ]
+    },
+    {
+      "output": "context/architecture/10-semantic-types-at-port-boundaries.md",
+      "title": "Semantic Types at Port Boundaries",
+      "entries": [
+        "TENETS-PORT-007",
+        "TENETS-PORT-008",
+        "TENETS-PORT-009",
+        "TENETS-PORT-010",
+        "TENETS-PATTERN-002"
+      ]
+    },
+    {
+      "output": "context/domain/05-repositories.md",
+      "title": "Repositories",
+      "entries": [
+        "TENETS-REPO-001",
+        "TENETS-REPO-002",
+        "TENETS-REPO-003",
+        "TENETS-REPO-004",
+        "TENETS-REPO-005",
+        "TENETS-REPO-006",
+        "TENETS-REPO-007"
+      ]
+    },
+    {
+      "output": "context/application/01-use-cases.md",
+      "title": "Use Cases",
+      "entries": [
+        "TENETS-PORT-001",
+        "TENETS-APP-001",
+        "TENETS-APP-002",
+        "TENETS-APP-003",
+        "TENETS-APP-004",
+        "TENETS-APP-005",
+        "TENETS-APP-006",
+        "TENETS-APP-007",
+        "TENETS-PATTERN-005"
+      ]
+    },
+    {
+      "output": "context/domain/10-creation-and-hydration.md",
+      "title": "Creation and Hydration",
+      "entries": [
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-003",
+        "TENETS-LIFECYCLE-004",
+        "TENETS-LIFECYCLE-005",
+        "TENETS-LIFECYCLE-006",
+        "TENETS-PATTERN-003"
+      ]
+    },
+    {
+      "output": "context/application/04-cross-context-communication.md",
+      "title": "Cross-Context Communication",
+      "entries": [
+        "TENETS-PORT-002",
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-CONTEXT-004",
+        "TENETS-CONTEXT-005",
+        "TENETS-CONTEXT-006",
+        "TENETS-PATTERN-004"
+      ]
+    },
+    {
+      "output": "context/architecture/02-components.md",
+      "title": "Hexagonal Architecture Components",
+      "entries": [
+        "TENETS-DEPEND-001",
+        "TENETS-DEPEND-002",
+        "TENETS-DEPEND-003",
+        "TENETS-PORT-001",
+        "TENETS-PORT-002",
+        "TENETS-PORT-004",
+        "TENETS-ADAPTER-001",
+        "TENETS-ADAPTER-004"
+      ]
+    },
+    {
+      "output": "context/architecture/03-ports.md",
+      "title": "Ports",
+      "entries": [
+        "TENETS-PORT-001",
+        "TENETS-PORT-002",
+        "TENETS-PORT-003",
+        "TENETS-PORT-004",
+        "TENETS-PORT-005",
+        "TENETS-PORT-006",
+        "TENETS-PORT-007",
+        "TENETS-PORT-008",
+        "TENETS-PORT-009",
+        "TENETS-PORT-010",
+        "TENETS-PORT-011",
+        "TENETS-PATTERN-002"
+      ]
+    },
+    {
+      "output": "context/architecture/04-primary-adapters.md",
+      "title": "Primary Adapters",
+      "entries": [
+        "TENETS-ADAPTER-001",
+        "TENETS-ADAPTER-002",
+        "TENETS-ADAPTER-003",
+        "TENETS-API-002",
+        "TENETS-API-003"
+      ]
+    },
+    {
+      "output": "context/architecture/05-secondary-adapters.md",
+      "title": "Secondary Adapters",
+      "entries": [
+        "TENETS-ADAPTER-004",
+        "TENETS-ADAPTER-005",
+        "TENETS-ADAPTER-006",
+        "TENETS-ADAPTER-007",
+        "TENETS-PORT-005",
+        "TENETS-PORT-006"
+      ]
+    },
+    {
+      "output": "context/architecture/06-adapter-configuration.md",
+      "title": "Adapter Configuration",
+      "entries": [
+        "TENETS-COMPOSE-001",
+        "TENETS-COMPOSE-002",
+        "TENETS-PATTERN-005"
+      ]
+    },
+    {
+      "output": "context/architecture/07-integration-flow.md",
+      "title": "Integration Flow",
+      "entries": [
+        "TENETS-ADAPTER-001",
+        "TENETS-PORT-001",
+        "TENETS-APP-002",
+        "TENETS-PORT-004",
+        "TENETS-ADAPTER-004",
+        "TENETS-COMPOSE-001"
+      ]
+    },
+    {
+      "output": "context/architecture/08-infrastructure-replaceability.md",
+      "title": "Infrastructure Replaceability",
+      "entries": [
+        "TENETS-PORT-004",
+        "TENETS-DEPEND-002",
+        "TENETS-ADAPTER-004",
+        "TENETS-ADAPTER-005",
+        "TENETS-COMPOSE-001"
+      ]
+    },
+    {
+      "output": "context/architecture/09-api-boundaries.md",
+      "title": "API Boundaries",
+      "entries": [
+        "TENETS-API-001",
+        "TENETS-API-002",
+        "TENETS-API-003",
+        "TENETS-APP-007"
+      ]
+    },
+    {
+      "output": "context/global/dependency-rules.md",
+      "title": "Dependency Rules",
+      "entries": [
+        "TENETS-DEPEND-001",
+        "TENETS-DEPEND-002",
+        "TENETS-DEPEND-003",
+        "TENETS-COMPOSE-001",
+        "TENETS-COMPOSE-002"
+      ]
+    }
+  ]
+}

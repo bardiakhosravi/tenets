@@ -1,101 +1,131 @@
-# Secondary Port Data Flow Rules
+<!-- tenets:generated-source -->
+# Secondary Port Data Flow
 
-## Core Principle
-- Use cases orchestrate workflows.
-- Repositories retrieve domain models.
-- Secondary ports execute outbound capabilities.
-- Secondary ports receive domain models, value objects, or cohesive application-owned capability contracts, never repositories.
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
 
-## Repository Ownership Rules
-- Repositories are dependencies of the application layer use cases, not dependencies of secondary ports.
-- Use cases MUST load all domain objects required to complete the workflow before invoking a secondary port.
-- Secondary ports MUST NOT receive repository instances.
-- Secondary port implementations MUST NOT call repositories internally.
-- If a secondary port needs more data, add that data to the port contract and have the use case supply it.
+## TENETS-PORT-005: Secondary capabilities never receive repositories
+
+## Rule
+
+Never pass a repository to a secondary port or adapter. A non-repository secondary adapter must not construct, inject, or call repositories internally.
+
+## Rationale
+
+Repositories are application orchestration dependencies. Giving one to another outbound capability creates hidden loading and mixes persistence with infrastructure execution.
+
+## Incorrect
 
 ```python
-# Good: the use case loads the required domain objects, then invokes the port.
-class SendInvoiceUseCase:
+self._email_port.send_invoice(invoice, self._customer_repository)
+```
+
+## Correct
+
+```python
+customer = self._customers.get(invoice.customer_id)
+self._email_port.send_invoice(customer, invoice)
+```
+
+## Remediation
+
+Move every required load into the use case and change the port contract to accept the resulting semantic objects.
+
+## Review check
+
+Search secondary adapter constructors and public methods for repository parameters, imports, lookups, or service-locator access.
+
+## TENETS-PORT-006: Use cases provide complete capability input
+
+## Rule
+
+A use case supplies all domain information an outbound capability needs. The secondary port does not load, discover, or derive missing domain state from persistence.
+
+## Rationale
+
+Complete input keeps orchestration visible and makes the port independently testable.
+
+## Incorrect
+
+```python
+payment_gateway.capture(order.id)  # Adapter must load amount and account.
+```
+
+## Correct
+
+```python
+payment_gateway.capture(create_payment_capture(order, billing_account))
+```
+
+## Remediation
+
+Identify missing state, load it in the use case, and add an appropriate semantic input to the port contract.
+
+## Review check
+
+Trace each port call and verify that its implementation can complete without querying application persistence.
+
+## TENETS-PORT-011: Secondary ports execute rather than orchestrate
+
+## Rule
+
+A secondary port executes one outbound capability. It does not coordinate repositories, multiple business steps, domain transitions, or other secondary ports.
+
+## Rationale
+
+Workflow orchestration belongs in use cases where dependencies and transaction boundaries remain visible.
+
+## Incorrect
+
+```python
+fulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.
+```
+
+## Correct
+
+```python
+reservation = inventory.reserve(create_inventory_reservation(order))
+```
+
+## Remediation
+
+Move the workflow into an application use case and split infrastructure interactions into focused capability ports.
+
+## Review check
+
+Inspect adapters for multi-step business workflows, repository calls, or calls to unrelated adapters.
+
+## TENETS-PATTERN-001: Use-case-loaded outbound capability
+
+## Purpose
+
+Keep outbound capabilities focused by loading all required domain state in the use case.
+
+## Implementation
+
+```python
+class SendOrderConfirmationUseCase:
     def __init__(
         self,
-        customer_repository: CustomerRepository,
-        invoice_repository: InvoiceRepository,
-        email_port: InvoiceEmailPort,
-    ):
-        self._customer_repository = customer_repository
-        self._invoice_repository = invoice_repository
-        self._email_port = email_port
+        orders: OrderRepository,
+        customers: CustomerRepository,
+        notifications: OrderNotificationPort,
+    ) -> None:
+        self._orders = orders
+        self._customers = customers
+        self._notifications = notifications
 
-    def execute(self, command: SendInvoiceCommand) -> None:
-        customer = self._customer_repository.get(command.customer_id)
-        if customer is None:
-            raise CustomerNotFoundError(command.customer_id)
-
-        invoice = self._invoice_repository.get(command.invoice_id)
-        if invoice is None:
-            raise InvoiceNotFoundError(command.invoice_id)
-
-        self._email_port.send_invoice(customer, invoice)
+    def execute(self, order_id: OrderId) -> None:
+        order = self._orders.get(order_id)
+        customer = self._customers.get(order.customer_id)
+        self._notifications.send_confirmation(order, customer)
 ```
 
-```python
-# Bad: the port hides persistence access behind the outbound capability.
-class SmtpInvoiceEmailAdapter(InvoiceEmailPort):
-    def __init__(self, customer_repository: CustomerRepository, smtp_client: SmtpClient):
-        self._customer_repository = customer_repository
-        self._smtp_client = smtp_client
+The notification adapter receives complete domain information. It does not receive repositories or load more state.
 
-    def send_invoice(self, customer_id: CustomerId, invoice: Invoice) -> None:
-        customer = self._customer_repository.get(customer_id)
-        # ...
-```
+## Trade-offs
 
-## Port Contract Data Rules
-- Public secondary-port methods MUST NOT accept naked primitives for domain-semantic values.
-- Secondary ports should operate on rich domain objects when the capability requires domain state.
-- Use a domain value object when the capability needs one domain concept.
-- Use an immutable application-owned capability contract when the capability needs a deliberate subset of domain values.
-- Capability contracts use domain value objects for fields with domain meaning; they are not adapter DTOs, HTTP models, persistence models, or vendor SDK objects.
-- Prefer passing the appropriate aggregate, entity, value object, or capability contract over passing primitive IDs and duplicated fields.
-- Do not pass persistence entities, ORM models, database records, query result rows, or adapter-specific DTOs into secondary ports.
-- When identity alone is sufficient, pass a domain ID value object or local cross-context reference ID value object, never a primitive ID.
-- Pass a full aggregate only when the capability genuinely needs its cohesive state or behavior.
+The use case has explicit orchestration dependencies, but its workflow and test boundary remain visible. If the parameter set becomes incohesive, define a capability-specific domain or application value rather than passing infrastructure access.
 
-```python
-# Good: aligned with domain language and avoids parameter explosion.
-email_port.send_welcome_email(customer)
-```
+## Related rules
 
-```python
-# Also good: a focused capability contract when the port needs only a stable subset.
-email_port.send_welcome_email(
-    WelcomeEmail(
-        recipient=customer.email,
-        display_name=customer.display_name,
-    )
-)
-```
-
-```python
-# Avoid: primitives duplicate a domain concept the use case already has.
-email_port.send_welcome_email(
-    customer_id=customer.id,
-    email=customer.email,
-    first_name=customer.first_name,
-    last_name=customer.last_name,
-)
-```
-
-## Secondary Port Responsibility Rules
-- A secondary port should perform one outbound business capability only, such as sending an email, publishing a domain event, generating a PDF, uploading a document, calling an external API, or sending an SMS.
-- Fetching domain objects is not part of a secondary port's responsibility.
-- Secondary ports should not orchestrate multi-step application workflows.
-- Secondary ports must remain persistence-agnostic and have no knowledge of repositories, SQL, ORMs, database schemas, or persistence models.
-
-## Review Checklist
-- Does the use case load every aggregate/entity the workflow needs before calling the port?
-- Does the secondary port contract avoid repositories, persistence models, ORM rows, database records, and adapter DTOs?
-- Does every domain-semantic parameter use an entity, aggregate, value object, domain specification, or cohesive capability contract?
-- Does the adapter implement only its outbound capability, without additional repository queries?
-- If the port needs only identity, does it receive a domain or local reference ID value object instead of a primitive?
-- If the adapter needs more data, should that data be added to the port contract instead of being loaded inside the adapter?
+See `TENETS-PORT-005`, `TENETS-PORT-006`, and `TENETS-PORT-011`.

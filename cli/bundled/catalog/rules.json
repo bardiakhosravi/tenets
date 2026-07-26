@@ -1,0 +1,1060 @@
+{
+  "schema_version": 1,
+  "generated_from": "knowledge/",
+  "entries": [
+    {
+      "id": "TENETS-ADAPTER-001",
+      "title": "Primary adapters invoke application capabilities",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-001",
+        "TENETS-ADAPTER-002",
+        "TENETS-ADAPTER-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA primary adapter receives an external interaction, translates it into an application input, invokes one primary port or use case, and returns through its protocol boundary.\n\n## Rationale\n\nPrimary adapters drive the application without becoming the owner of its workflow.\n\n## Incorrect\n\n```python\n@app.post(\"/orders\")\ndef submit_order():\n    order = create_order(...)\n    orders.save(order)\n```\n\n## Correct\n\n```python\n@app.post(\"/orders\")\ndef submit_order():\n    order = create_submit_order().execute(map_request_to_command(request))\n    return map_order_to_response(order), 201\n```\n\n## Remediation\n\nMove workflow orchestration into a use case and leave translation and delegation in the adapter.\n\n## Review check\n\nVerify each entry point invokes one application capability rather than repositories or domain creation directly.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-001.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-002",
+      "title": "Primary adapters validate and translate transport input",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-001",
+        "TENETS-API-002",
+        "TENETS-APP-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPrimary adapters validate transport shape and authentication context, then translate external representations into application commands, queries, and semantic values.\n\n## Rationale\n\nMalformed protocol input should not enter the application, while business validation remains with the domain or use case that owns it.\n\n## Incorrect\n\n```python\nuse_case.execute(request.get_json())\n```\n\n## Correct\n\n```python\npayload = SubmitOrderRequest.parse(request.get_json())\ncommand = map_submit_order_request_to_command(payload, authenticated_account)\nuse_case.execute(command)\n```\n\n## Remediation\n\nAdd a protocol request schema and an explicit mapping to the application-owned input.\n\n## Review check\n\nVerify adapters handle required fields and transport formats without duplicating domain decisions.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-002.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-003",
+      "title": "Protocol response and error mapping remain in primary adapters",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-001",
+        "TENETS-API-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPrimary adapters map application outcomes and known failures to protocol-specific responses, status codes, headers, acknowledgements, or exit codes.\n\n## Rationale\n\nTransport semantics are adapter concerns and must not leak into use cases or domain objects.\n\n## Incorrect\n\n```python\nclass GetOrderUseCase:\n    def execute(self, order_id) -> Response:\n        return jsonify({\"id\": order_id}), 200\n```\n\n## Correct\n\n```python\norder = get_order.execute(order_id)\nreturn jsonify(map_order_to_response(order)), 200\n```\n\n## Remediation\n\nReturn an inward-owned result from the use case and perform protocol mapping in the primary adapter.\n\n## Review check\n\nInspect use-case return types and exceptions for HTTP, messaging, CLI, or framework concepts.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-003.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-004",
+      "title": "Secondary adapters implement and translate port contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-004",
+        "TENETS-PORT-009",
+        "TENETS-ADAPTER-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA secondary adapter implements an inward-facing port and translates between its semantic types and one external technology or published contract.\n\n## Rationale\n\nExplicit translation preserves the port contract while containing external representation changes.\n\n## Incorrect\n\n```python\nclass StripeClient:\n    def post(self, payload: dict) -> StripeResponse: ...\n```\n\n## Correct\n\n```python\nclass StripePaymentGateway(PaymentGateway):\n    def authorize(self, request: PaymentAuthorization) -> PaymentConfirmation:\n        response = self._client.authorize(_map_authorization_to_stripe(request))\n        return _map_stripe_response_to_confirmation(response)\n```\n\n## Remediation\n\nImplement the consuming port directly and add directional mapping at the adapter boundary.\n\n## Review check\n\nVerify the adapter's public methods exactly preserve the inward-facing contract.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-004.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-005",
+      "title": "External models remain inside their adapters",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-001",
+        "TENETS-PORT-009",
+        "TENETS-API-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nVendor SDK objects, persistence models, transport schemas, serialized payloads, and technology-specific types remain private to the adapter that owns their mapping.\n\n## Rationale\n\nExternal models change for technical reasons and must not become shared application or domain contracts.\n\n## Incorrect\n\n```python\ndef authorize(self, request: PaymentAuthorization) -> StripePaymentIntent: ...\n```\n\n## Correct\n\n```python\ndef authorize(self, request: PaymentAuthorization) -> PaymentConfirmation: ...\n```\n\n## Remediation\n\nIntroduce an inward-owned semantic result and map the external object before returning from the adapter.\n\n## Review check\n\nSearch inward-facing signatures and imports for ORM, framework, protocol, and vendor-owned types.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-005.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-006",
+      "title": "Secondary adapters translate expected technical failures",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-004",
+        "TENETS-DEPEND-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA secondary adapter catches specific expected technical failures and translates them into failures declared beside the consuming port contract, preserving the original cause.\n\n## Rationale\n\nUse cases can respond to meaningful capability failures without depending on vendor exception classes.\n\n## Incorrect\n\n```python\npayment_gateway.authorize(request)  # StripeConnectionError leaks inward.\n```\n\n## Correct\n\n```python\ntry:\n    return self._authorize(request)\nexcept StripeConnectionError as error:\n    raise PaymentGatewayUnavailable() from error\n```\n\n## Remediation\n\nDefine a capability-specific expected failure, catch only the corresponding technical failures, and chain the cause.\n\n## Review check\n\nInspect adapter boundaries for vendor exceptions leaking inward, broad catches, and discarded causes.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-006.md"
+    },
+    {
+      "id": "TENETS-ADAPTER-007",
+      "title": "Repository adapters reconstruct persisted objects",
+      "kind": "rule",
+      "status": "stable",
+      "category": "adapters",
+      "severity": "error",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-REPO-007",
+        "TENETS-LIFECYCLE-005",
+        "TENETS-ADAPTER-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRepository adapters map persistence representations to fully hydrated domain objects through constructors and directional mappers. They never invoke new-object creation entry points.\n\n## Rationale\n\nRepository reads reconstruct existing lifecycle state and must not generate new identities, defaults, or creation events.\n\n## Incorrect\n\n```python\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return create_order(CustomerId(row.customer_id))\n```\n\n## Correct\n\n```python\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(OrderId(row.id), CustomerId(row.customer_id), OrderStatus(row.status))\n```\n\n## Remediation\n\nReplace creation calls with explicit source-to-target mapping that supplies all persisted identity and state.\n\n## Review check\n\nSearch repository adapters for `create_*` calls and incomplete constructor mapping.",
+      "source": "knowledge/rules/adapters/TENETS-ADAPTER-007.md"
+    },
+    {
+      "id": "TENETS-API-001",
+      "title": "External APIs never expose persistence models",
+      "kind": "rule",
+      "status": "stable",
+      "category": "api",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-005",
+        "TENETS-API-002",
+        "TENETS-API-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nExternal API requests and responses never use ORM entities, database rows, persistence schemas, or serialized database records as their public contract.\n\n## Rationale\n\nDatabase structure is an implementation detail with different compatibility, security, and evolution requirements from an external API.\n\n## Incorrect\n\n```python\nreturn OrderRow.query.get(order_id).to_dict()\n```\n\n## Correct\n\n```python\norder = get_order.execute(OrderId(order_id))\nreturn map_order_to_response(order)\n```\n\n## Remediation\n\nDefine an adapter-owned API schema and map from an inward-owned result.\n\n## Review check\n\nInspect endpoint annotations, serializers, and returned values for persistence representations.",
+      "source": "knowledge/rules/api/TENETS-API-001.md"
+    },
+    {
+      "id": "TENETS-API-002",
+      "title": "External schemas belong to primary adapters",
+      "kind": "rule",
+      "status": "stable",
+      "category": "api",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-002",
+        "TENETS-API-001",
+        "TENETS-API-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nHTTP, messaging, CLI, and other external request and response schemas are owned by their primary adapters, not by the domain or application layers.\n\n## Rationale\n\nTransport contracts contain serialization and compatibility concerns that should evolve independently of inward models.\n\n## Incorrect\n\n```python\n# ordering/domain/order_response.py\nclass OrderResponse(BaseModel): ...\n```\n\n## Correct\n\n```python\n# ordering/adapters/primary/http/order_response.py\nclass OrderResponse(BaseModel): ...\n```\n\n## Remediation\n\nMove transport schemas to the owning adapter and map them to and from application inputs and results.\n\n## Review check\n\nSearch domain and application packages for framework schema bases, transport field aliases, and serialization metadata.",
+      "source": "knowledge/rules/api/TENETS-API-002.md"
+    },
+    {
+      "id": "TENETS-API-003",
+      "title": "Primary adapters map results before external delivery",
+      "kind": "rule",
+      "status": "stable",
+      "category": "api",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-007",
+        "TENETS-ADAPTER-003",
+        "TENETS-API-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPrimary adapters map domain objects and application-owned results into explicit external response representations before they cross the protocol boundary.\n\n## Rationale\n\nExplicit response mapping prevents accidental data exposure and decouples public compatibility from inward model evolution.\n\n## Incorrect\n\n```python\nreturn jsonify(order.__dict__)\n```\n\n## Correct\n\n```python\nreturn jsonify(map_order_to_response(order).model_dump())\n```\n\n## Remediation\n\nDefine the intended external response fields and add an explicit directional mapper in the primary adapter.\n\n## Review check\n\nVerify endpoints do not serialize inward objects generically or return them directly through framework auto-serialization.",
+      "source": "knowledge/rules/api/TENETS-API-003.md"
+    },
+    {
+      "id": "TENETS-APP-001",
+      "title": "One use case represents one workflow",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-PORT-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA use case represents one named business workflow and exposes one clear application entry point.\n\n## Rationale\n\nFocused use cases remain understandable, independently testable, and aligned with business language.\n\n## Incorrect\n\n```python\nclass OrderService:\n    def create_update_cancel_and_report(self, payload): ...\n```\n\n## Correct\n\n```python\nclass SubmitOrderUseCase:\n    def execute(self, command: SubmitOrderCommand) -> Order: ...\n```\n\n## Remediation\n\nSplit unrelated workflows into separately named use cases and primary-port contracts.\n\n## Review check\n\nVerify that a use case name, input, dependencies, and transaction all serve one business outcome.",
+      "source": "knowledge/rules/application/TENETS-APP-001.md"
+    },
+    {
+      "id": "TENETS-APP-002",
+      "title": "Use cases orchestrate domain behavior",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-001",
+        "TENETS-PORT-011"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse cases load state, coordinate dependencies and transactions, invoke domain behavior, and interpret workflow outcomes. Domain invariants and business calculations remain in domain objects or domain services.\n\n## Rationale\n\nApplication orchestration changes for workflow reasons; domain rules change for business reasons.\n\n## Incorrect\n\n```python\nif order.total.amount > Decimal(\"1000\"):\n    order.discount = Decimal(\"0.10\")\n```\n\n## Correct\n\n```python\norder.apply_eligible_discount(customer_tier)\n```\n\n## Remediation\n\nMove the business decision into the domain concept that owns the invariant and leave only coordination in the use case.\n\n## Review check\n\nLook for calculations, state assignments, and business conditionals in use cases.",
+      "source": "knowledge/rules/application/TENETS-APP-002.md"
+    },
+    {
+      "id": "TENETS-APP-003",
+      "title": "Use cases load outbound capability state",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-005",
+        "TENETS-PORT-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe use case loads every aggregate, entity, or value required by a secondary capability before invoking that port.\n\n## Rationale\n\nLoading is workflow orchestration. Keeping it in the use case prevents hidden persistence access in secondary adapters.\n\n## Incorrect\n\n```python\nreceipt_sender.send(order.id)\n```\n\n## Correct\n\n```python\ncustomer = customers.get(order.customer_id)\npayment = payments.get_by_order(order.id)\nreceipt_sender.send(ReceiptDelivery(order, customer, payment))\n```\n\n## Remediation\n\nMove adapter-side lookups into the use case and provide complete semantic input.\n\n## Review check\n\nTrace outbound calls and verify that adapters receive no identifiers that they use to load additional domain state.",
+      "source": "knowledge/rules/application/TENETS-APP-003.md"
+    },
+    {
+      "id": "TENETS-APP-004",
+      "title": "Use cases distinguish creation from hydration",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse cases call the domain creation entry point for new objects and treat repository results as already hydrated existing objects.\n\n## Rationale\n\nRecreating a loaded object can generate a new identity, reset persisted state, and emit false creation events.\n\n## Incorrect\n\n```python\nloaded = orders.get(command.order_id)\norder = create_order(loaded.customer_id)\n```\n\n## Correct\n\n```python\norder = orders.get(command.order_id)\norder.submit()\n```\n\n## Remediation\n\nRemove recreation of repository results and invoke behavior directly on the hydrated aggregate.\n\n## Review check\n\nFind creation-function calls whose inputs come from objects just returned by repositories.",
+      "source": "knowledge/rules/application/TENETS-APP-004.md"
+    },
+    {
+      "id": "TENETS-APP-005",
+      "title": "Use cases create semantic boundary types",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-007",
+        "TENETS-PORT-010",
+        "TENETS-REPO-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nBefore calling a repository or secondary port, a use case converts command primitives into domain IDs, value objects, named criteria, specifications, or cohesive capability contracts.\n\n## Rationale\n\nExternal primitives are acceptable at transport boundaries but not at semantic inward-facing contracts.\n\n## Incorrect\n\n```python\norder = orders.get(command.order_id)  # raw string\n```\n\n## Correct\n\n```python\norder_id = create_order_id(command.order_id)\norder = orders.get(order_id)\n```\n\n## Remediation\n\nPerform semantic conversion at the application boundary before the first repository or secondary-port call.\n\n## Review check\n\nFollow command fields into outbound calls and flag raw domain-semantic primitives.",
+      "source": "knowledge/rules/application/TENETS-APP-005.md"
+    },
+    {
+      "id": "TENETS-APP-006",
+      "title": "Use cases own transaction coordination",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-PORT-011"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nApplication use cases define transaction scope and coordinate domain-event handling, outbox writes, and outbound capability timing. Domain objects and adapters do not own the business transaction.\n\n## Rationale\n\nThe application layer knows the workflow boundary and can coordinate persistence without coupling domain behavior to infrastructure.\n\n## Incorrect\n\n```python\nclass SqlOrderRepository:\n    def save_and_publish_and_charge(self, order): ...\n```\n\n## Correct\n\n```python\nwith unit_of_work:\n    orders.save(order)\n    outbox.add_from(order.domain_events)\n```\n\n## Remediation\n\nMove transaction and workflow coordination into the use case or application handler.\n\n## Review check\n\nLocate commits, event publication, and multi-capability sequencing and verify that the application owns them.",
+      "source": "knowledge/rules/application/TENETS-APP-006.md"
+    },
+    {
+      "id": "TENETS-APP-007",
+      "title": "Use cases return meaningful inward-owned results",
+      "kind": "rule",
+      "status": "stable",
+      "category": "application",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA use case returns the simplest meaningful contract: `None`, a domain object, or an immutable application-owned result. It never returns persistence models, adapter DTOs, framework types, or unstructured dictionaries.\n\n## Rationale\n\nA single natural domain result needs no wrapper; projections and combined outcomes benefit from a stable application result.\n\n## Incorrect\n\n```python\nreturn CreateOrderResult(order=order)  # Wrapper adds no boundary.\nreturn jsonify(order_row)\n```\n\n## Correct\n\n```python\nreturn order\nreturn OrderAccountSummary(order.id, balance, shipment_count)\n```\n\n## Remediation\n\nReturn the domain object directly when it is the natural result, or define an immutable application result for a genuine projection.\n\n## Review check\n\nVerify result ownership and challenge wrappers that contain only one domain object without adding meaning.",
+      "source": "knowledge/rules/application/TENETS-APP-007.md"
+    },
+    {
+      "id": "TENETS-COMPOSE-001",
+      "title": "Dependency wiring occurs in the composition root",
+      "kind": "rule",
+      "status": "stable",
+      "category": "composition",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-COMPOSE-002",
+        "TENETS-DEPEND-002",
+        "TENETS-PATTERN-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nConcrete adapter selection, dependency construction, lifecycle scope, and port-to-adapter wiring occur in an outer composition root.\n\n## Rationale\n\nOnly the composition root needs knowledge of both inward-facing contracts and their concrete implementations.\n\n## Incorrect\n\n```python\nclass SubmitOrderUseCase:\n    def __init__(self) -> None:\n        self._orders = SqlOrderRepository(create_engine(os.environ[\"DB_URL\"]))\n```\n\n## Correct\n\n```python\ndef create_submit_order() -> SubmitOrderUseCase:\n    return SubmitOrderUseCase(orders=SqlOrderRepository(session_factory()))\n```\n\n## Remediation\n\nMove construction and adapter selection out of use cases, domain objects, and adapters into the application bootstrap or container.\n\n## Review check\n\nSearch inward layers for concrete adapter construction, service location, and environment-driven implementation selection.",
+      "source": "knowledge/rules/composition/TENETS-COMPOSE-001.md"
+    },
+    {
+      "id": "TENETS-COMPOSE-002",
+      "title": "Technology configuration remains outside business logic",
+      "kind": "rule",
+      "status": "stable",
+      "category": "composition",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-COMPOSE-001",
+        "TENETS-DEPEND-001",
+        "TENETS-DEPEND-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEnvironment variables, connection settings, credentials, vendor selection, framework configuration, and deployment concerns remain in configuration and composition modules.\n\n## Rationale\n\nBusiness behavior should not change shape based on how a service is deployed or which adapter is selected.\n\n## Incorrect\n\n```python\nif os.environ[\"PAYMENT_PROVIDER\"] == \"stripe\":\n    order.mark_payment_pending()\n```\n\n## Correct\n\n```python\npayment_gateway = StripePaymentGateway(settings.stripe)\nsubmit_order = SubmitOrderUseCase(payment_gateway=payment_gateway)\n```\n\n## Remediation\n\nMove technology and environment decisions to typed configuration and the composition root.\n\n## Review check\n\nInspect domain and application code for environment access, credentials, connection strings, and vendor-selection branches.",
+      "source": "knowledge/rules/composition/TENETS-COMPOSE-002.md"
+    },
+    {
+      "id": "TENETS-CONTEXT-002",
+      "title": "Bounded contexts do not import each other's internals",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-003",
+        "TENETS-CONTEXT-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA bounded context must not import another context's entities, value objects, repositories, use cases, or internal modules.\n\n## Rationale\n\nInternal models encode local language and invariants. Sharing them couples contexts and erodes their independent ownership.\n\n## Incorrect\n\n```python\nfrom customer_accounts.domain.customer import Customer\n\nclass SubmitOrderUseCase:\n    def execute(self, customer: Customer) -> Order: ...\n```\n\n## Correct\n\n```python\nclass CustomerEligibilityPort(Protocol):\n    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...\n```\n\n## Remediation\n\nReplace the internal import with a consuming-context port expressed in local language and an adapter to a published provider contract.\n\n## Review check\n\nVerify imports do not cross bounded-context internal package boundaries.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-002.md"
+    },
+    {
+      "id": "TENETS-CONTEXT-003",
+      "title": "Cross-context contracts use the consumer's language",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-004",
+        "TENETS-PORT-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA consuming bounded context defines the capability it needs using its own ubiquitous language and semantic types.\n\n## Rationale\n\nThe consumer should depend on a stable business need, not the provider's storage model or internal vocabulary.\n\n## Incorrect\n\n```python\nclass CustomerTableReader(Protocol):\n    def select_customer_row(self, customer_pk: str) -> dict: ...\n```\n\n## Correct\n\n```python\nclass CustomerEligibilityPort(Protocol):\n    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...\n```\n\n## Remediation\n\nRename the contract around the consuming capability and replace provider-specific parameters and results with local semantic types.\n\n## Review check\n\nVerify a reader can understand the contract without knowing the provider's schema or internal model.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-003.md"
+    },
+    {
+      "id": "TENETS-CONTEXT-004",
+      "title": "Cross-context adapters translate published contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-PORT-009"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn adapter between bounded contexts calls a published provider contract and translates its representations into the consuming port's semantic types.\n\n## Rationale\n\nAn explicit translation boundary prevents either context's internal model from becoming a shared model by accident.\n\n## Incorrect\n\n```python\ndef get_eligibility(customer_id):\n    return customer_repository.get(customer_id)\n```\n\n## Correct\n\n```python\ndef get_eligibility(customer_id: CustomerReferenceId) -> CustomerEligibility:\n    response = self._customer_api.get_customer(str(customer_id))\n    return CustomerEligibility(active=response.status == \"active\")\n```\n\n## Remediation\n\nCall only a published API, event, or application contract and map its response into types owned by the consumer.\n\n## Review check\n\nVerify the adapter is the only place that understands both published provider data and consuming-context semantics.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-004.md"
+    },
+    {
+      "id": "TENETS-CONTEXT-005",
+      "title": "Consuming port placement follows capability ownership",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-002",
+        "TENETS-APP-003",
+        "TENETS-CONTEXT-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPlace a cross-context consuming port in the domain layer when it supplies a domain-required capability used directly by domain behavior. Place it in the application layer when it supports orchestration, external-reference validation, reporting, enrichment, or query coordination.\n\n## Rationale\n\nPort placement follows who owns the capability, not a blanket rule that every external dependency belongs in one layer.\n\n## Incorrect\n\n```python\n# Domain-owned only because every secondary port was put in domain/ports/.\nclass CustomerReportingQuery(Protocol): ...\n```\n\n## Correct\n\n```python\n# ordering/application/ports/customer_eligibility.py\nclass CustomerEligibilityPort(Protocol):\n    def get_eligibility(self, customer_id: CustomerReferenceId) -> CustomerEligibility: ...\n```\n\n## Remediation\n\nIdentify whether the capability is part of domain behavior or application workflow coordination, then move the contract to that owning layer.\n\n## Review check\n\nVerify the port's location is justified by the capability's owner and that a use case invokes it.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-005.md"
+    },
+    {
+      "id": "TENETS-CONTEXT-006",
+      "title": "External references are validated through public contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-004",
+        "TENETS-CONTEXT-005",
+        "TENETS-PORT-010"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nWhen a workflow requires an external reference to be valid, the application use case validates it through a consuming port before persisting the local reference.\n\n## Rationale\n\nLocal repositories cannot validate another context's ownership or lifecycle, and domain objects must not perform external I/O.\n\n## Incorrect\n\n```python\norder = create_order(CustomerReferenceId(command.customer_id))\norder_repository.save(order)\n```\n\n## Correct\n\n```python\ncustomer_id = CustomerReferenceId(command.customer_id)\nif not customer_eligibility.get_eligibility(customer_id).may_order:\n    raise CustomerNotEligible(customer_id)\norder_repository.save(create_order(customer_id))\n```\n\n## Remediation\n\nAdd an application-invoked consuming port and perform required validation before local creation or persistence.\n\n## Review check\n\nVerify externally owned references are validated at the application boundary when the workflow requires current validity.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-006.md"
+    },
+    {
+      "id": "TENETS-DEPEND-001",
+      "title": "Domain code is independent of frameworks and infrastructure",
+      "kind": "rule",
+      "status": "stable",
+      "category": "dependencies",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-002",
+        "TENETS-ADAPTER-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDomain code depends only on the language standard library and domain-owned concepts. It does not import frameworks, ORMs, transports, vendor SDKs, configuration, application workflows, or adapter implementations.\n\n## Rationale\n\nThe domain model must remain executable and testable without selecting infrastructure or a delivery mechanism.\n\n## Incorrect\n\n```python\nfrom sqlalchemy.orm import Mapped\n\nclass Order:\n    id: Mapped[str]\n```\n\n## Correct\n\n```python\nclass Order:\n    def __init__(self, id: OrderId, status: OrderStatus) -> None: ...\n```\n\n## Remediation\n\nMove technical annotations and mapping into an adapter and retain only domain-owned types and behavior.\n\n## Review check\n\nInspect domain imports for application, adapter, framework, persistence, transport, and vendor packages.",
+      "source": "knowledge/rules/dependencies/TENETS-DEPEND-001.md"
+    },
+    {
+      "id": "TENETS-DEPEND-002",
+      "title": "Application code depends inward and on owned ports",
+      "kind": "rule",
+      "status": "stable",
+      "category": "dependencies",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-001",
+        "TENETS-DEPEND-003",
+        "TENETS-PORT-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nApplication code may depend on domain concepts and application- or domain-owned port contracts. It never imports concrete adapters, frameworks, vendor clients, or persistence implementations.\n\n## Rationale\n\nUse cases remain independent of replaceable delivery and infrastructure choices when dependencies are expressed as inward-owned contracts.\n\n## Incorrect\n\n```python\nclass SubmitOrderUseCase:\n    def __init__(self, orders: SqlOrderRepository) -> None: ...\n```\n\n## Correct\n\n```python\nclass SubmitOrderUseCase:\n    def __init__(self, orders: OrderRepository) -> None: ...\n```\n\n## Remediation\n\nIntroduce or use an inward-owned port and move concrete adapter selection to the composition root.\n\n## Review check\n\nInspect application imports and constructor annotations for concrete adapters or technology packages.",
+      "source": "knowledge/rules/dependencies/TENETS-DEPEND-002.md"
+    },
+    {
+      "id": "TENETS-DEPEND-003",
+      "title": "Adapters depend only on published inward-facing contracts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "dependencies",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-002",
+        "TENETS-ADAPTER-001",
+        "TENETS-ADAPTER-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAdapters may depend inward on the port contracts they call or implement, their semantic parameter and result types, and domain constructors required for repository mapping. They do not import unrelated layer internals or other adapter implementations.\n\n## Rationale\n\nPublished contracts create deliberate dependency boundaries while internal imports and adapter-to-adapter calls create hidden coupling.\n\n## Incorrect\n\n```python\nfrom ordering.application.use_cases.submit_order import SubmitOrderUseCase\nfrom ordering.adapters.sql_order_repository import SqlOrderRepository\n```\n\n## Correct\n\n```python\nfrom ordering.application.ports.submit_order import SubmitOrderPort\nfrom ordering.domain.ports.order_repository import OrderRepository\n```\n\n## Remediation\n\nReplace internal or peer-adapter dependencies with the relevant published inward-facing contract and wire implementations externally.\n\n## Review check\n\nVerify adapter imports are limited to implemented or invoked contracts, their semantic types, and required mapping constructors.",
+      "source": "knowledge/rules/dependencies/TENETS-DEPEND-003.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-001",
+      "title": "Creation and hydration are distinct",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-004",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nCreation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.\n\n## Rationale\n\nCreation may generate identity, defaults, and events that must never run while reconstructing existing state.\n\n## Incorrect\n\n```python\nreturn create_order(customer_id=row.customer_id)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_id)\nexisting_order = Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nSeparate new-object creation from persistence mapping and identify every creation-only side effect.\n\n## Review check\n\nVerify that repositories do not invoke creation entry points and workflows do not directly construct new objects.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-001.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-002",
+      "title": "Python creation uses module functions",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "python"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nIn Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.\n\n## Rationale\n\nA named module function makes creation semantics explicit while leaving the constructor available for controlled reconstruction.\n\n## Incorrect\n\n```python\norder = Order(customer_id=customer_id)\norder = Order.create(customer_id)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id)\n```\n\n## Remediation\n\nAdd a colocated creation function and replace direct workflow construction and class factory calls.\n\n## Review check\n\nSearch application and domain workflow code for direct constructors or class factory methods used for new domain objects.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-002.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-003",
+      "title": "Creation receives complete initial state",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-004",
+        "TENETS-LIFECYCLE-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA creation entry point receives every available input that belongs to the object's valid initial state.\n\n## Rationale\n\nIncomplete creation spreads initialization policy across callers and permits invalid intermediate objects.\n\n## Incorrect\n\n```python\norder = create_order(customer_id)\norder.set_billing_address(command.billing_address)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id, billing_address)\n```\n\n## Remediation\n\nAdd already-available creation data to the creation function and construct the valid initial object atomically.\n\n## Review check\n\nInspect mutations immediately following creation and determine whether their input was already available.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-003.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-004",
+      "title": "Creation owns creation-specific behavior",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-003",
+        "TENETS-LIFECYCLE-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nCreation entry points own creation-time normalization, identity generation, valid defaults, initial state selection, and creation-event recording.\n\n## Rationale\n\nCentralizing these decisions produces consistent new objects regardless of the calling workflow.\n\n## Incorrect\n\n```python\norder = Order(id=OrderId.generate(), status=OrderStatus.DRAFT)\norder.record(OrderCreated(order.id))\n```\n\n## Correct\n\n```python\norder = create_order(customer_id, billing_address)\n```\n\n## Remediation\n\nMove creation-only decisions from callers and constructors into the named creation entry point.\n\n## Review check\n\nSearch use cases for identity generation, initial defaults, and creation-event construction.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-004.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-005",
+      "title": "Constructors hydrate persisted state",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-004",
+        "TENETS-REPO-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRepository adapters reconstruct objects by mapping persistence representations to constructors with explicit persisted identity and state. Hydration does not generate identity, apply new-object defaults, or record creation events.\n\n## Rationale\n\nPersisted state represents an existing lifecycle and must be reconstructed faithfully.\n\n## Incorrect\n\n```python\ndef hydrate_order(row):\n    return create_order(CustomerId(row.customer_id))\n```\n\n## Correct\n\n```python\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nReplace creation calls and `hydrate_*` helpers with explicit `_map_<source>_to_<target>` mapping functions.\n\n## Review check\n\nVerify persisted identity and state are passed explicitly and mapping helpers name their direction.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-005.md"
+    },
+    {
+      "id": "TENETS-LIFECYCLE-006",
+      "title": "Mutation does not finish creation",
+      "kind": "rule",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDo not create an incomplete object and immediately invoke mutation methods to apply creation data that was already available. Mutation remains valid for later business transitions or newly available information.\n\n## Rationale\n\nThe issue is incomplete creation, not mutation itself. Domain methods should represent actual transitions after a valid object exists.\n\n## Incorrect\n\n```python\norder = create_order(customer_id)\norder.change_shipping_address(command.initial_shipping_address)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id, command.initial_shipping_address)\n# Later:\norder.change_shipping_address(new_address)\n```\n\n## Remediation\n\nMove initial data into the creation entry point while retaining the mutation method for later transitions.\n\n## Review check\n\nReview the first operations after creation and compare their inputs with the creation command.",
+      "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-006.md"
+    },
+    {
+      "id": "TENETS-PATTERN-001",
+      "title": "Use-case-loaded outbound capability",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "ports",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-PORT-005",
+        "TENETS-PORT-006",
+        "TENETS-PORT-011"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nKeep outbound capabilities focused by loading all required domain state in the use case.\n\n## Implementation\n\n```python\nclass SendOrderConfirmationUseCase:\n    def __init__(\n        self,\n        orders: OrderRepository,\n        customers: CustomerRepository,\n        notifications: OrderNotificationPort,\n    ) -> None:\n        self._orders = orders\n        self._customers = customers\n        self._notifications = notifications\n\n    def execute(self, order_id: OrderId) -> None:\n        order = self._orders.get(order_id)\n        customer = self._customers.get(order.customer_id)\n        self._notifications.send_confirmation(order, customer)\n```\n\nThe notification adapter receives complete domain information. It does not receive repositories or load more state.\n\n## Trade-offs\n\nThe use case has explicit orchestration dependencies, but its workflow and test boundary remain visible. If the parameter set becomes incohesive, define a capability-specific domain or application value rather than passing infrastructure access.\n\n## Related rules\n\nSee `TENETS-PORT-005`, `TENETS-PORT-006`, and `TENETS-PORT-011`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-001.md"
+    },
+    {
+      "id": "TENETS-PATTERN-002",
+      "title": "Semantic port contract selection",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "ports",
+      "severity": "guidance",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-007",
+        "TENETS-PORT-008",
+        "TENETS-PORT-009",
+        "TENETS-PORT-010"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nChoose the smallest cohesive semantic type for each inward-facing contract without defaulting to primitives or oversized aggregates.\n\n## Implementation\n\nUse an aggregate or entity when the capability needs its behavior or coherent state:\n\n```python\ndef save(order: Order) -> None: ...\n```\n\nUse a value object for one domain concept:\n\n```python\ndef get(order_id: OrderId) -> Order | None: ...\n```\n\nUse named criteria for a cohesive query:\n\n```python\n@dataclass(frozen=True)\nclass OrderSearchCriteria:\n    customer_id: CustomerId | None = None\n    status: OrderStatus | None = None\n\ndef list_matching(criteria: OrderSearchCriteria) -> Sequence[Order]: ...\n```\n\nUse an application-owned capability contract for a projection or integration result:\n\n```python\ndef quote_shipping(destination: ShippingAddress, parcel: Parcel) -> ShippingQuote: ...\n```\n\n## Trade-offs\n\nSemantic types add small definitions but prevent parameter ambiguity and representation leakage. Do not create a wrapper that has no domain or contract meaning merely to avoid every primitive.\n\n## Related rules\n\nSee `TENETS-PORT-007` through `TENETS-PORT-010`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-002.md"
+    },
+    {
+      "id": "TENETS-PATTERN-003",
+      "title": "Python creation and hydration entry points",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "lifecycle",
+      "severity": "guidance",
+      "profiles": [
+        "python"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-003",
+        "TENETS-LIFECYCLE-005"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nMake first-time creation and persistence hydration visibly different operations.\n\n## Implementation\n\n```python\n# ordering/domain/order.py\ndef create_order(\n    order_id: OrderId,\n    customer_id: CustomerId,\n    shipping_address: ShippingAddress,\n) -> Order:\n    order = Order(\n        id=order_id,\n        customer_id=customer_id,\n        shipping_address=shipping_address,\n        status=OrderStatus.DRAFT,\n    )\n    order.record(OrderCreated(order_id))\n    return order\n\n# ordering/adapters/repositories/sql_order_repository.py\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(\n        id=OrderId(row.id),\n        customer_id=CustomerId(row.customer_id),\n        shipping_address=_map_json_to_shipping_address(row.shipping_address),\n        status=OrderStatus(row.status),\n    )\n```\n\nCreation functions receive all available required initial data. Directional mapper helpers reconstruct persisted state through constructors without creation events or defaults.\n\n## Trade-offs\n\nThis creates two explicit entry paths, but removes ambiguity about identity, defaults, validation, and side effects. Other languages may use named constructors or factories instead.\n\n## Related rules\n\nSee `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-003.md"
+    },
+    {
+      "id": "TENETS-PATTERN-004",
+      "title": "Cross-context consuming adapter",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "context",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-CONTEXT-004",
+        "TENETS-CONTEXT-005",
+        "TENETS-CONTEXT-006"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nLet one bounded context consume another through a local capability without importing provider internals.\n\n## Implementation\n\n```python\n# ordering/application/ports/customer_eligibility.py\nclass CustomerEligibilityPort(Protocol):\n    def get_eligibility(\n        self, customer_id: CustomerReferenceId\n    ) -> CustomerEligibility: ...\n\n# ordering/adapters/customer_accounts_http.py\nclass CustomerAccountsHttpAdapter(CustomerEligibilityPort):\n    def get_eligibility(\n        self, customer_id: CustomerReferenceId\n    ) -> CustomerEligibility:\n        response = self._client.get_customer(str(customer_id))\n        return CustomerEligibility(\n            may_order=response.status == \"active\",\n            credit_hold=response.credit_hold,\n        )\n```\n\nThe use case invokes `CustomerEligibilityPort`; the adapter translates the Customer Accounts published response into Ordering semantics.\n\n## Trade-offs\n\nThe translation adds code and may duplicate similar-looking types. That duplication preserves bounded-context autonomy and allows either model to evolve independently.\n\n## Related rules\n\nSee `TENETS-CONTEXT-002` through `TENETS-CONTEXT-006`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-004.md"
+    },
+    {
+      "id": "TENETS-PATTERN-005",
+      "title": "Flask request-scoped use-case factory",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "composition",
+      "severity": "guidance",
+      "profiles": [
+        "python",
+        "flask"
+      ],
+      "related": [
+        "TENETS-PORT-001",
+        "TENETS-APP-001",
+        "TENETS-APP-002"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nCreate a fresh use-case instance and its transaction resources for each Flask request without introducing an unnecessary provider abstraction.\n\n## Implementation\n\n```python\nclass Container:\n    def create_submit_order(self) -> SubmitOrderUseCase:\n        session = self._session_factory()\n        return SubmitOrderUseCase(\n            orders=SqlOrderRepository(session),\n            unit_of_work=SqlUnitOfWork(session),\n        )\n\ndef create_app(container: Container) -> Flask:\n    app = Flask(__name__)\n\n    @app.post(\"/orders\")\n    def submit_order():\n        command = SubmitOrderCommand.from_json(request.get_json())\n        order = container.create_submit_order().execute(command)\n        return jsonify(map_order_to_response(order)), 201\n\n    return app\n```\n\nThe bound container method is the factory. A separate `CreateSubmitOrderProvider` alias is unnecessary unless it provides independent value.\n\n## Trade-offs\n\nPer-request construction allocates small objects but avoids accidental mutable or transaction state sharing. Long-lived stateless clients and configuration may still be shared by the container.\n\n## Related rules\n\nSee `TENETS-PORT-001`, `TENETS-APP-001`, and `TENETS-APP-002`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-005.md"
+    },
+    {
+      "id": "TENETS-PORT-001",
+      "title": "Use cases embody primary ports",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-001",
+        "TENETS-APP-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA use case implements or directly embodies the primary port. Primary adapters invoke that application capability. A separate interface is optional and must exist only when it provides a useful contract.\n\n## Rationale\n\nThe application owns its inbound API. Making an HTTP controller implement the primary port reverses the dependency and obscures the use case.\n\n## Incorrect\n\n```python\nclass CreateOrderHttpController(CreateOrderPort):\n    ...\n```\n\n## Correct\n\n```python\nclass CreateOrderUseCase:\n    def execute(self, command: CreateOrderCommand) -> Order:\n        ...\n```\n\n## Remediation\n\nMove the primary-port behavior into the application use case and make the adapter translate and delegate.\n\n## Review check\n\nVerify that each primary adapter invokes an application-owned use case contract and does not implement the business capability itself.",
+      "source": "knowledge/rules/ports/TENETS-PORT-001.md"
+    },
+    {
+      "id": "TENETS-PORT-002",
+      "title": "Port placement follows capability ownership",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-004",
+        "TENETS-PORT-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPlace a port in the domain when it expresses a domain-required capability. Place it in the application when it exists for orchestration, reporting, enrichment, or another application workflow concern.\n\n## Rationale\n\nPort ownership is determined by the consumer's language and purpose, not by the provider, protocol, or adapter technology.\n\n## Incorrect\n\n```text\nAll outbound ports are forced into domain/ports because they call external systems.\n```\n\n## Correct\n\n```text\ndomain/ports/fraud_assessment.py\napplication/ports/customer_directory.py\n```\n\n## Remediation\n\nDescribe the capability from the consuming context's perspective, then move the contract to the layer that owns that meaning.\n\n## Review check\n\nAsk whether domain behavior requires the capability or whether only a use case needs it to coordinate work.",
+      "source": "knowledge/rules/ports/TENETS-PORT-002.md"
+    },
+    {
+      "id": "TENETS-PORT-003",
+      "title": "Ports represent one focused capability",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-006",
+        "TENETS-PORT-011"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA port contract represents one cohesive capability in ubiquitous language. It does not expose a generic client, utility surface, or multi-step workflow.\n\n## Rationale\n\nFocused ports isolate change and prevent infrastructure-oriented abstractions from shaping application workflows.\n\n## Incorrect\n\n```python\nclass ExternalServices(Protocol):\n    def request(self, method: str, url: str, payload: dict) -> dict: ...\n```\n\n## Correct\n\n```python\nclass PaymentGateway(Protocol):\n    def authorize(self, payment: PaymentAuthorization) -> PaymentConfirmation: ...\n```\n\n## Remediation\n\nReplace generic operations with the smallest business capability the consumer requires.\n\n## Review check\n\nConfirm that the port name and methods can be understood without knowing the selected vendor or transport.",
+      "source": "knowledge/rules/ports/TENETS-PORT-003.md"
+    },
+    {
+      "id": "TENETS-PORT-004",
+      "title": "External dependencies are accessed through ports",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-002",
+        "TENETS-ADAPTER-004",
+        "TENETS-PORT-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nApplication workflows access persistence, messaging, external services, clocks, identity generation, and other replaceable external capabilities through inward-owned port contracts.\n\n## Rationale\n\nPorts isolate business workflows from technology selection and provide explicit test boundaries.\n\n## Incorrect\n\n```python\nresponse = requests.post(\"https://payments.example/authorize\", json=payload)\n```\n\n## Correct\n\n```python\nconfirmation = payment_gateway.authorize(authorization)\n```\n\n## Remediation\n\nDefine the focused capability required by the consumer, implement it in an adapter, and inject the port into the use case.\n\n## Review check\n\nFind direct I/O or external-library calls in domain and application code.",
+      "source": "knowledge/rules/ports/TENETS-PORT-004.md"
+    },
+    {
+      "id": "TENETS-PORT-005",
+      "title": "Secondary capabilities never receive repositories",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-003",
+        "TENETS-PORT-006",
+        "TENETS-PORT-011"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nNever pass a repository to a secondary port or adapter. A non-repository secondary adapter must not construct, inject, or call repositories internally.\n\n## Rationale\n\nRepositories are application orchestration dependencies. Giving one to another outbound capability creates hidden loading and mixes persistence with infrastructure execution.\n\n## Incorrect\n\n```python\nself._email_port.send_invoice(invoice, self._customer_repository)\n```\n\n## Correct\n\n```python\ncustomer = self._customers.get(invoice.customer_id)\nself._email_port.send_invoice(customer, invoice)\n```\n\n## Remediation\n\nMove every required load into the use case and change the port contract to accept the resulting semantic objects.\n\n## Review check\n\nSearch secondary adapter constructors and public methods for repository parameters, imports, lookups, or service-locator access.",
+      "source": "knowledge/rules/ports/TENETS-PORT-005.md"
+    },
+    {
+      "id": "TENETS-PORT-006",
+      "title": "Use cases provide complete capability input",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-003",
+        "TENETS-PORT-005",
+        "TENETS-PORT-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA use case supplies all domain information an outbound capability needs. The secondary port does not load, discover, or derive missing domain state from persistence.\n\n## Rationale\n\nComplete input keeps orchestration visible and makes the port independently testable.\n\n## Incorrect\n\n```python\npayment_gateway.capture(order.id)  # Adapter must load amount and account.\n```\n\n## Correct\n\n```python\npayment_gateway.capture(create_payment_capture(order, billing_account))\n```\n\n## Remediation\n\nIdentify missing state, load it in the use case, and add an appropriate semantic input to the port contract.\n\n## Review check\n\nTrace each port call and verify that its implementation can complete without querying application persistence.",
+      "source": "knowledge/rules/ports/TENETS-PORT-006.md"
+    },
+    {
+      "id": "TENETS-PORT-007",
+      "title": "Port contracts reject naked domain primitives",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-005",
+        "TENETS-PORT-008",
+        "TENETS-PORT-010"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPublic repository and secondary-port methods do not accept primitive strings, numbers, booleans, dictionaries, or callables when those values carry domain meaning.\n\n## Rationale\n\nSemantic types preserve validation, units, identity, and intent at boundaries where primitive confusion is expensive.\n\n## Incorrect\n\n```python\norders.get(\"ord-123\")\ngateway.authorize(1299, \"USD\", \"acct-7\")\n```\n\n## Correct\n\n```python\norders.get(create_order_id(\"ord-123\"))\ngateway.authorize(PaymentAuthorization(amount, billing_account_id))\n```\n\n## Remediation\n\nIntroduce or reuse a domain value object, named criteria, specification, or immutable capability contract.\n\n## Review check\n\nInspect public port signatures and challenge each primitive parameter that represents identity, money, quantity, status, date, or business criteria.",
+      "source": "knowledge/rules/ports/TENETS-PORT-007.md"
+    },
+    {
+      "id": "TENETS-PORT-008",
+      "title": "Ports use the smallest cohesive semantic type",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-006",
+        "TENETS-PORT-007",
+        "TENETS-PORT-009"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nChoose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract.\n\n## Rationale\n\nPassing an entire aggregate unnecessarily increases coupling, while exploding it into primitives loses semantics.\n\n## Incorrect\n\n```python\nsend_receipt(order_id, email, first_name, total_cents, currency)\n```\n\n## Correct\n\n```python\nsend_receipt(ReceiptDelivery(order, customer, payment_confirmation))\n```\n\n## Remediation\n\nModel the capability input around what the operation needs, preserving domain objects where their full meaning is required.\n\n## Review check\n\nVerify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept.",
+      "source": "knowledge/rules/ports/TENETS-PORT-008.md"
+    },
+    {
+      "id": "TENETS-PORT-009",
+      "title": "Port contracts exclude external representations",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-008",
+        "TENETS-REPO-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPort contracts never expose ORM models, database rows, transport DTOs, vendor SDK objects, serialized records, or adapter-owned types.\n\n## Rationale\n\nExternal representations make the application depend on replaceable implementation details.\n\n## Incorrect\n\n```python\nclass OrderRepository(Protocol):\n    def save(self, row: SqlAlchemyOrderModel) -> None: ...\n```\n\n## Correct\n\n```python\nclass OrderRepository(Protocol):\n    def save(self, order: Order) -> None: ...\n```\n\n## Remediation\n\nMove representation mapping into the adapter and expose only inward-owned semantic types.\n\n## Review check\n\nCheck port imports and annotations for framework, persistence, transport, or vendor packages.",
+      "source": "knowledge/rules/ports/TENETS-PORT-009.md"
+    },
+    {
+      "id": "TENETS-PORT-010",
+      "title": "Identities cross ports as value objects",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-005",
+        "TENETS-PORT-007",
+        "TENETS-REPO-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nWhen identity alone is sufficient, pass a domain ID or local cross-context reference ID value object through the port, never its primitive representation.\n\n## Rationale\n\nTyped identity prevents accidental substitution and keeps ownership explicit.\n\n## Incorrect\n\n```python\ninventory.get_availability(product_id: str)\n```\n\n## Correct\n\n```python\ninventory.get_availability(product_id: InventoryProductId)\n```\n\n## Remediation\n\nCreate the local ID value object at the primary boundary and unwrap it only inside persistence or transport mapping.\n\n## Review check\n\nFind primitive ID annotations on repository and secondary-port methods.",
+      "source": "knowledge/rules/ports/TENETS-PORT-010.md"
+    },
+    {
+      "id": "TENETS-PORT-011",
+      "title": "Secondary ports execute rather than orchestrate",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-PORT-003",
+        "TENETS-PORT-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA secondary port executes one outbound capability. It does not coordinate repositories, multiple business steps, domain transitions, or other secondary ports.\n\n## Rationale\n\nWorkflow orchestration belongs in use cases where dependencies and transaction boundaries remain visible.\n\n## Incorrect\n\n```python\nfulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.\n```\n\n## Correct\n\n```python\nreservation = inventory.reserve(create_inventory_reservation(order))\n```\n\n## Remediation\n\nMove the workflow into an application use case and split infrastructure interactions into focused capability ports.\n\n## Review check\n\nInspect adapters for multi-step business workflows, repository calls, or calls to unrelated adapters.",
+      "source": "knowledge/rules/ports/TENETS-PORT-011.md"
+    },
+    {
+      "id": "TENETS-REPO-001",
+      "title": "Repositories represent aggregate persistence",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-REPO-002",
+        "TENETS-REPO-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA repository interface represents the collection and persistence needs of one aggregate root in domain language.\n\n## Rationale\n\nRepositories are domain-owned contracts used by application use cases, not generic database access services.\n\n## Incorrect\n\n```python\nclass DatabaseRepository(Protocol):\n    def execute(self, sql: str) -> list[dict]: ...\n```\n\n## Correct\n\n```python\nclass OrderRepository(Protocol):\n    def get(self, order_id: OrderId) -> Order | None: ...\n    def save(self, order: Order) -> None: ...\n```\n\n## Remediation\n\nDefine the contract around aggregate operations required by use cases and move query technology into an adapter.\n\n## Review check\n\nVerify that repository names and methods describe aggregate persistence without database terminology.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-001.md"
+    },
+    {
+      "id": "TENETS-REPO-002",
+      "title": "Repository writes accept aggregate roots",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-REPO-001",
+        "TENETS-REPO-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRepository write methods accept complete aggregate roots. Child entities are persisted through their aggregate repository, not separate public repositories.\n\n## Rationale\n\nThe aggregate root protects invariants and defines the persistence consistency boundary.\n\n## Incorrect\n\n```python\norder_line_repository.save(order.line_items[0])\n```\n\n## Correct\n\n```python\norder.add_line_item(product_id, quantity, price)\norder_repository.save(order)\n```\n\n## Remediation\n\nRemove child write repositories and make the aggregate repository map and persist the complete aggregate.\n\n## Review check\n\nFind repositories whose public write methods accept non-root members of an aggregate.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-002.md"
+    },
+    {
+      "id": "TENETS-REPO-003",
+      "title": "Repository queries use semantic criteria",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-007",
+        "TENETS-PORT-010",
+        "TENETS-REPO-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRepository queries accept domain IDs, value objects, named criteria, or domain specifications. They do not accept raw dictionaries, callables, ORM expressions, or naked domain primitives.\n\n## Rationale\n\nSemantic criteria keep persistence mechanics out of use cases and make query intent explicit.\n\n## Incorrect\n\n```python\norders.search({\"status\": \"paid\"}, lambda row: row.total > 100)\n```\n\n## Correct\n\n```python\norders.search(PaidOrdersForAccount(account_id, minimum_total))\n```\n\n## Remediation\n\nReplace implementation-oriented parameters with an immutable named query concept.\n\n## Review check\n\nInspect query signatures for dictionaries, callbacks, SQL fragments, ORM clauses, and primitive IDs.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-003.md"
+    },
+    {
+      "id": "TENETS-REPO-004",
+      "title": "Repository names express result semantics",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-REPO-003",
+        "TENETS-REPO-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse `get` or `get_by_*` for one result, `list_*` for bounded collections, `search` for criteria-driven collections, and `exists_by_*` for existence. Do not use `find_*`.\n\n## Rationale\n\nThese verbs communicate expected cardinality and outcome more precisely than the ambiguous `find` convention.\n\n## Incorrect\n\n```python\nfind_user_by_email(email)\nfind_orders(criteria)\n```\n\n## Correct\n\n```python\nget_by_email(email)\nsearch(criteria)\n```\n\n## Remediation\n\nRename the contract and every adapter implementation according to result semantics.\n\n## Review check\n\nSearch repository interfaces and tests for methods beginning with `find`.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-004.md"
+    },
+    {
+      "id": "TENETS-REPO-005",
+      "title": "Single lookups return normal absence",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-REPO-004",
+        "TENETS-REPO-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA single-result lookup returns the aggregate or `None`. The use case decides whether absence is an error for its workflow.\n\n## Rationale\n\nAbsence is a persistence result; `OrderNotFound` is an application interpretation that varies by use case.\n\n## Incorrect\n\n```python\ndef get(self, order_id: OrderId) -> Order:\n    raise OrderNotFound(order_id)\n```\n\n## Correct\n\n```python\norder = orders.get(command.order_id)\nif order is None:\n    raise OrderNotFound(command.order_id)\n```\n\n## Remediation\n\nReturn `None` from the repository and move not-found handling into the calling use case.\n\n## Review check\n\nVerify that repository adapters do not raise application-level not-found failures.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-005.md"
+    },
+    {
+      "id": "TENETS-REPO-006",
+      "title": "Repositories return domain models",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-009",
+        "TENETS-REPO-002",
+        "TENETS-REPO-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRepositories return fully hydrated aggregate roots, domain read models where explicitly contracted, or absence. They never return ORM models, rows, serialized records, or untyped dictionaries.\n\n## Rationale\n\nPersistence representations belong to adapters and cannot safely carry domain behavior or invariants.\n\n## Incorrect\n\n```python\ndef get(self, order_id: OrderId) -> OrderRow | None: ...\n```\n\n## Correct\n\n```python\ndef get(self, order_id: OrderId) -> Order | None: ...\n```\n\n## Remediation\n\nAdd adapter mapping from the persistence representation to the complete domain object.\n\n## Review check\n\nInspect repository return annotations and use-case code for persistence or mapping concerns.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-006.md"
+    },
+    {
+      "id": "TENETS-REPO-007",
+      "title": "Repository adapters map without business rules",
+      "kind": "rule",
+      "status": "stable",
+      "category": "repositories",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-005",
+        "TENETS-REPO-001",
+        "TENETS-REPO-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA repository implementation contains persistence operations and explicit source-to-target mapping. It does not make business decisions, invoke creation entry points, or orchestrate workflows.\n\n## Rationale\n\nAdapters reconstruct existing state; domain behavior and application decisions belong inward.\n\n## Incorrect\n\n```python\nreturn create_order(customer_id=row.customer_id)\n```\n\n## Correct\n\n```python\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nMove business rules inward and replace creation calls with directional mapping that invokes constructors using persisted state.\n\n## Review check\n\nInspect repository adapters for `create_*` calls, business branching, and ambiguous helpers named `hydrate`.",
+      "source": "knowledge/rules/repositories/TENETS-REPO-007.md"
+    }
+  ],
+  "aliases": {}
+}

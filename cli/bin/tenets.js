@@ -40,6 +40,11 @@ async function main() {
       result = await uninstallCommand(commandArgs);
       break;
     }
+    case 'explain': {
+      const { explainCommand } = require('../src/commands/explain');
+      result = explainCommand(commandArgs);
+      break;
+    }
     case '--version':
     case '-v': {
       result = { version: require('../package.json').version };
@@ -71,6 +76,7 @@ Commands:
   diff              Preview the exact filesystem changes from update
   doctor            Diagnose missing, stale, conflicting, or untracked integrations
   uninstall         Remove only Tenets-owned files and marked content
+  explain <rule-id> Show one canonical rule or pattern
   --version, -v     Print the installed Tenets version
 
 Init options:
@@ -103,6 +109,8 @@ Examples:
   npx tenets update --dry-run
   npx tenets diff
   npx tenets doctor
+  npx tenets explain TENETS-PORT-005
+  npx tenets explain TENETS-PORT-005 --json
   npx tenets uninstall --dry-run
   npx tenets uninstall --yes
   npx tenets update`;

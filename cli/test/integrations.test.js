@@ -53,11 +53,13 @@ test('Cursor writes always-on and path-scoped MDC rules', async (t) => {
   assert.match(globalRule, /alwaysApply: true/);
   assert.match(domainRule, /globs: "\*\*\/domain\/\*\*"/);
   assert.match(domainRule, /alwaysApply: false/);
-  assert.ok(
-    fs.existsSync(
-      path.join(directory, '.cursor/commands/tenets-review-architecture.md')
-    )
+  const reviewCommand = fs.readFileSync(
+    path.join(directory, '.cursor/commands/tenets-review-architecture.md'),
+    'utf-8'
   );
+  assert.match(reviewCommand, /One valid stable Tenets rule ID and its title/);
+  assert.match(reviewCommand, /Do not invent rule IDs/);
+  assert.doesNotMatch(reviewCommand, /One class per file/);
 });
 
 test('Copilot preserves global user content and writes scoped instructions', async (t) => {
