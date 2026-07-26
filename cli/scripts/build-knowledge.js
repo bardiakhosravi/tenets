@@ -75,7 +75,7 @@ function parseScalar(value, filePath, key) {
 }
 
 function parseKnowledgeFile(filePath) {
-  const source = fs.readFileSync(filePath, 'utf-8');
+  const source = fs.readFileSync(filePath, 'utf-8').replace(/\r\n?/g, '\n');
   const match = source.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
   if (!match) {
     throw new Error(

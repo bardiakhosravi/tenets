@@ -1,7 +1,11 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const os = require('node:os');
+const path = require('node:path');
 
 const {
+  parseKnowledgeFile,
   validateCatalog,
   renderCatalog,
 } = require('../scripts/build-knowledge');
@@ -38,6 +42,28 @@ function rule(overrides = {}) {
 
 test('knowledge validation accepts a complete atomic rule', () => {
   assert.deepEqual(validateCatalog([rule()]), []);
+});
+
+test('knowledge parsing accepts Windows line endings', (t) => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'tenets-knowledge-'));
+  t.after(() => fs.rmSync(directory, { recursive: true, force: true }));
+  const filePath = path.join(directory, 'TENETS-TEST-001.md');
+  const content = [
+    '---',
+    'id: TENETS-TEST-001',
+    'title: Complete test rule',
+    'kind: rule',
+    '---',
+    '## Rule',
+    '',
+    'Rule.',
+  ].join('\r\n');
+  fs.writeFileSync(filePath, content, 'utf-8');
+
+  const entry = parseKnowledgeFile(filePath);
+
+  assert.equal(entry.id, 'TENETS-TEST-001');
+  assert.equal(entry.body, '## Rule\n\nRule.');
 });
 
 test('knowledge validation rejects duplicate IDs and broken references', () => {
