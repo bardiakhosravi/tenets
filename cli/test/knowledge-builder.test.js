@@ -5,6 +5,7 @@ const os = require('node:os');
 const path = require('node:path');
 
 const {
+  normalizeNewlines,
   parseKnowledgeFile,
   validateCatalog,
   renderCatalog,
@@ -64,6 +65,10 @@ test('knowledge parsing accepts Windows line endings', (t) => {
 
   assert.equal(entry.id, 'TENETS-TEST-001');
   assert.equal(entry.body, '## Rule\n\nRule.');
+});
+
+test('newline normalization makes generated file comparisons portable', () => {
+  assert.equal(normalizeNewlines('first\r\nsecond\rthird\n'), 'first\nsecond\nthird\n');
 });
 
 test('knowledge validation rejects duplicate IDs and broken references', () => {
