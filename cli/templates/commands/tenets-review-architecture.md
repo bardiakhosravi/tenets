@@ -22,10 +22,18 @@ For each file, verify:
 ### Domain layer (`**/domain/**`)
 - No imports from application, infrastructure, or adapter layers
 - No imports from another bounded context's internals (`TENETS-CONTEXT-002`)
-- Entities use identity-based equality, not attribute-based
-- Value objects are immutable
+- Entities use stable identity equality (`TENETS-ENTITY-001`) and own invariant-protecting behavior (`TENETS-ENTITY-002`)
+- Value objects are immutable with value equality (`TENETS-VALUE-001`), represent semantic concepts (`TENETS-VALUE-002`), and enforce intrinsic invariants during creation and hydration (`TENETS-VALUE-003`)
 - Cross-context relationships and port contracts use local reference ID value objects, not primitives or reused owner-context types; primitives appear only in serialized events, persistence, or external transport
-- Aggregates enforce invariants; no logic leaks to use cases or repositories
+- Aggregates have one root and protect internal invariants (`TENETS-AGGREGATE-001`, `TENETS-AGGREGATE-003`)
+- Aggregate boundaries follow transactional invariants rather than navigation convenience (`TENETS-AGGREGATE-002`)
+- Aggregate repositories persist complete roots (`TENETS-AGGREGATE-004`), and foreign aggregates are referenced by identity (`TENETS-AGGREGATE-005`)
+- Cross-aggregate workflows remain outside aggregates (`TENETS-AGGREGATE-006`)
+- Concurrent writes use an explicit conflict strategy (`TENETS-AGGREGATE-007`)
+- One modified aggregate per transaction is the default; qualifying exceptions require an ADR (`TENETS-AGGREGATE-008`)
+- Domain services contain only ownerless domain behavior and remain pure and stateless (`TENETS-SERVICE-001`, `TENETS-SERVICE-002`)
+- Each bounded context owns its model and language (`TENETS-CONTEXT-001`)
+- Domain names follow ubiquitous language and exclude technology terminology (`TENETS-NAME-001`, `TENETS-NAME-002`)
 - Repository interfaces represent aggregate persistence in domain language (`TENETS-REPO-001`)
 - Repository writes accept aggregate roots (`TENETS-REPO-002`); queries use domain IDs, value objects, or named criteria (`TENETS-REPO-003`)
 - Repository methods use result-semantic names; `find_*` is not used (`TENETS-REPO-004`)

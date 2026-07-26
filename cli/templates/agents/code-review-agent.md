@@ -88,7 +88,13 @@ Ask only questions that block a correct architectural decision.
 - Secondary adapters translate expected technical failures into port-declared failures (`TENETS-ADAPTER-006`).
 - Repository adapters reconstruct persisted objects without invoking creation (`TENETS-ADAPTER-007`).
 - Concrete wiring occurs in the composition root and configuration remains outside business logic (`TENETS-COMPOSE-001`, `TENETS-COMPOSE-002`).
-- Aggregates protect invariants and are the entry point for state changes inside their consistency boundary.
+- Entities use stable identity equality and own invariant-protecting behavior (`TENETS-ENTITY-001`, `TENETS-ENTITY-002`).
+- Value objects are immutable semantic values whose intrinsic invariants also apply during hydration (`TENETS-VALUE-001` through `TENETS-VALUE-003`).
+- Aggregates have one root, follow transactional invariant boundaries, and protect internal state (`TENETS-AGGREGATE-001` through `TENETS-AGGREGATE-003`).
+- One repository persists each complete aggregate, and other aggregates are referenced by identity (`TENETS-AGGREGATE-004`, `TENETS-AGGREGATE-005`).
+- Cross-aggregate workflows remain outside aggregates, concurrency is explicit, and multi-aggregate transactions require the documented policy (`TENETS-AGGREGATE-006` through `TENETS-AGGREGATE-008`).
+- Domain services contain ownerless domain behavior and remain pure and stateless (`TENETS-SERVICE-001`, `TENETS-SERVICE-002`).
+- Bounded contexts own their models and use technology-free ubiquitous language (`TENETS-CONTEXT-001`, `TENETS-NAME-001`, `TENETS-NAME-002`).
 - Domain events use ubiquitous language and do not mention vendors or infrastructure.
 - Tests should match the layer: domain unit tests, use-case orchestration tests with fakes, adapter contract/integration tests at the boundary.
 

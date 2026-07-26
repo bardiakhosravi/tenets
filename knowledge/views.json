@@ -182,6 +182,86 @@
         "TENETS-COMPOSE-001",
         "TENETS-COMPOSE-002"
       ]
+    },
+    {
+      "output": "context/domain/01-entities.md",
+      "title": "Entities",
+      "entries": [
+        "TENETS-ENTITY-001",
+        "TENETS-ENTITY-002",
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-003"
+      ]
+    },
+    {
+      "output": "context/domain/02-value-objects.md",
+      "title": "Value Objects",
+      "entries": [
+        "TENETS-VALUE-001",
+        "TENETS-VALUE-002",
+        "TENETS-VALUE-003",
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002"
+      ]
+    },
+    {
+      "output": "context/domain/03-aggregates.md",
+      "title": "Aggregates",
+      "entries": [
+        "TENETS-AGGREGATE-001",
+        "TENETS-AGGREGATE-002",
+        "TENETS-AGGREGATE-003",
+        "TENETS-AGGREGATE-004",
+        "TENETS-AGGREGATE-005",
+        "TENETS-AGGREGATE-006",
+        "TENETS-AGGREGATE-007",
+        "TENETS-AGGREGATE-008"
+      ]
+    },
+    {
+      "output": "context/domain/04-domain-services.md",
+      "title": "Domain Services",
+      "entries": [
+        "TENETS-SERVICE-001",
+        "TENETS-SERVICE-002",
+        "TENETS-PORT-002"
+      ]
+    },
+    {
+      "output": "context/domain/07-bounded-contexts.md",
+      "title": "Bounded Contexts",
+      "entries": [
+        "TENETS-CONTEXT-001",
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-CONTEXT-004",
+        "TENETS-CONTEXT-005",
+        "TENETS-CONTEXT-006"
+      ]
+    },
+    {
+      "output": "context/domain/08-ubiquitous-language.md",
+      "title": "Ubiquitous Language",
+      "entries": [
+        "TENETS-NAME-001",
+        "TENETS-NAME-002",
+        "TENETS-CONTEXT-001",
+        "TENETS-PORT-003"
+      ]
+    },
+    {
+      "output": "context/domain/09-bounded-context-boundary-rules.md",
+      "title": "Bounded Context Boundary Rules",
+      "entries": [
+        "TENETS-CONTEXT-001",
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-CONTEXT-004",
+        "TENETS-CONTEXT-005",
+        "TENETS-CONTEXT-006",
+        "TENETS-PATTERN-004"
+      ]
     }
   ]
 }

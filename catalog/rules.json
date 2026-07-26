@@ -135,6 +135,157 @@
       "source": "knowledge/rules/adapters/TENETS-ADAPTER-007.md"
     },
     {
+      "id": "TENETS-AGGREGATE-001",
+      "title": "Every aggregate has one root",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-AGGREGATE-002",
+        "TENETS-AGGREGATE-003",
+        "TENETS-REPO-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEvery aggregate has exactly one aggregate root that is the external entry point to its internal entities and values.\n\n## Rationale\n\nOne root gives callers a single authority for preserving aggregate-wide consistency.\n\n## Incorrect\n\n```python\norder.lines.append(OrderLine(...))\n```\n\n## Correct\n\n```python\norder.add_line(product_id, quantity, unit_price)\n```\n\n## Remediation\n\nSelect the entity owning the aggregate lifecycle as root and route internal access and mutation through it.\n\n## Review check\n\nVerify callers cannot obtain and mutate aggregate members independently of the root.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-001.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-002",
+      "title": "Aggregate boundaries define transactional invariants",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-AGGREGATE-001",
+        "TENETS-AGGREGATE-003",
+        "TENETS-AGGREGATE-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPlace state in one aggregate when its invariants must be immediately consistent within the same transaction. Do not group concepts only for navigation or persistence convenience.\n\n## Rationale\n\nAggregate boundaries are consistency boundaries; oversized aggregates increase contention while undersized aggregates cannot enforce required invariants.\n\n## Incorrect\n\n```text\nCustomer, every Order, and every Invoice form one aggregate because the UI shows them together.\n```\n\n## Correct\n\n```text\nOrder and OrderLine share immediate total and quantity invariants; Customer is referenced by CustomerId.\n```\n\n## Remediation\n\nDefine the invariant and transaction that require the boundary, then separate merely related concepts.\n\n## Review check\n\nAsk which invariant requires every member to change atomically with the root.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-002.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-003",
+      "title": "Aggregate roots enforce internal invariants",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-AGGREGATE-001",
+        "TENETS-AGGREGATE-002",
+        "TENETS-ENTITY-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe aggregate root validates and performs every operation that can affect invariants spanning its internal members.\n\n## Rationale\n\nIndividual children cannot reliably protect rules involving the aggregate as a whole.\n\n## Incorrect\n\n```python\norder.lines.append(line)  # Bypasses duplicate-product and total rules.\n```\n\n## Correct\n\n```python\norder.add_line(product_id, quantity, unit_price)\n```\n\n## Remediation\n\nEncapsulate internal collections and expose root behavior that enforces all affected invariants.\n\n## Review check\n\nTrace mutations of aggregate children and verify each originates from root behavior.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-003.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-004",
+      "title": "One repository persists the complete aggregate",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-REPO-001",
+        "TENETS-REPO-002",
+        "TENETS-REPO-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe aggregate root has one repository contract that persists and hydrates the complete aggregate. Internal members do not have independently callable repositories.\n\n## Rationale\n\nPersistence must preserve the same consistency boundary enforced by the aggregate.\n\n## Incorrect\n\n```python\norder_repository.save(order)\norder_line_repository.save_all(order.lines)\n```\n\n## Correct\n\n```python\norder_repository.save(order)\n```\n\n## Remediation\n\nMove child mapping into the aggregate repository adapter and remove public child repositories.\n\n## Review check\n\nVerify one repository operation reconstructs and persists all state required by the aggregate.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-004.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-005",
+      "title": "Aggregates reference other aggregates by identity",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-010",
+        "TENETS-CONTEXT-002",
+        "TENETS-AGGREGATE-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn aggregate stores references to other aggregates as domain identity value objects, not as nested aggregate instances.\n\n## Rationale\n\nIdentity references preserve separate consistency boundaries and prevent accidental cross-aggregate mutation.\n\n## Incorrect\n\n```python\norder.customer = customer\n```\n\n## Correct\n\n```python\norder.customer_id = CustomerReferenceId(customer.id)\n```\n\n## Remediation\n\nReplace nested external aggregate objects with typed identities and load required state in the use case.\n\n## Review check\n\nInspect aggregate fields for entities that have independent repositories or lifecycles.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-005.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-006",
+      "title": "Cross-aggregate workflows are coordinated outside aggregates",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-AGGREGATE-005",
+        "TENETS-AGGREGATE-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse cases, domain-event handlers, process managers, or sagas coordinate workflows involving multiple aggregates. One aggregate does not load or mutate another.\n\n## Rationale\n\nNo aggregate owns another aggregate's lifecycle or transaction boundary.\n\n## Incorrect\n\n```python\norder.submit_and_decrement_inventory(inventory_repository)\n```\n\n## Correct\n\n```python\norder.submit()\ninventory.reserve(InventoryReservation.from_order(order))\n```\n\n## Remediation\n\nMove cross-aggregate sequencing outward and invoke behavior independently on each loaded root.\n\n## Review check\n\nInspect aggregate methods for repositories, foreign aggregate parameters, and mutation of independently persisted roots.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-006.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-007",
+      "title": "Concurrent aggregate writes use an explicit conflict strategy",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-AGGREGATE-002",
+        "TENETS-APP-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nWhere concurrent writes are possible, define an explicit strategy such as optimistic versioning, locking, a commutative operation, serialization, or conflict reconciliation.\n\n## Rationale\n\nAggregate methods protect in-memory invariants but cannot by themselves prevent lost updates across concurrent transactions.\n\n## Incorrect\n\n```python\norder = orders.get(order_id)\norder.add_line(...)\norders.save(order)  # Silently overwrites a concurrent update.\n```\n\n## Correct\n\n```python\norders.save(order, expected_version=order.version)\n```\n\n## Remediation\n\nIdentify the conflict boundary and implement and test the chosen strategy in the repository contract and adapter.\n\n## Review check\n\nVerify mutable aggregates with concurrent writers cannot silently overwrite committed state.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-007.md"
+    },
+    {
+      "id": "TENETS-AGGREGATE-008",
+      "title": "One modified aggregate per transaction is the default",
+      "kind": "rule",
+      "status": "stable",
+      "category": "aggregates",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-AGGREGATE-002",
+        "TENETS-AGGREGATE-006",
+        "TENETS-APP-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nModify one aggregate instance per transaction by default. Outbox, audit, and idempotency records do not count as additional aggregates. A same-context, same-resource exception requires an ADR documenting the invariant, alternatives, concurrency, and failure behavior. Cross-context or distributed multi-aggregate transactions are prohibited.\n\n## Rationale\n\nSmall transaction boundaries reduce coupling and contention while making partial failure explicit.\n\n## Incorrect\n\n```python\nwith unit_of_work:\n    order.submit()\n    inventory.decrement(order.lines)\n    customer.add_loyalty_points(order.total)\n```\n\n## Correct\n\n```python\nwith unit_of_work:\n    order.submit()\n    outbox.add(OrderSubmitted.from_order(order))\n# Separate consumers update Inventory and Customer Accounts.\n```\n\n## Remediation\n\nPrefer events, reservations, process managers, or compensation. If immediate atomic consistency is genuinely required within one context and resource, record the exception in an ADR.\n\n## Review check\n\nCount modified aggregate instances in each transaction and require either separation or a qualifying ADR.",
+      "source": "knowledge/rules/aggregates/TENETS-AGGREGATE-008.md"
+    },
+    {
       "id": "TENETS-API-001",
       "title": "External APIs never expose persistence models",
       "kind": "rule",
@@ -358,6 +509,25 @@
       "source": "knowledge/rules/composition/TENETS-COMPOSE-002.md"
     },
     {
+      "id": "TENETS-CONTEXT-001",
+      "title": "Each bounded context owns its model and language",
+      "kind": "rule",
+      "status": "stable",
+      "category": "context",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-002",
+        "TENETS-CONTEXT-003",
+        "TENETS-NAME-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEach bounded context owns the definitions, invariants, and language of its domain model. Similar terms in different contexts may intentionally have different structures and meanings.\n\n## Rationale\n\nExplicit ownership prevents a shared enterprise model from coupling independently evolving business capabilities.\n\n## Incorrect\n\n```text\nOrdering, Billing, and Shipping all import one global Customer entity.\n```\n\n## Correct\n\n```text\nOrdering owns CustomerReferenceId; Billing owns BillingAccount; Customer Accounts owns Customer.\n```\n\n## Remediation\n\nAssign each concept to a context and translate across published boundaries instead of sharing internal models.\n\n## Review check\n\nVerify every domain type has one owning context and cross-context similarities do not imply shared implementation.",
+      "source": "knowledge/rules/context/TENETS-CONTEXT-001.md"
+    },
+    {
       "id": "TENETS-CONTEXT-002",
       "title": "Bounded contexts do not import each other's internals",
       "kind": "rule",
@@ -508,6 +678,43 @@
       "source": "knowledge/rules/dependencies/TENETS-DEPEND-003.md"
     },
     {
+      "id": "TENETS-ENTITY-001",
+      "title": "Stable identity defines entity equality",
+      "kind": "rule",
+      "status": "stable",
+      "category": "entities",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ENTITY-002",
+        "TENETS-VALUE-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn entity has a stable domain identity, and equality between entities is based on that identity rather than all current attributes.\n\n## Rationale\n\nEntity state changes over its lifecycle while its continuity remains defined by identity.\n\n## Incorrect\n\n```python\n@dataclass\nclass Order:\n    id: OrderId\n    status: OrderStatus\n```\n\n## Correct\n\n```python\n@dataclass(eq=False)\nclass Order:\n    id: OrderId\n    status: OrderStatus\n\n    def __eq__(self, other: object) -> bool:\n        return isinstance(other, Order) and self.id == other.id\n```\n\n## Remediation\n\nIntroduce a domain ID and implement equality and hashing consistently from that identity.\n\n## Review check\n\nVerify entity equality does not change when mutable business state changes.",
+      "source": "knowledge/rules/entities/TENETS-ENTITY-001.md"
+    },
+    {
+      "id": "TENETS-ENTITY-002",
+      "title": "Entities own behavior and protect invariants",
+      "kind": "rule",
+      "status": "stable",
+      "category": "entities",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ENTITY-001",
+        "TENETS-AGGREGATE-003",
+        "TENETS-APP-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEntities expose business behavior that protects their invariants. Callers do not mutate entity state directly or reconstruct its decisions procedurally.\n\n## Rationale\n\nKeeping behavior with state makes valid transitions consistent across workflows.\n\n## Incorrect\n\n```python\norder.status = OrderStatus.SUBMITTED\n```\n\n## Correct\n\n```python\norder.submit()\n```\n\n## Remediation\n\nMake state private or controlled and move transition rules into a domain method.\n\n## Review check\n\nSearch callers for direct state assignment and duplicated conditionals governing entity transitions.",
+      "source": "knowledge/rules/entities/TENETS-ENTITY-002.md"
+    },
+    {
       "id": "TENETS-LIFECYCLE-001",
       "title": "Creation and hydration are distinct",
       "kind": "rule",
@@ -617,6 +824,44 @@
       "aliases": [],
       "body": "## Rule\n\nDo not create an incomplete object and immediately invoke mutation methods to apply creation data that was already available. Mutation remains valid for later business transitions or newly available information.\n\n## Rationale\n\nThe issue is incomplete creation, not mutation itself. Domain methods should represent actual transitions after a valid object exists.\n\n## Incorrect\n\n```python\norder = create_order(customer_id)\norder.change_shipping_address(command.initial_shipping_address)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id, command.initial_shipping_address)\n# Later:\norder.change_shipping_address(new_address)\n```\n\n## Remediation\n\nMove initial data into the creation entry point while retaining the mutation method for later transitions.\n\n## Review check\n\nReview the first operations after creation and compare their inputs with the creation command.",
       "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-006.md"
+    },
+    {
+      "id": "TENETS-NAME-001",
+      "title": "Domain names follow ubiquitous language",
+      "kind": "rule",
+      "status": "stable",
+      "category": "naming",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-CONTEXT-001",
+        "TENETS-PORT-003",
+        "TENETS-NAME-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nNames in domain models, use cases, ports, events, and tests use the terminology and distinctions agreed for their bounded context.\n\n## Rationale\n\nConsistent language makes code communicate the business model and exposes conceptual disagreement.\n\n## Incorrect\n\n```python\nclass ProcessDataService: ...\n```\n\n## Correct\n\n```python\nclass SubmitOrderUseCase: ...\n```\n\n## Remediation\n\nReplace generic or inconsistent terms with the context's accepted business vocabulary.\n\n## Review check\n\nCompare code names with requirements, examples, and neighbouring domain concepts for semantic drift.",
+      "source": "knowledge/rules/naming/TENETS-NAME-001.md"
+    },
+    {
+      "id": "TENETS-NAME-002",
+      "title": "Domain names exclude technology and vendor terminology",
+      "kind": "rule",
+      "status": "stable",
+      "category": "naming",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-NAME-001",
+        "TENETS-DEPEND-001",
+        "TENETS-ADAPTER-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDomain types, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.\n\n## Rationale\n\nTechnology names in the domain make replaceable implementation choices part of the business model.\n\n## Incorrect\n\n```python\nclass StripePaymentCompleted: ...\nclass SqlOrder: ...\n```\n\n## Correct\n\n```python\nclass PaymentAuthorized: ...\nclass Order: ...\n```\n\n## Remediation\n\nMove implementation-specific names to adapters and rename inward concepts around their business meaning.\n\n## Review check\n\nSearch domain names for vendor, protocol, framework, database, queue, and serialization terminology.",
+      "source": "knowledge/rules/naming/TENETS-NAME-002.md"
     },
     {
       "id": "TENETS-PATTERN-001",
@@ -1054,6 +1299,100 @@
       "aliases": [],
       "body": "## Rule\n\nA repository implementation contains persistence operations and explicit source-to-target mapping. It does not make business decisions, invoke creation entry points, or orchestrate workflows.\n\n## Rationale\n\nAdapters reconstruct existing state; domain behavior and application decisions belong inward.\n\n## Incorrect\n\n```python\nreturn create_order(customer_id=row.customer_id)\n```\n\n## Correct\n\n```python\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nMove business rules inward and replace creation calls with directional mapping that invokes constructors using persisted state.\n\n## Review check\n\nInspect repository adapters for `create_*` calls, business branching, and ambiguous helpers named `hydrate`.",
       "source": "knowledge/rules/repositories/TENETS-REPO-007.md"
+    },
+    {
+      "id": "TENETS-SERVICE-001",
+      "title": "Domain services hold ownerless domain behavior",
+      "kind": "rule",
+      "status": "stable",
+      "category": "services",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-SERVICE-002",
+        "TENETS-ENTITY-002",
+        "TENETS-APP-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse a domain service only for domain behavior that requires multiple concepts and does not naturally belong to one entity or value object.\n\n## Rationale\n\nPremature services produce procedural models, while forcing ownerless behavior onto an entity creates artificial coupling.\n\n## Incorrect\n\n```python\nclass OrderService:\n    def submit(self, order: Order) -> None:\n        order.status = OrderStatus.SUBMITTED\n```\n\n## Correct\n\n```python\nclass PricingPolicy:\n    def calculate(self, order: Order, customer_tier: CustomerTier) -> Money: ...\n```\n\n## Remediation\n\nMove behavior to its natural entity or value object, retaining a service only when no single domain owner exists.\n\n## Review check\n\nFor every domain service method, ask why the behavior cannot belong to one supplied domain object.",
+      "source": "knowledge/rules/services/TENETS-SERVICE-001.md"
+    },
+    {
+      "id": "TENETS-SERVICE-002",
+      "title": "Domain services are pure and stateless",
+      "kind": "rule",
+      "status": "stable",
+      "category": "services",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-SERVICE-001",
+        "TENETS-APP-003",
+        "TENETS-DEPEND-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDomain services operate only on supplied semantic domain data. They retain no workflow state and perform no persistence, network access, messaging, configuration lookup, or orchestration.\n\n## Rationale\n\nUse cases own loading and external coordination; domain services express deterministic business behavior.\n\n## Incorrect\n\n```python\nclass PricingPolicy:\n    def calculate(self, order_id: OrderId) -> Money:\n        order = self._orders.get(order_id)\n```\n\n## Correct\n\n```python\nclass PricingPolicy:\n    def calculate(self, order: Order, tier: CustomerTier) -> Money: ...\n```\n\n## Remediation\n\nMove I/O and loading into the use case and pass the required domain objects into the service.\n\n## Review check\n\nInspect domain-service constructors and methods for repositories, ports, mutable state, and external calls.",
+      "source": "knowledge/rules/services/TENETS-SERVICE-002.md"
+    },
+    {
+      "id": "TENETS-VALUE-001",
+      "title": "Value objects are immutable and use value equality",
+      "kind": "rule",
+      "status": "stable",
+      "category": "values",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-VALUE-002",
+        "TENETS-ENTITY-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA value object is immutable and equality is determined by its complete semantic value.\n\n## Rationale\n\nValue objects describe what a value is, not which individual instance it is.\n\n## Incorrect\n\n```python\naddress.city = \"Toronto\"\n```\n\n## Correct\n\n```python\n@dataclass(frozen=True)\nclass ShippingAddress:\n    street: str\n    city: str\n    postal_code: PostalCode\n```\n\n## Remediation\n\nPrevent mutation and replace changed values with newly created value objects.\n\n## Review check\n\nVerify value objects have no identity equality, mutating methods, or externally writable state.",
+      "source": "knowledge/rules/values/TENETS-VALUE-001.md"
+    },
+    {
+      "id": "TENETS-VALUE-002",
+      "title": "Value objects represent semantic domain concepts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "values",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-VALUE-001",
+        "TENETS-PORT-007",
+        "TENETS-NAME-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nCreate a value object when a value has domain meaning, invariants, units, formatting, comparison rules, or behavior beyond its primitive representation.\n\n## Rationale\n\nNamed semantic values prevent primitive confusion and centralize behavior belonging to the concept.\n\n## Incorrect\n\n```python\ndef authorize(amount: int, currency: str) -> None: ...\n```\n\n## Correct\n\n```python\ndef authorize(amount: Money) -> None: ...\n```\n\n## Remediation\n\nReplace related primitives with a cohesive domain value that owns their semantics.\n\n## Review check\n\nChallenge repeated primitives representing identity, money, quantity, date ranges, status, or validated text.",
+      "source": "knowledge/rules/values/TENETS-VALUE-002.md"
+    },
+    {
+      "id": "TENETS-VALUE-003",
+      "title": "Value invariants apply during creation and hydration",
+      "kind": "rule",
+      "status": "stable",
+      "category": "values",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-VALUE-001",
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nInvariants intrinsic to a value object are enforced whenever it is instantiated, including both new creation and persistence hydration.\n\n## Rationale\n\nPersisted data does not become valid merely because it already exists; invalid values must not enter the domain model.\n\n## Incorrect\n\n```python\npostal_code = object.__new__(PostalCode)\npostal_code.value = row.postal_code\n```\n\n## Correct\n\n```python\npostal_code = PostalCode(row.postal_code)\n```\n\n## Remediation\n\nPut intrinsic validation in the value object's construction path and map corrupted persistence data to an explicit adapter failure.\n\n## Review check\n\nVerify repository mappers cannot bypass value-object invariants.",
+      "source": "knowledge/rules/values/TENETS-VALUE-003.md"
     }
   ],
   "aliases": {}

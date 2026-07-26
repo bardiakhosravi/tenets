@@ -15,6 +15,8 @@ All notable changes to Tenets are documented here.
   communication.
 - Stable rules for dependency direction, composition roots, primary and
   secondary adapters, external dependency access, and API boundaries.
+- Stable rules for entities, value objects, aggregates, domain services,
+  bounded-context ownership, and ubiquitous language.
 
 ### Changed
 
