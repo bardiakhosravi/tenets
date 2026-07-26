@@ -47,7 +47,7 @@ jobs:
           zip -r ../tenets-speckit-preset.zip .
 
       - name: Upload preset to release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           files: tenets-speckit-preset.zip
 
