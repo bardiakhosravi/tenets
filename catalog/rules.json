@@ -135,6 +135,60 @@
       "source": "knowledge/rules/adapters/TENETS-ADAPTER-007.md"
     },
     {
+      "id": "TENETS-ADR-001",
+      "title": "Material architectural choices and exceptions receive an ADR",
+      "kind": "rule",
+      "status": "stable",
+      "category": "architecture-decisions",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADR-002",
+        "TENETS-AGGREGATE-008"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRecord a material architectural choice or qualifying exception whose rationale and consequences future maintainers must preserve or revisit.\n\n## Rationale\n\nCode shows what exists but often cannot retain why a consequential trade-off was accepted, what boundaries constrain it, or when it must be reconsidered.\n\n## Incorrect\n\n```text\nAn undocumented cross-aggregate transaction is introduced because both tables\ncurrently share a database.\n```\n\n## Correct\n\n```text\nADR-0012 records the invariant, shared-database constraint, lock-ordering\nconsequence, and the trigger for revisiting the exception.\n```\n\n## Remediation\n\nCreate an ADR for material technology changes, reliability or security trade-offs, cross-team decisions, and rule exceptions that explicitly permit ADR-backed deviation.\n\n## Review check\n\nLook for consequential or exceptional choices whose rationale is absent from durable project documentation.",
+      "source": "knowledge/rules/architecture-decisions/TENETS-ADR-001.md"
+    },
+    {
+      "id": "TENETS-ADR-002",
+      "title": "ADRs record context decision status and consequences",
+      "kind": "rule",
+      "status": "stable",
+      "category": "architecture-decisions",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADR-001",
+        "TENETS-ADR-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEvery ADR records a title, status, context, decision, and consequences.\n\n## Rationale\n\nThese sections provide the minimum durable evidence needed to understand what was chosen, why it was necessary, and which trade-offs it creates.\n\n## Incorrect\n\n```markdown\n# Use Postgres\n\nWe decided to use Postgres.\n```\n\n## Correct\n\n```markdown\n# ADR-0012: Permit Atomic Inventory Reservation\n## Status\nAccepted\n## Context\n...\n## Decision\n...\n## Consequences\n...\n```\n\n## Remediation\n\nAdd the missing decision context and consequences; link related Tenets rule IDs when they clarify an exception or requirement.\n\n## Review check\n\nConfirm that each ADR can be evaluated without relying on undocumented meeting context.",
+      "source": "knowledge/rules/architecture-decisions/TENETS-ADR-002.md"
+    },
+    {
+      "id": "TENETS-ADR-003",
+      "title": "Superseded decisions preserve history",
+      "kind": "rule",
+      "status": "stable",
+      "category": "architecture-decisions",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADR-001",
+        "TENETS-ADR-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRecord a materially changed decision in a new ADR and retain the previous ADR with a status that points to its replacement.\n\n## Rationale\n\nPreserved history explains the assumptions behind existing code and prevents later edits from rewriting the rationale that maintainers originally followed.\n\n## Incorrect\n\n```text\nEdit an accepted ADR's Decision section until it describes its replacement.\n```\n\n## Correct\n\n```markdown\n## Status\n\nSuperseded by ADR-0019\n```\n\n## Remediation\n\nRestore the historical decision where possible, create a replacement ADR, and link the old and new records.\n\n## Review check\n\nVerify that material decision changes create new records while maintenance edits remain limited to status, links, corrections, references, and clearly marked later context.",
+      "source": "knowledge/rules/architecture-decisions/TENETS-ADR-003.md"
+    },
+    {
       "id": "TENETS-AGGREGATE-001",
       "title": "Every aggregate has one root",
       "kind": "rule",
@@ -861,6 +915,159 @@
       "source": "knowledge/rules/entities/TENETS-ENTITY-002.md"
     },
     {
+      "id": "TENETS-ERROR-001",
+      "title": "Failure ownership follows architectural meaning",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ERROR-002",
+        "TENETS-ERROR-003",
+        "TENETS-ERROR-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDefine a failure beside the domain concept, application workflow, or port contract that gives the failure architectural meaning.\n\n## Rationale\n\nMeaningful ownership keeps failures precise and prevents one global technical hierarchy from coupling otherwise independent layers and bounded contexts.\n\n## Incorrect\n\n```text\nshared/errors.py\n  DomainException\n  AdapterException\n  Every project failure\n```\n\n## Correct\n\n```text\nordering/domain/errors.py\nordering/application/errors.py\nordering/application/ports/payment_gateway_errors.py\n```\n\n## Remediation\n\nMove each failure to its owning concept or contract and remove dependencies on global technical categories.\n\n## Review check\n\nFor each failure, identify who can define its meaning without importing an outer technology.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-001.md"
+    },
+    {
+      "id": "TENETS-ERROR-002",
+      "title": "Domain failures remain technology agnostic",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-001",
+        "TENETS-VALIDATE-001",
+        "TENETS-ERROR-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDomain failures express invariant and business-rule violations without framework, protocol, persistence, or vendor concepts.\n\n## Rationale\n\nA domain failure must carry the same ubiquitous meaning whether the workflow is invoked through HTTP, messaging, a command line, or a test.\n\n## Incorrect\n\n```python\nraise HTTPConflict(\"order already submitted\")\n```\n\n## Correct\n\n```python\nclass OrderAlreadySubmitted(Exception):\n    pass\n```\n\n## Remediation\n\nReplace outer-layer exceptions with a domain-specific failure and map it at each primary adapter.\n\n## Review check\n\nInspect domain exception imports, names, fields, and messages for transport or infrastructure vocabulary.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-002.md"
+    },
+    {
+      "id": "TENETS-ERROR-003",
+      "title": "Application failures represent orchestration outcomes",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-002",
+        "TENETS-REPO-005",
+        "TENETS-ERROR-006"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nApplication failures represent meaningful use-case outcomes, such as required absence or workflow rejection, rather than technical adapter failures.\n\n## Rationale\n\nThe application layer owns how repository results and capability outcomes affect a workflow, but it must remain independent of vendor mechanics.\n\n## Incorrect\n\n```python\nraise DatabaseRowMissing(order_id)\n```\n\n## Correct\n\n```python\norder = self._order_repository.get(command.order_id)\nif order is None:\n    raise OrderNotFound(command.order_id)\n```\n\n## Remediation\n\nInterpret technical-neutral port results in the use case and raise a workflow-specific application failure only when required.\n\n## Review check\n\nVerify that application failures describe business workflow outcomes and do not mention drivers, protocols, or vendor SDKs.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-003.md"
+    },
+    {
+      "id": "TENETS-ERROR-004",
+      "title": "Expected outbound failures are declared beside their port",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-004",
+        "TENETS-ADAPTER-006",
+        "TENETS-ERROR-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nDeclare each expected outbound failure that a use case may handle beside the consuming port contract.\n\n## Rationale\n\nExpected failure semantics are part of the capability contract and must not be invented independently by an adapter implementation.\n\n## Incorrect\n\n```python\nexcept StripeConnectionError:\n    raise AdapterException()\n```\n\n## Correct\n\n```python\nclass PaymentGatewayUnavailable(Exception):\n    pass\n\nclass PaymentGateway(Protocol):\n    def authorize(self, request: PaymentAuthorization) -> PaymentAuthorizationResult: ...\n```\n\n## Remediation\n\nName the expected capability failure in application or domain language and document it with the port that consumers depend upon.\n\n## Review check\n\nConfirm that every expected adapter failure handled inward has a precise port-owned contract type.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-004.md"
+    },
+    {
+      "id": "TENETS-ERROR-005",
+      "title": "Secondary adapters translate specific vendor failures",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-006",
+        "TENETS-ERROR-004",
+        "TENETS-ERROR-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nSecondary adapters catch specific expected technical failures, raise the corresponding port-declared failures, and preserve the original cause.\n\n## Rationale\n\nSpecific translation prevents vendor types from leaking inward while retaining diagnostic evidence and avoiding accidental conversion of programming defects.\n\n## Incorrect\n\n```python\nexcept Exception:\n    raise PaymentGatewayUnavailable()\n```\n\n## Correct\n\n```python\nexcept StripeConnectionError as error:\n    raise PaymentGatewayUnavailable() from error\n```\n\n## Remediation\n\nCatch only known vendor failures at the adapter boundary and chain each translated cause.\n\n## Review check\n\nLook for broad catches, swallowed causes, generic adapter failures, and vendor exceptions crossing the port.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-005.md"
+    },
+    {
+      "id": "TENETS-ERROR-006",
+      "title": "Primary adapters map known failures",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-003",
+        "TENETS-ERROR-002",
+        "TENETS-ERROR-003",
+        "TENETS-ERROR-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPrimary adapters map known domain, application, and port-declared failures into explicit protocol-specific outcomes.\n\n## Rationale\n\nTransport status, response shape, acknowledgment, and exit codes belong to the driving boundary rather than to reusable business code.\n\n## Incorrect\n\n```python\nraise OrderNotFound(order_id)  # Escapes the HTTP boundary unmapped.\n```\n\n## Correct\n\n```python\n@app.errorhandler(OrderNotFound)\ndef handle_order_not_found(error: OrderNotFound):\n    return {\"code\": \"order_not_found\"}, 404\n```\n\n## Remediation\n\nAdd centralized primary-adapter mappings for every known failure that can reach that protocol.\n\n## Review check\n\nTrace known failures to stable protocol responses and verify that domain or application code does not choose those responses.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-006.md"
+    },
+    {
+      "id": "TENETS-ERROR-007",
+      "title": "Unexpected failures terminate at an outer boundary",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ERROR-005",
+        "TENETS-ERROR-006",
+        "TENETS-UOW-010"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nLet unexpected failures reach a true outer safety boundary that logs them once with correlation context and returns a safe generic protocol outcome.\n\n## Rationale\n\nIntermediate broad catches hide defects and duplicate logging, while an outer boundary prevents internal messages, SQL, payloads, and stack traces from leaking externally.\n\n## Incorrect\n\n```python\ntry:\n    self._order_repository.save(order)\nexcept Exception:\n    return None\n```\n\n## Correct\n\n```python\n@app.errorhandler(Exception)\ndef handle_unexpected_error(error: Exception):\n    app.logger.exception(\"Unhandled request failure\")\n    return {\"code\": \"internal_error\"}, 500\n```\n\n## Remediation\n\nRemove broad intermediate catches unless they are cleanup boundaries that preserve the primary failure, and install one outer protocol safety boundary.\n\n## Review check\n\nVerify that unexpected failures are logged once, produce no internal detail in responses, and are not mislabeled as expected outcomes.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-007.md"
+    },
+    {
+      "id": "TENETS-ERROR-008",
+      "title": "Failure types live with their owning concept or contract",
+      "kind": "rule",
+      "status": "stable",
+      "category": "errors",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ERROR-001",
+        "TENETS-CONTEXT-001",
+        "TENETS-PATTERN-012"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPlace failure types in cohesive modules owned by their domain concept, application capability, or port contract rather than in a global shared-kernel dumping ground.\n\n## Rationale\n\nFile placement should expose ownership and dependency direction; a universal exceptions module obscures both and creates cross-context coupling.\n\n## Incorrect\n\n```text\nshared_kernel/exceptions.py\n  OrderAlreadySubmitted\n  PaymentGatewayUnavailable\n  OrderNotFound\n```\n\n## Correct\n\n```text\nordering/domain/errors.py\nordering/application/errors.py\nordering/application/ports/payment_gateway_errors.py\n```\n\n## Remediation\n\nRelocate failures to their owner; a small module may colocate one precise failure with the contract it describes.\n\n## Review check\n\nInspect shared failure modules for unrelated bounded-context, workflow, port, protocol, or vendor concepts.",
+      "source": "knowledge/rules/errors/TENETS-ERROR-008.md"
+    },
+    {
       "id": "TENETS-EVENT-001",
       "title": "Domain events are immutable internal records",
       "kind": "rule",
@@ -1450,6 +1657,77 @@
       "source": "knowledge/patterns/TENETS-PATTERN-010.md"
     },
     {
+      "id": "TENETS-PATTERN-011",
+      "title": "Repository port contract testing",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "testing",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-TEST-003",
+        "TENETS-TEST-005",
+        "TENETS-TEST-006",
+        "TENETS-REPO-005"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nProve that every repository adapter preserves the same application-owned\ncontract while allowing each technology to receive additional implementation\ntests.\n\n## Implementation\n\nDefine one reusable behavioral suite around the repository port:\n\n```python\nclass OrderRepositoryContract:\n    def order_repository(self) -> OrderRepository:\n        raise NotImplementedError\n\n    def test_saves_and_gets_complete_aggregate(self) -> None:\n        repository = self.order_repository()\n        order = create_order(\n            customer_account_id=CustomerAccountId(\"acct_456\"),\n            lines=[],\n        )\n\n        repository.save(order)\n        loaded_order = repository.get(order.id)\n\n        assert loaded_order is not None\n        assert loaded_order.id == order.id\n        assert loaded_order.customer_account_id == order.customer_account_id\n\n    def test_get_returns_none_for_normal_absence(self) -> None:\n        repository = self.order_repository()\n\n        assert repository.get(OrderId(\"ord_missing\")) is None\n```\n\nRun it against every implementation:\n\n```python\nclass TestSqliteOrderRepository(OrderRepositoryContract):\n    def order_repository(self) -> OrderRepository:\n        connection = create_test_connection()\n        return SqliteOrderRepository(connection=connection)\n\n\nclass TestPostgresOrderRepository(OrderRepositoryContract):\n    def order_repository(self) -> OrderRepository:\n        connection = create_postgres_test_connection()\n        return PostgresOrderRepository(connection=connection)\n```\n\nThe shared contract tests only the promises visible through `OrderRepository`:\n\n- Semantic input and output types\n- Complete aggregate round trips\n- Normal absence\n- Replacement or concurrency behavior when declared by the port\n- Expected failure translation\n- Transaction behavior when declared by the port\n\nAdd technology-specific supplements separately:\n\n```python\ndef test_order_id_has_a_unique_database_constraint(\n    connection: sqlite3.Connection,\n) -> None:\n    constraints = read_order_constraints(connection)\n\n    assert \"orders_order_id_unique\" in constraints\n```\n\nFixtures must isolate each test and apply the same transaction ownership used by\nthe adapter in production. Repository contract tests may use a real database,\nan ephemeral container, or a compatible embedded database only when that choice\ncan prove the promised behavior.\n\n## Trade-offs\n\nA shared contract suite reduces behavioral drift but cannot prove\ntechnology-specific constraints, query plans, serialization, or failure modes.\nThose require adapter-specific tests. An embedded database is fast, but it does\nnot replace tests against the production database when dialect behavior matters.\n\n## Related rules\n\nSee `TENETS-TEST-003`, `TENETS-TEST-005`, `TENETS-TEST-006`, and\n`TENETS-REPO-005`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-011.md"
+    },
+    {
+      "id": "TENETS-PATTERN-012",
+      "title": "Layered Python error organization and handling",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "errors",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python",
+        "flask"
+      ],
+      "related": [
+        "TENETS-ERROR-001",
+        "TENETS-ERROR-002",
+        "TENETS-ERROR-003",
+        "TENETS-ERROR-004",
+        "TENETS-ERROR-005",
+        "TENETS-ERROR-006",
+        "TENETS-ERROR-007",
+        "TENETS-ERROR-008"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nKeep failures owned by their architectural meaning and translate them once as\nthey cross secondary and primary adapter boundaries.\n\n## Implementation\n\nUse cohesive modules that make ownership visible:\n\n```text\nsrc/ordering/\n  domain/\n    order.py\n    errors.py\n    ports/\n      order_repository.py\n  application/\n    errors.py\n    ports/\n      payment_gateway.py\n      payment_gateway_errors.py\n    use_cases/\n      submit_order_use_case.py\n  adapters/\n    primary/flask/\n      routes.py\n      error_handlers.py\n    secondary/stripe/\n      stripe_payment_gateway.py\n      errors.py\n```\n\nSmall modules may colocate one precise failure with its owning concept or port.\nProjects may consistently use `exceptions.py` instead of `errors.py`; ownership\nmatters more than the filename.\n\nDefine domain failures without outer technology:\n\n```python\nclass OrderAlreadySubmitted(Exception):\n    pass\n```\n\nInterpret normal repository absence in the use case:\n\n```python\nclass OrderNotFound(Exception):\n    def __init__(self, order_id: OrderId) -> None:\n        self.order_id = order_id\n        super().__init__(f\"Order {order_id} was not found\")\n\n\norder = self._order_repository.get(command.order_id)\nif order is None:\n    raise OrderNotFound(command.order_id)\n```\n\nDeclare expected capability failures beside the port:\n\n```python\nclass PaymentGatewayUnavailable(Exception):\n    pass\n\n\nclass PaymentDeclined(Exception):\n    def __init__(self, reason: PaymentDeclineReason) -> None:\n        self.reason = reason\n        super().__init__(str(reason))\n```\n\nTranslate only specific vendor failures in the secondary adapter:\n\n```python\ndef authorize(\n    self,\n    request: PaymentAuthorization,\n) -> PaymentAuthorizationResult:\n    try:\n        response = self._stripe_client.authorize(\n            amount=request.amount.to_minor_units(),\n            currency=request.amount.currency.code,\n            idempotency_key=str(request.operation_id),\n        )\n    except StripeConnectionError as error:\n        raise PaymentGatewayUnavailable() from error\n\n    return map_stripe_authorization_to_result(response)\n```\n\nA use case catches a failure only when it performs meaningful workflow behavior,\nrecovery, compensation, or translation:\n\n```python\ntry:\n    authorization = self._payment_gateway.authorize(payment_request)\nexcept PaymentDeclined as error:\n    order.record_payment_declined(reason=error.reason)\n    self._unit_of_work.commit()\n    raise OrderPaymentRejected(order.id) from error\n```\n\nMap known failures in the Flask adapter:\n\n```python\ndef register_error_handlers(app: Flask) -> None:\n    @app.errorhandler(OrderNotFound)\n    def handle_order_not_found(error: OrderNotFound):\n        return {\"code\": \"order_not_found\"}, 404\n\n    @app.errorhandler(OrderAlreadySubmitted)\n    def handle_order_already_submitted(error: OrderAlreadySubmitted):\n        return {\"code\": \"order_already_submitted\"}, 409\n\n    @app.errorhandler(PaymentGatewayUnavailable)\n    def handle_payment_gateway_unavailable(error: PaymentGatewayUnavailable):\n        return {\"code\": \"payment_temporarily_unavailable\"}, 503\n\n    @app.errorhandler(Exception)\n    def handle_unexpected_error(error: Exception):\n        app.logger.exception(\"Unhandled request failure\")\n        return {\"code\": \"internal_error\"}, 500\n```\n\nThe outer handler is the one broad safety boundary. It does not expose exception\nmessages, SQL, vendor payloads, stack traces, or internal identifiers. Add\ncorrelation context through the application's logging configuration.\n\n## Trade-offs\n\nPrecise failure ownership introduces more types than a universal\n`DomainException` or `AdapterException`, but each type carries actionable\nmeaning and avoids cross-layer coupling. Central protocol mappings reduce route\nduplication, though every primary adapter must define its own mapping.\n\n## Related rules\n\nSee `TENETS-ERROR-001` through `TENETS-ERROR-008`,\n`TENETS-ADAPTER-003`, `TENETS-ADAPTER-006`, and `TENETS-REPO-005`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-012.md"
+    },
+    {
+      "id": "TENETS-PATTERN-013",
+      "title": "Python bounded-context project structure",
+      "kind": "pattern",
+      "status": "stable",
+      "category": "project-structure",
+      "severity": "guidance",
+      "profiles": [
+        "core",
+        "python",
+        "flask"
+      ],
+      "related": [
+        "TENETS-DEPEND-001",
+        "TENETS-DEPEND-002",
+        "TENETS-DEPEND-003",
+        "TENETS-COMPOSE-001",
+        "TENETS-ERROR-008",
+        "TENETS-ADR-001"
+      ],
+      "aliases": [],
+      "body": "## Purpose\n\nProvide a coherent Python package layout that makes bounded-context ownership,\ndependency direction, port placement, and adapter technology visible without\nturning path names or class counts into architecture rules.\n\n## Implementation\n\nOrganize each bounded context as a package:\n\n```text\nsrc/\n  ordering/\n    domain/\n      order.py\n      errors.py\n      events.py\n      ports/\n        order_repository.py\n    application/\n      commands.py\n      errors.py\n      handlers/\n      ports/\n        payment_gateway.py\n      use_cases/\n        submit_order_use_case.py\n    adapters/\n      primary/\n        flask/\n          routes.py\n          error_handlers.py\n      secondary/\n        sqlite/\n          order_repository.py\n          mappers.py\n        stripe/\n          payment_gateway.py\n          mappers.py\n    configuration/\n      container.py\n```\n\nApply these organization principles:\n\n- A module represents one cohesive concept, not an arbitrary class count.\n- A module may contain its primary type, creation function, closely related\n  value types, precise failures, and private helpers.\n- Split unrelated responsibilities and independently evolving concepts.\n- Keep `__init__.py` limited to package declarations or re-exports; do not hide\n  business, orchestration, or adapter implementation there.\n- Keep technology-specific records, models, clients, and directional mappers\n  with the adapter that owns them.\n- Place repository ports with the domain model whose aggregates they persist.\n- Place external capability ports with the application workflow that consumes\n  them.\n- Wire concrete implementations in the composition root.\n\nThe following alternatives are valid when used consistently and when they\npreserve the same ownership and dependency direction:\n\n```text\nordering/adapters/secondary/...\nordering/infrastructure/adapters/secondary/...\n```\n\nSmaller codebases may combine closely related modules. Architecture review\nfindings should identify an actual ownership or dependency problem, not merely:\n\n- More than one class in a module\n- `adapters/` instead of `infrastructure/adapters/`\n- A different but coherent package grouping\n\nRecord a project-specific layout decision when multiple teams or bounded\ncontexts need a durable convention.\n\n## Trade-offs\n\nBounded-context-first packages make ownership and extraction boundaries clear,\nbut shared technical operations may require carefully scoped adapter utilities.\nType-first layouts can feel familiar in small services, but they become harder\nto navigate as bounded contexts grow. Neither layout compensates for violated\ndependency direction.\n\n## Related rules\n\nSee `TENETS-DEPEND-001` through `TENETS-DEPEND-003`,\n`TENETS-COMPOSE-001`, `TENETS-ERROR-008`, and `TENETS-ADR-001`.",
+      "source": "knowledge/patterns/TENETS-PATTERN-013.md"
+    },
+    {
       "id": "TENETS-PORT-001",
       "title": "Use cases embody primary ports",
       "kind": "rule",
@@ -1823,6 +2101,123 @@
       "source": "knowledge/rules/services/TENETS-SERVICE-002.md"
     },
     {
+      "id": "TENETS-TEST-001",
+      "title": "Domain behavior is unit tested without infrastructure",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-DEPEND-001",
+        "TENETS-LIFECYCLE-002",
+        "TENETS-EVENT-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nTest entities, aggregates, value objects, and domain services with real domain objects and without repositories, adapters, frameworks, databases, or external clients.\n\n## Rationale\n\nDomain tests should prove business behavior, invariants, state transitions, returned values, and recorded domain events rather than mock configuration.\n\n## Incorrect\n\n```python\norder = Mock(spec=Order)\norder.submit()\norder.submit.assert_called_once()\n```\n\n## Correct\n\n```python\norder = create_order(customer_account_id=account_id, lines=lines)\norder.submit()\nassert order.status is OrderStatus.SUBMITTED\nassert isinstance(order.recorded_events[-1], OrderSubmittedDomainEvent)\n```\n\n## Remediation\n\nReplace mocked domain objects with production domain entry points and assert externally observable behavior.\n\n## Review check\n\nVerify that domain tests run without infrastructure and exercise real domain behavior.",
+      "source": "knowledge/rules/testing/TENETS-TEST-001.md"
+    },
+    {
+      "id": "TENETS-TEST-002",
+      "title": "Use cases are tested through isolated port dependencies",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-APP-001",
+        "TENETS-APP-002",
+        "TENETS-UOW-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nInstantiate the real use case with controlled implementations of its ports and test observable orchestration, outcomes, and transaction behavior.\n\n## Rationale\n\nUse-case tests should prove loading, domain invocation, outbound calls, failure handling, and commit decisions without coupling to private methods or real infrastructure.\n\n## Incorrect\n\n```python\nuse_case = Mock()\nuse_case.execute(command)\nuse_case.execute.assert_called_once_with(command)\n```\n\n## Correct\n\n```python\norders = FakeOrderRepository([order])\nunit_of_work = SpyUnitOfWork()\nresult = SubmitOrderUseCase(orders, unit_of_work).execute(command)\nassert result is order\nassert orders.requested_order_ids == [command.order_id]\nassert unit_of_work.commit_count == 1\n```\n\n## Remediation\n\nCompose the real use case with small fakes, stubs, spies, or mocks that expose the behavior promised by each port.\n\n## Review check\n\nConfirm that each use case has isolated tests for success, expected absence or failure, and transaction outcomes.",
+      "source": "knowledge/rules/testing/TENETS-TEST-002.md"
+    },
+    {
+      "id": "TENETS-TEST-003",
+      "title": "Every secondary adapter proves its port contract",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-004",
+        "TENETS-ADAPTER-006",
+        "TENETS-REPO-005",
+        "TENETS-PATTERN-011"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nRun reusable behavioral contract tests against every material secondary adapter implementation.\n\n## Rationale\n\nAll implementations of a port must preserve the same semantic inputs, outputs, absence behavior, failure translation, and transaction guarantees.\n\n## Incorrect\n\n```text\nThe SQLite repository has hand-written tests.\nThe Postgres repository is assumed to behave the same.\n```\n\n## Correct\n\n```python\nclass TestSqliteOrderRepository(OrderRepositoryContract): ...\nclass TestPostgresOrderRepository(OrderRepositoryContract): ...\n```\n\n## Remediation\n\nExtract the port's promised behavior into a reusable suite and parameterize adapter setup without putting technology-specific assertions in the shared contract.\n\n## Review check\n\nList each material secondary adapter and verify that it runs its port contract suite plus any technology-specific tests.",
+      "source": "knowledge/rules/testing/TENETS-TEST-003.md"
+    },
+    {
+      "id": "TENETS-TEST-004",
+      "title": "Integration tests exercise complete workflows through controlled adapters",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-001",
+        "TENETS-COMPOSE-001",
+        "TENETS-TEST-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nWorkflow integration tests connect a real primary adapter, use case, and domain model to selected real or controlled secondary adapters.\n\n## Rationale\n\nThis level proves composition and boundary mappings that isolated tests cannot, while controlled external capabilities keep failures deterministic.\n\n## Incorrect\n\n```python\nuse_case = Mock()\nresponse = submit_order_route(use_case)\nassert response.status_code == 200\n```\n\n## Correct\n\n```text\nFlask test client\n  -> SubmitOrderUseCase\n  -> Order\n  -> SQLiteOrderRepository\n  -> FakePaymentGateway\n```\n\n## Remediation\n\nBuild a test composition root that preserves production port semantics and replaces only the external capabilities outside the workflow's intended scope.\n\n## Review check\n\nDistinguish primary-adapter unit tests from workflow integration tests and verify that critical workflows have the latter.",
+      "source": "knowledge/rules/testing/TENETS-TEST-004.md"
+    },
+    {
+      "id": "TENETS-TEST-005",
+      "title": "Tests distinguish creation from hydration entry points",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core",
+        "python"
+      ],
+      "related": [
+        "TENETS-LIFECYCLE-002",
+        "TENETS-LIFECYCLE-005",
+        "TENETS-ADAPTER-007"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nUse production `create_<domain_object>()` functions when tests need new domain objects and explicit constructors or directional repository mappers when tests need persisted state.\n\n## Rationale\n\nTests that bypass creation or recreate persisted objects through creation functions can hide lifecycle defects and produce events, defaults, or identities at the wrong time.\n\n## Incorrect\n\n```python\nloaded_order = create_order(order_id=persisted_id, status=persisted_status)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_account_id=account_id, lines=lines)\nloaded_order = map_order_row_to_order_domain_object(row)\n```\n\n## Remediation\n\nChoose the entry point from the object's lifecycle meaning and make fixtures explicit about whether they create or reconstruct state.\n\n## Review check\n\nInspect domain and repository tests for creation functions used as hydration shortcuts or constructors used to bypass creation policy.",
+      "source": "knowledge/rules/testing/TENETS-TEST-005.md"
+    },
+    {
+      "id": "TENETS-TEST-006",
+      "title": "Port tests assert semantic contract values",
+      "kind": "rule",
+      "status": "stable",
+      "category": "testing",
+      "severity": "warning",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-PORT-007",
+        "TENETS-PORT-008",
+        "TENETS-PORT-009",
+        "TENETS-REPO-003"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nTests verify that repositories and secondary ports receive and return the aggregate, entity, value object, named criteria, or capability contract required by the port.\n\n## Rationale\n\nTesting only call count or primitive equality allows naked domain primitives and adapter representations to leak across semantic boundaries unnoticed.\n\n## Incorrect\n\n```python\norders.get.assert_called_once_with(\"ord_123\")\n```\n\n## Correct\n\n```python\nassert orders.requested_order_ids == [OrderId(\"ord_123\")]\nassert all(isinstance(value, OrderId) for value in orders.requested_order_ids)\n```\n\n## Remediation\n\nAssert both the semantic value and its contract type at port boundaries.\n\n## Review check\n\nLook for port tests that accept strings, dictionaries, callables, ORM expressions, or vendor models where the contract requires domain semantics.",
+      "source": "knowledge/rules/testing/TENETS-TEST-006.md"
+    },
+    {
       "id": "TENETS-UOW-001",
       "title": "The application owns the Unit of Work contract",
       "kind": "rule",
@@ -2021,6 +2416,44 @@
       "aliases": [],
       "body": "## Rule\n\nUse an explicit Unit of Work for reads requiring a consistent multi-query snapshot. A single-operation query adapter may own and release its own short-lived resource.\n\n## Rationale\n\nRead-only code still consumes sessions or connections, but command-style transaction ceremony is unnecessary when one self-contained query operation can guarantee cleanup.\n\n## Incorrect\n\n```python\nsession = session_factory()\nrepository = SqlOrderRepository(session)\nreturn repository.get(order_id)  # Session ownership is abandoned.\n```\n\n## Correct\n\n```python\ndef get(self, order_id: OrderId) -> Order:\n    with self._session_factory() as session:\n        return map_order_row_to_order(session.get(OrderRow, order_id.value))\n```\n\n## Remediation\n\nChoose either a transactionally consistent Unit of Work or a self-contained query adapter and make resource cleanup deterministic.\n\n## Review check\n\nVerify that every read-created session or connection has a visible owner and bounded cleanup path.",
       "source": "knowledge/rules/unit-of-work/TENETS-UOW-011.md"
+    },
+    {
+      "id": "TENETS-VALIDATE-001",
+      "title": "Domain objects enforce domain invariants",
+      "kind": "rule",
+      "status": "stable",
+      "category": "validation",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ENTITY-002",
+        "TENETS-VALUE-002",
+        "TENETS-LIFECYCLE-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nEntities, aggregates, and value objects enforce their own invariants explicitly on every lifecycle path where those invariants apply.\n\n## Rationale\n\nDomain validity must not depend on whether an object entered through HTTP, a use case, a repository mapper, or another adapter.\n\n## Incorrect\n\n```python\nif request_body.quantity <= 0:\n    raise BadRequest(\"quantity must be positive\")\n```\n\n## Correct\n\n```python\n@dataclass(frozen=True)\nclass Quantity:\n    value: int\n\n    def __post_init__(self) -> None:\n        if self.value <= 0:\n            raise InvalidQuantity()\n```\n\n## Remediation\n\nMove business invariants into the domain type and retain only protocol-shape checks at the external boundary.\n\n## Review check\n\nVerify that every applicable creation, mutation, and hydration path passes through the domain invariant.",
+      "source": "knowledge/rules/validation/TENETS-VALIDATE-001.md"
+    },
+    {
+      "id": "TENETS-VALIDATE-002",
+      "title": "Primary adapters validate external input shape",
+      "kind": "rule",
+      "status": "stable",
+      "category": "validation",
+      "severity": "error",
+      "profiles": [
+        "core"
+      ],
+      "related": [
+        "TENETS-ADAPTER-001",
+        "TENETS-API-002",
+        "TENETS-VALIDATE-001"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nPrimary adapters validate protocol shape and map valid external inputs into application or domain semantics without duplicating domain invariants.\n\n## Rationale\n\nTransport concerns such as required JSON fields belong at the protocol boundary, while business meaning remains reusable and authoritative inside the domain.\n\n## Incorrect\n\n```python\ncommand = CreateOrderCommand(**request.get_json())\n```\n\n## Correct\n\n```python\nrequest_body = CreateOrderRequest.from_json(request.get_json())\ncommand = CreateOrderCommand(\n    customer_account_id=CustomerAccountId(request_body.customer_account_id),\n    lines=tuple(map_request_line_to_command_line(line) for line in request_body.lines),\n)\n```\n\n## Remediation\n\nIntroduce a protocol request model, validate its shape, and map it explicitly to semantic input types.\n\n## Review check\n\nCheck that malformed external data stops at the primary adapter and domain rules are not independently reimplemented there.",
+      "source": "knowledge/rules/validation/TENETS-VALIDATE-002.md"
     },
     {
       "id": "TENETS-VALUE-001",

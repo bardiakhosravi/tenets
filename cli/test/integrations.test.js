@@ -60,6 +60,9 @@ test('Cursor writes always-on and path-scoped MDC rules', async (t) => {
   assert.match(applicationRule, /TENETS-UOW-001/);
   assert.match(applicationRule, /TENETS-EVENT-008/);
   assert.match(globalRule, /TENETS-ASYNC-008/);
+  assert.match(globalRule, /TENETS-TEST-006/);
+  assert.match(globalRule, /TENETS-ERROR-008/);
+  assert.match(globalRule, /TENETS-ADR-003/);
   const reviewCommand = fs.readFileSync(
     path.join(directory, '.cursor/commands/tenets-review-architecture.md'),
     'utf-8'
@@ -107,6 +110,7 @@ test('Copilot preserves global user content and writes scoped instructions', asy
     'utf-8'
   );
   assert.match(globalTenetsInstructions, /TENETS-ASYNC-008/);
+  assert.match(globalTenetsInstructions, /TENETS-PATTERN-013/);
   assert.ok(
     fs.existsSync(
       path.join(

@@ -7,7 +7,7 @@ description: "Task list template for feature implementation"
 **Input**: Design documents from `/specs/[###-feature-name]/`
 **Prerequisites**: plan.md (required), spec.md (required for user stories), research.md, data-model.md, contracts/
 
-**Tests**: The examples below include test tasks. Tests are OPTIONAL - only include them if explicitly requested in the feature specification.
+**Tests**: Include the testing levels needed for changed behavior: domain unit tests, use-case orchestration tests, secondary-adapter contract tests, and workflow integration tests.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
@@ -61,12 +61,12 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 [P] Define domain value objects, entities, and their module-level creation functions in `src/domain/model/`
-- [ ] T005 [P] Define repository port interfaces using domain IDs, value objects, aggregate roots, and named query criteria in `src/domain/ports/`
-- [ ] T006 [P] Define infrastructure port interfaces using cohesive domain types or immutable capability contracts in `src/application/ports/secondary/`
+- [ ] T004 [P] Define domain value objects, entities, and their module-level creation functions in `src/[bounded_context]/domain/`
+- [ ] T005 [P] Define repository port interfaces using domain IDs, value objects, aggregate roots, and named query criteria in `src/[bounded_context]/domain/ports/`
+- [ ] T006 [P] Define external capability ports using cohesive domain types or immutable capability contracts in `src/[bounded_context]/application/ports/`
 - [ ] T007 Setup database schema and migrations
 - [ ] T008 [P] Configure dependency injection container in `src/configuration/di_container.py`
-- [ ] T009 Setup error handling — DomainException and AdapterException hierarchies
+- [ ] T009 Define domain, application, and port-owned failures plus primary- and secondary-adapter translations
 
 **Checkpoint**: Foundation ready — user story implementation can now begin
 
@@ -78,20 +78,18 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 1 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 1
 
-> **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
-
-- [ ] T010 [P] [US1] BDD contract test for [endpoint] in `tests/contract/test_[name].feature`
-- [ ] T011 [P] [US1] Integration test for [user journey] in `tests/integration/test_[name].py`
+- [ ] T010 [P] [US1] Domain and use-case tests for [behavior] in `tests/unit/`
+- [ ] T011 [P] [US1] Adapter contract and workflow integration tests for [user journey] in `tests/contract/` and `tests/integration/`
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Implement [Entity/Aggregate] and `create_[entity]()` in `src/domain/model/[entity].py`
-- [ ] T013 [P] [US1] Implement repository adapter with constructor-based hydration and semantic public method types in `src/adapters/secondary/sql/sql_[name]_repository.py`
-- [ ] T014 [US1] Implement use case in `src/application/use_cases/[name]_use_case.py` (depends on T012)
-- [ ] T015 [US1] Implement primary port in `src/application/ports/primary/[name]_port.py`
-- [ ] T016 [US1] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
+- [ ] T012 [P] [US1] Implement [Entity/Aggregate] and `create_[entity]()` in `src/[bounded_context]/domain/[entity].py`
+- [ ] T013 [P] [US1] Implement repository adapter with constructor-based hydration and semantic public method types in `src/[bounded_context]/adapters/secondary/sql/[name]_repository.py`
+- [ ] T014 [US1] Implement use case in `src/[bounded_context]/application/use_cases/[name]_use_case.py` (depends on T012)
+- [ ] T015 [US1] Define the application-owned primary port
+- [ ] T016 [US1] Implement API controller in `src/[bounded_context]/adapters/primary/web/[name]_controller.py`
 - [ ] T017 [US1] Wire use case in DI container
 
 **Checkpoint**: User Story 1 should be fully functional and independently testable
@@ -104,16 +102,16 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 2 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 2
 
-- [ ] T018 [P] [US2] BDD contract test for [endpoint] in `tests/contract/test_[name].feature`
-- [ ] T019 [P] [US2] Integration test for [user journey] in `tests/integration/test_[name].py`
+- [ ] T018 [P] [US2] Domain and use-case tests for [behavior] in `tests/unit/`
+- [ ] T019 [P] [US2] Adapter contract and workflow integration tests for [user journey]
 
 ### Implementation for User Story 2
 
-- [ ] T020 [P] [US2] Implement [Entity] and `create_[entity]()` in `src/domain/model/[entity].py`
-- [ ] T021 [US2] Implement use case in `src/application/use_cases/[name]_use_case.py`
-- [ ] T022 [US2] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
+- [ ] T020 [P] [US2] Implement [Entity] and `create_[entity]()` in `src/[bounded_context]/domain/[entity].py`
+- [ ] T021 [US2] Implement use case in `src/[bounded_context]/application/use_cases/[name]_use_case.py`
+- [ ] T022 [US2] Implement API controller in `src/[bounded_context]/adapters/primary/web/[name]_controller.py`
 - [ ] T023 [US2] Wire use case in DI container
 
 **Checkpoint**: User Stories 1 AND 2 should both work independently
@@ -126,16 +124,16 @@ Examples of foundational tasks (adjust based on your project):
 
 **Independent Test**: [How to verify this story works on its own]
 
-### Tests for User Story 3 (OPTIONAL - only if tests requested) ⚠️
+### Tests for User Story 3
 
-- [ ] T024 [P] [US3] BDD contract test for [endpoint] in `tests/contract/test_[name].feature`
-- [ ] T025 [P] [US3] Integration test for [user journey] in `tests/integration/test_[name].py`
+- [ ] T024 [P] [US3] Domain and use-case tests for [behavior] in `tests/unit/`
+- [ ] T025 [P] [US3] Adapter contract and workflow integration tests for [user journey]
 
 ### Implementation for User Story 3
 
-- [ ] T026 [P] [US3] Implement [Entity] and `create_[entity]()` in `src/domain/model/[entity].py`
-- [ ] T027 [US3] Implement use case in `src/application/use_cases/[name]_use_case.py`
-- [ ] T028 [US3] Implement API controller in `src/adapters/primary/web/[name]_controller.py`
+- [ ] T026 [P] [US3] Implement [Entity] and `create_[entity]()` in `src/[bounded_context]/domain/[entity].py`
+- [ ] T027 [US3] Implement use case in `src/[bounded_context]/application/use_cases/[name]_use_case.py`
+- [ ] T028 [US3] Implement API controller in `src/[bounded_context]/adapters/primary/web/[name]_controller.py`
 - [ ] T029 [US3] Wire use case in DI container
 
 **Checkpoint**: All user stories should now be independently functional
@@ -185,7 +183,7 @@ Examples of foundational tasks (adjust based on your project):
 
 ### Within Each User Story
 
-- Tests (if included) MUST be written and FAIL before implementation
+- Choose tests by architectural boundary and changed behavior
 - Domain model before use cases
 - Use cases before controllers
 - Core implementation before DI wiring
@@ -224,6 +222,6 @@ Examples of foundational tasks (adjust based on your project):
 - [P] tasks = different files, no dependencies
 - [Story] label maps task to specific user story for traceability
 - Each user story should be independently completable and testable
-- Verify tests fail before implementing (BDD test-first)
+- Verify tests prove semantic contracts and observable behavior
 - Commit after each task or logical group
 - Stop at any checkpoint to validate story independently

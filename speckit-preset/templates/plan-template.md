@@ -95,21 +95,19 @@ specs/[###-feature]/
 -->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
+# [REMOVE IF UNUSED] Option 1: Single backend project (DEFAULT)
 src/
-├── domain/
-│   ├── model/
-│   ├── ports/
-│   └── events/
-├── application/
-│   ├── ports/
-│   │   ├── primary/
-│   │   └── secondary/
-│   └── use_cases/
-├── adapters/
-│   ├── primary/
-│   └── secondary/
-└── configuration/
+└── [bounded_context]/
+    ├── domain/
+    │   ├── ports/
+    │   └── events/
+    ├── application/
+    │   ├── ports/
+    │   └── use_cases/
+    ├── adapters/
+    │   ├── primary/
+    │   └── secondary/
+    └── configuration/
 
 tests/
 ├── contract/
@@ -119,10 +117,11 @@ tests/
 # [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── domain/
-│   ├── application/
-│   ├── adapters/
-│   └── configuration/
+│   └── [bounded_context]/
+│       ├── domain/
+│       ├── application/
+│       ├── adapters/
+│       └── configuration/
 └── tests/
 
 frontend/

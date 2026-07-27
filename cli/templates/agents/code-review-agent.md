@@ -86,6 +86,8 @@ Ask only questions that block a correct architectural decision.
 - Cross-context relationships and port contracts use local reference ID value objects, confine primitive IDs to serialization/persistence/external mapping, and validate referenced entities through the owning context's public contract.
 - Primary adapters translate, validate transport concerns, map data, and delegate (`TENETS-ADAPTER-001` through `TENETS-ADAPTER-003`).
 - Secondary adapters translate expected technical failures into port-declared failures (`TENETS-ADAPTER-006`).
+- Domain invariants remain in domain objects, while primary adapters validate external shape (`TENETS-VALIDATE-001`, `TENETS-VALIDATE-002`).
+- Failures are owned by their domain concept, workflow, or port; secondary adapters translate specific vendor failures, primary adapters map known failures, and one outer boundary handles unexpected failures (`TENETS-ERROR-001` through `TENETS-ERROR-008`).
 - Repository adapters reconstruct persisted objects without invoking creation (`TENETS-ADAPTER-007`).
 - Concrete wiring occurs in the composition root and configuration remains outside business logic (`TENETS-COMPOSE-001`, `TENETS-COMPOSE-002`).
 - Entities use stable identity equality and own invariant-protecting behavior (`TENETS-ENTITY-001`, `TENETS-ENTITY-002`).
@@ -104,7 +106,8 @@ Ask only questions that block a correct architectural decision.
 - Read-created resources have a bounded cleanup owner (`TENETS-UOW-011`).
 - Asynchronous consumers scope and payload-bind idempotency identity, atomically commit inbox and local effects, acknowledge after durability, and protect external effects independently (`TENETS-ASYNC-001` through `TENETS-ASYNC-006`).
 - Idempotency retention covers supported replay and reliability claims name each atomic boundary (`TENETS-ASYNC-007`, `TENETS-ASYNC-008`).
-- Tests should match the layer: domain unit tests, use-case orchestration tests with fakes, adapter contract/integration tests at the boundary.
+- Tests match the layer, distinguish creation from hydration, and assert semantic port values (`TENETS-TEST-001` through `TENETS-TEST-006`).
+- Material choices and qualifying exceptions have complete ADRs whose superseded history is preserved (`TENETS-ADR-001` through `TENETS-ADR-003`).
 
 ## Full Tenets Rulebook
 

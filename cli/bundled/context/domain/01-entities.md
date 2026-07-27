@@ -164,3 +164,106 @@ Add already-available creation data to the creation function and construct the v
 ## Review check
 
 Inspect mutations immediately following creation and determine whether their input was already available.
+
+## TENETS-TEST-001: Domain behavior is unit tested without infrastructure
+
+## Rule
+
+Test entities, aggregates, value objects, and domain services with real domain objects and without repositories, adapters, frameworks, databases, or external clients.
+
+## Rationale
+
+Domain tests should prove business behavior, invariants, state transitions, returned values, and recorded domain events rather than mock configuration.
+
+## Incorrect
+
+```python
+order = Mock(spec=Order)
+order.submit()
+order.submit.assert_called_once()
+```
+
+## Correct
+
+```python
+order = create_order(customer_account_id=account_id, lines=lines)
+order.submit()
+assert order.status is OrderStatus.SUBMITTED
+assert isinstance(order.recorded_events[-1], OrderSubmittedDomainEvent)
+```
+
+## Remediation
+
+Replace mocked domain objects with production domain entry points and assert externally observable behavior.
+
+## Review check
+
+Verify that domain tests run without infrastructure and exercise real domain behavior.
+
+## TENETS-VALIDATE-001: Domain objects enforce domain invariants
+
+## Rule
+
+Entities, aggregates, and value objects enforce their own invariants explicitly on every lifecycle path where those invariants apply.
+
+## Rationale
+
+Domain validity must not depend on whether an object entered through HTTP, a use case, a repository mapper, or another adapter.
+
+## Incorrect
+
+```python
+if request_body.quantity <= 0:
+    raise BadRequest("quantity must be positive")
+```
+
+## Correct
+
+```python
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+    def __post_init__(self) -> None:
+        if self.value <= 0:
+            raise InvalidQuantity()
+```
+
+## Remediation
+
+Move business invariants into the domain type and retain only protocol-shape checks at the external boundary.
+
+## Review check
+
+Verify that every applicable creation, mutation, and hydration path passes through the domain invariant.
+
+## TENETS-ERROR-002: Domain failures remain technology agnostic
+
+## Rule
+
+Domain failures express invariant and business-rule violations without framework, protocol, persistence, or vendor concepts.
+
+## Rationale
+
+A domain failure must carry the same ubiquitous meaning whether the workflow is invoked through HTTP, messaging, a command line, or a test.
+
+## Incorrect
+
+```python
+raise HTTPConflict("order already submitted")
+```
+
+## Correct
+
+```python
+class OrderAlreadySubmitted(Exception):
+    pass
+```
+
+## Remediation
+
+Replace outer-layer exceptions with a domain-specific failure and map it at each primary adapter.
+
+## Review check
+
+Inspect domain exception imports, names, fields, and messages for transport or infrastructure vocabulary.

@@ -24,7 +24,10 @@ You are the Tenets code review agent for this repository. Review code written by
   `TENETS-CONTEXT-001`, and `TENETS-NAME-001..005` for domain-model findings.
   Use `TENETS-UOW-001..011`, `TENETS-EVENT-001..009`, and
   `TENETS-ASYNC-001..008` for transaction, event, outbox, inbox, messaging, and
-  asynchronous reliability findings.
+  asynchronous reliability findings. Use `TENETS-TEST-001..006`,
+  `TENETS-VALIDATE-001..002`, `TENETS-ERROR-001..008`, and
+  `TENETS-ADR-001..003` for testing, validation, failure handling, and decision
+  evidence.
 - Flag cross-context imports of another bounded context's domain model, entities, aggregates, repositories, or value objects.
 - Verify cross-context relationships store foreign IDs only as local reference IDs or generic primitives and validate referenced entities through the owning context's public contract.
 - Verify use cases load required domain objects before calling secondary ports.

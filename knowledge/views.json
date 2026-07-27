@@ -47,7 +47,10 @@
         "TENETS-APP-006",
         "TENETS-APP-007",
         "TENETS-NAME-003",
-        "TENETS-PATTERN-005"
+        "TENETS-TEST-002",
+        "TENETS-ERROR-003",
+        "TENETS-PATTERN-005",
+        "TENETS-PATTERN-012"
       ]
     },
     {
@@ -150,7 +153,10 @@
         "TENETS-ADAPTER-002",
         "TENETS-ADAPTER-003",
         "TENETS-API-002",
-        "TENETS-API-003"
+        "TENETS-API-003",
+        "TENETS-VALIDATE-002",
+        "TENETS-ERROR-006",
+        "TENETS-ERROR-007"
       ]
     },
     {
@@ -162,7 +168,11 @@
         "TENETS-ADAPTER-006",
         "TENETS-ADAPTER-007",
         "TENETS-PORT-005",
-        "TENETS-PORT-006"
+        "TENETS-PORT-006",
+        "TENETS-TEST-003",
+        "TENETS-ERROR-004",
+        "TENETS-ERROR-005",
+        "TENETS-PATTERN-011"
       ]
     },
     {
@@ -226,7 +236,10 @@
         "TENETS-ENTITY-002",
         "TENETS-LIFECYCLE-001",
         "TENETS-LIFECYCLE-002",
-        "TENETS-LIFECYCLE-003"
+        "TENETS-LIFECYCLE-003",
+        "TENETS-TEST-001",
+        "TENETS-VALIDATE-001",
+        "TENETS-ERROR-002"
       ]
     },
     {
@@ -237,7 +250,8 @@
         "TENETS-VALUE-002",
         "TENETS-VALUE-003",
         "TENETS-LIFECYCLE-001",
-        "TENETS-LIFECYCLE-002"
+        "TENETS-LIFECYCLE-002",
+        "TENETS-VALIDATE-001"
       ]
     },
     {
@@ -321,6 +335,52 @@
         "TENETS-ASYNC-008",
         "TENETS-PATTERN-009",
         "TENETS-PATTERN-010"
+      ]
+    },
+    {
+      "output": "context/global/testing.md",
+      "title": "Testing",
+      "entries": [
+        "TENETS-TEST-001",
+        "TENETS-TEST-002",
+        "TENETS-TEST-003",
+        "TENETS-TEST-004",
+        "TENETS-TEST-005",
+        "TENETS-TEST-006",
+        "TENETS-PATTERN-011"
+      ]
+    },
+    {
+      "output": "context/global/validation-error-handling.md",
+      "title": "Validation and Error Handling",
+      "entries": [
+        "TENETS-VALIDATE-001",
+        "TENETS-VALIDATE-002",
+        "TENETS-ERROR-001",
+        "TENETS-ERROR-002",
+        "TENETS-ERROR-003",
+        "TENETS-ERROR-004",
+        "TENETS-ERROR-005",
+        "TENETS-ERROR-006",
+        "TENETS-ERROR-007",
+        "TENETS-ERROR-008",
+        "TENETS-PATTERN-012"
+      ]
+    },
+    {
+      "output": "context/global/architecture-decision-records.md",
+      "title": "Architecture Decision Records",
+      "entries": [
+        "TENETS-ADR-001",
+        "TENETS-ADR-002",
+        "TENETS-ADR-003"
+      ]
+    },
+    {
+      "output": "context/global/project_structure.md",
+      "title": "Python Project Structure",
+      "entries": [
+        "TENETS-PATTERN-013"
       ]
     }
   ]
