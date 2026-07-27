@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 4,
+  "tools": {
+    "agents": {
+      "targetFile": "AGENTS.md",
+      "contentHash": "5177a104993dbda35aa5f7009b1754762724f8b90808b13d3befe43ad1b794e5",
+      "mode": "replace"
+    }
+  },
+  "profile": "pragmatic",
+  "appliesTo": [
+    "fastapi",
+    "python"
+  ]
+}
