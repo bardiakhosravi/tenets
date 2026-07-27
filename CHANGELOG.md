@@ -4,6 +4,37 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.13.0] - 2026-07-26
+
+### Added
+
+- Stable testing rules for domain behavior, use-case orchestration, secondary
+  adapter contracts, workflow integration, lifecycle-aware fixtures, and
+  semantic port assertions.
+- Stable validation and error-handling rules covering invariant ownership,
+  external shape validation, failure ownership, vendor translation,
+  protocol mapping, and unexpected-error boundaries.
+- Stable ADR rules for material decisions, minimum record content, and
+  superseded decision history.
+- Repository contract testing, layered Flask error handling, and Python
+  bounded-context project-structure patterns.
+
+### Changed
+
+- Architecture-review and code-review agents now cite the new testing,
+  validation, error, ADR, and project-structure rule families.
+- Generated testing, validation, error-handling, ADR, and project-structure
+  guides now come from canonical knowledge entries.
+- Spec-Kit templates now use bounded-context-first examples, layered test
+  planning, and precise port-owned failure translation.
+- Removed the previous global `DomainException` and `AdapterException`
+  hierarchy requirement and rigid path-based project-structure checks.
+
+### Migration
+
+- Run `npx tenets@latest update` to regenerate agent rules and architecture
+  review commands with the new quality and governance guidance.
+
 ## [0.12.0] - 2026-07-26
 
 ### Added
