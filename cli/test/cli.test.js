@@ -559,7 +559,9 @@ test('doctor reports a missing scaffold command', (t) => {
   const missing = output.result.tools[0].findings.find(
     (item) =>
       item.code === 'missing_file' &&
-      item.path.endsWith('.cursor/commands/tenets-scaffold.md')
+      path.normalize(item.path).endsWith(
+        path.join('.cursor', 'commands', 'tenets-scaffold.md')
+      )
   );
   assert.ok(missing);
 });
