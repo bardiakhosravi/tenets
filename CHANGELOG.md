@@ -4,6 +4,12 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+### Added
+
+- Reproducible 60-second installation and architecture-review demo backed by a
+  purpose-built FastAPI fixture, real CLI captures, and deterministic video
+  rendering.
+
 ## [0.14.0] - 2026-07-27
 
 ### Added

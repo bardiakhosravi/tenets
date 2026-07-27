@@ -1,0 +1,1 @@
+"""Domain-owned persistence ports."""

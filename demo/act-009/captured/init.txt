@@ -1,0 +1,31 @@
+tenets — DDD + Hexagonal Architecture rules for AI agents
+
+Detected repository:
+
+  Agents: No repository-local agent configuration
+  Stack:  Python, FastAPI
+  Layout: layered
+
+Recommended setup:
+
+  1) [ ] Claude Code (CLAUDE.md)
+  2) [ ] Cursor (.cursor/rules/tenets-*.mdc)
+  3) [ ] Augment (.augment/rules/tenets-*.md)
+  4) [ ] GitHub Copilot (.github/copilot-instructions.md)
+  5) [ ] Tenets Code Review Agent (.tenets/agents/code-review-agent.md)
+  6) [x] AGENTS.md (AGENTS.md)
+
+Press Enter to accept the checked items, or enter numbers separated by commas.
+Selection: info Using the pragmatic architecture profile.
+info Using versioned rules bundled with tenets v0.14.0...
+
+✔ Rules installed to AGENTS.md
+  Tool: AGENTS.md
+  Mode: replace
+  Review command: .tenets/prompts/tenets-review-architecture.md
+  Run `npx tenets update` to update later.
+info Using versioned rules bundled with tenets v0.14.0...
+
+info Post-install verification:
+✔ AGENTS.md: rules and review command found
+✔ Installation verified.

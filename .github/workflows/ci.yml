@@ -53,3 +53,22 @@ jobs:
         with:
           node-version: 22
       - run: npm pack --dry-run
+
+  demo:
+    name: Demo fixture
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Verify intentional architecture violations
+        run: python -m unittest discover examples/architecture-review-demo/tests -v
+      - name: Verify captured CLI output
+        run: |
+          demo/act-009/capture-demo.sh
+          git diff --exit-code -- demo/act-009/captured

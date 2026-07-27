@@ -4,6 +4,16 @@ The tenets of writing quality backend code -- starting with Hexagonal Architectu
 
 **Tenets** provides opinionated, battle-tested rules that your AI coding agents follow when building backend services. Install them with a single command and your agent immediately knows how to structure domains, ports, adapters, and everything in between.
 
+## Tenets in 60 Seconds
+
+[![Watch the Tenets installation and architecture review demo](docs/assets/tenets-demo-preview.gif)](docs/assets/tenets-demo.mp4)
+
+The demo uses a reproducible
+[FastAPI review fixture](examples/architecture-review-demo/) and real output
+from the current Tenets CLI. It shows repository detection, installation,
+focused architecture findings with stable rule IDs, and offline remediation
+through `tenets explain`.
+
 ## Why This Exists
 
 AI coding agents like Claude Code, Cursor, Augment, and GitHub Copilot can generate incredible amounts of code quickly. But **code quality still matters**. We're not at the point where we can be completely hands-off -- we constantly review, iterate, and guide these tools toward better implementations.
