@@ -4,6 +4,8 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.14.0] - 2026-07-27
+
 ### Added
 
 - Cumulative `core`, `pragmatic`, and `strict` architecture profiles, with
@@ -19,6 +21,12 @@ All notable changes to Tenets are documented here.
   repository's profile and detected technology.
 - Existing installations without profile metadata migrate to unrestricted
   `strict` behavior to preserve their current rule set.
+
+### Migration
+
+- Run `npx tenets@latest update` to preserve existing installations on
+  `strict`, or pass `--profile core|pragmatic|strict` to choose a different
+  enforcement level.
 
 ## [0.13.0] - 2026-07-26
 
