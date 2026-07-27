@@ -1,395 +1,230 @@
 # Tenets
 
-The tenets of writing quality backend code -- starting with Hexagonal Architecture and Domain-Driven Design.
+**Architecture guardrails for AI coding agents building backend services with
+Domain-Driven Design and Hexagonal Architecture.**
 
-**Tenets** provides opinionated, battle-tested rules that your AI coding agents follow when building backend services. Install them with a single command and your agent immediately knows how to structure domains, ports, adapters, and everything in between.
+Tenets installs versioned, repository-local guidance for Claude Code, Cursor,
+Augment, GitHub Copilot, and other agents. The same rules guide generation,
+architecture review, and remediation:
 
-## Tenets in 60 Seconds
+```text
+Specify -> Generate -> Review -> Explain
+```
 
-[![Watch the Tenets installation and architecture review demo](docs/assets/tenets-demo-preview.gif)](docs/assets/tenets-demo.mp4)
+## See It Work
 
-The demo uses a reproducible
-[FastAPI review fixture](examples/architecture-review-demo/) and real output
-from the current Tenets CLI. It shows repository detection, installation,
-focused architecture findings with stable rule IDs, and offline remediation
-through `tenets explain`.
+[![Watch the 60-second Tenets installation and architecture review demo](docs/assets/tenets-demo-preview.gif)](docs/assets/tenets-demo.mp4)
 
-## Why This Exists
+This reproducible demo installs Tenets into an existing FastAPI service, reviews
+one workflow, reports three boundary violations with stable rule IDs, and
+explains how to fix one of them. Inspect the
+[fixture](examples/architecture-review-demo/) and
+[demo source](demo/act-009/) to verify every displayed claim.
 
-AI coding agents like Claude Code, Cursor, Augment, and GitHub Copilot can generate incredible amounts of code quickly. But **code quality still matters**. We're not at the point where we can be completely hands-off -- we constantly review, iterate, and guide these tools toward better implementations.
+## The Problem
 
-For effective code review and collaboration with AI agents, we need **predictable design patterns**. This is even more crucial with AI-generated code since these tools can produce entire features at once, making architectural consistency vital for maintainability.
+AI agents can generate an entire backend feature before a reviewer has time to
+establish its architectural boundaries. Plausible code can still:
 
-Tenets solves this by giving your coding agents the context and rules they need upfront, so every generated line of code follows the same architectural principles your team agreed on.
+- Import infrastructure into application or domain code.
+- Put workflow orchestration inside adapters.
+- Pass primitive or persistence-shaped data across domain boundaries.
+- Create inconsistent patterns from one feature to the next.
+- Make a large generated change expensive to review and maintain.
 
-### Architecture starts at the spec, not the code
-
-Most teams adopt spec-driven development (SDD) to plan features before building them -- writing specs, data models, and implementation plans that agents then execute. But without architectural guardrails baked into those planning artifacts, you end up with well-specified features that violate domain boundaries, leak infrastructure concerns into business logic, or skip the port/adapter structure entirely.
-
-Tenets bridges this gap by extending SDD frameworks with DDD and Hexagonal Architecture practices at the planning stage. When you spec a feature, you're prompted to define the ubiquitous language, declare the bounded context, identify candidate aggregates and entities, and check against your architecture constitution -- before a single line of code is written. By the time implementation begins, the agent already knows the domain model, the correct layer for each concept, and the boundaries it must not cross.
-
-We currently provide a [Spec-Kit](https://github.com/github/spec-kit) preset, with support for other spec-driven frameworks to follow. The goal is the same regardless of the tool: **make DDD and Hexagonal Architecture the default, not an afterthought.**
+Repeated prompting does not create a durable engineering standard. Tenets puts
+the standard in the repository, gives it stable identifiers, and delivers the
+relevant guidance where each supported agent already looks.
 
 ## Quick Start
 
-### Install with the CLI
+Run Tenets from the repository you want to configure:
 
 ```bash
 npx tenets init
 ```
 
-Tenets detects repository-local coding agents, stack manifests, project layout,
-existing agent files, and Spec-Kit. The checked recommendations can be accepted
-with Enter or changed by entering a comma-separated list of integration numbers.
-After writing files, Tenets verifies that each selected tool's rules and review
-command exist in the supported repository locations.
+Tenets detects your coding agents, language, framework, repository layout,
+existing agent files, and Spec-Kit installation. Accept the recommended setup
+or select the integrations you want. Initialization ends by verifying every
+installed integration.
 
-When no agent configuration is detected, Tenets recommends the portable
-`AGENTS.md` integration. Detection currently recognizes:
-
-- Claude Code, Cursor, Augment, GitHub Copilot, and existing `AGENTS.md` files.
-- Python, TypeScript/JavaScript, Java, Go, Rust, .NET, Ruby, and PHP manifests.
-- FastAPI, Django, Flask, NestJS, Next.js, Express, Spring Boot, Gin, Actix Web,
-  Axum, and Ruby on Rails dependencies.
-- Flat, source-root, layered, and workspace/monorepo layouts.
-
-For noninteractive setup, accept the detected recommendations and return the
-detection and verification details as JSON:
+For CI or other noninteractive environments:
 
 ```bash
 npx tenets init --yes --json
 ```
 
-Fresh installations use the `pragmatic` architecture profile. Select a smaller
-essential rule set or the complete applicable catalog explicitly:
+### Build With The Rules
 
-```bash
-npx tenets init --claude --profile core
-npx tenets init --claude --profile strict
+For a new workflow, ask the agent to establish the domain boundary before
+generating implementation details:
+
+```text
+Implement order submission using the installed Tenets rules.
+First define the bounded context, domain language, use case, ports,
+and adapter responsibilities. Then implement and test one complete workflow.
 ```
 
-Profiles change both the rules delivered to agents and the rule IDs that
-architecture review may enforce. See
-[Architecture Profiles](docs/architecture-profiles.md) for the profile
-contract and migration behavior.
+In an established service, start with one changed workflow or bounded context.
+Do not ask the agent to reorganize the entire repository in one pass.
 
-### Pick Your Tool
+### Review One Boundary
 
-Explicit flags remain available when the desired setup is already known:
+In tools with slash-command support:
 
-```bash
-npx tenets init --claude        # Claude Code (multi-layer integration)
-npx tenets init --cursor        # scoped rules + /tenets-review-architecture
-npx tenets init --augment       # rules + /tenets-review-architecture
-npx tenets init --copilot       # global + scoped instructions + review prompt
-npx tenets init --code-review-agent  # writes a code review agent prompt
-npx tenets init --agents        # writes to AGENTS.md
+```text
+/tenets-review-architecture src/ordering
 ```
 
-| Flag | Tool | What it writes |
-|------|------|----------------|
-| `--claude` | Claude Code | Rules, skill, hook, CLAUDE.md snippet (see below) |
-| `--cursor` | Cursor | `.cursor/rules/tenets-*.mdc`, `.cursor/commands/tenets-review-architecture.md` |
-| `--augment` | Augment | `.augment/rules/tenets-*.md`, `.augment/commands/tenets-review-architecture.md` |
-| `--copilot` | GitHub Copilot | Global instructions, `.github/instructions/tenets-*.instructions.md`, review prompt |
-| `--code-review-agent` | Code review agent | `.tenets/agents/code-review-agent.md` |
-| `--agents` | AGENTS.md | `AGENTS.md`, `.tenets/prompts/tenets-review-architecture.md` |
+The review reports exact files, severity, active Tenets rule IDs, and concrete
+remediation. Generic agents receive the same workflow as a repository prompt.
 
-Flags are composable — install multiple integrations in one step:
-
-```bash
-npx tenets init --claude --speckit
-```
-
-Every successful initialization ends with a scoped verification result. Run
-`npx tenets doctor` later for a full installation diagnostic.
-
-Augment receives four repository-local rules and an architecture review command.
-Global rules always apply, while architecture, domain, and application rules are
-loaded by Augment when relevant.
-Re-running `npx tenets init --augment` can replace an existing generated Tenets
-rule set; `npx tenets update` refreshes it alongside every other installed integration.
-
-Cursor receives an always-on global rule plus path-scoped architecture, domain,
-and application rules. Upgrading an older installation removes only the
-Tenets-owned block from `.cursorrules`; unrelated content is preserved.
-
-GitHub Copilot receives concise repository-wide instructions plus path-specific
-instruction files. Existing content outside the Tenets markers in
-`.github/copilot-instructions.md` is preserved.
-
-### Architecture Review Command
-
-Every supported coding-agent integration includes the same architecture review
-workflow in its native format:
-
-| Tool | Command file |
-|------|--------------|
-| Claude Code | `.claude/skills/tenets-review-architecture/TENETS-SKILL.md` |
-| Augment | `.augment/commands/tenets-review-architecture.md` |
-| Cursor | `.cursor/commands/tenets-review-architecture.md` |
-| GitHub Copilot | `.github/prompts/tenets-review-architecture.prompt.md` |
-| Generic agents | `.tenets/prompts/tenets-review-architecture.md` |
-
-Invoke `/tenets-review-architecture` in tools with slash-command support. The
-generic prompt can be loaded directly by any agent that follows `AGENTS.md`.
-All variants share one review checklist and are refreshed by `npx tenets update`.
-Each reported Tenets violation cites a stable rule ID that can be inspected
-offline:
+Inspect any finding offline:
 
 ```bash
 npx tenets explain TENETS-PORT-005
 npx tenets explain TENETS-PORT-005 --json
 ```
 
-Unknown IDs return close-match suggestions. Deprecated IDs remain resolvable
-through catalog aliases and identify their replacement.
+## What Tenets Adds
 
-### Keeping Up to Date
+| Workflow stage | Tenets contribution |
+| --- | --- |
+| Specify | Optional Spec-Kit templates introduce domain language, bounded contexts, architecture checks, and implementation ordering before code generation |
+| Generate | Context-aware rules teach the agent how this repository expects domains, use cases, ports, adapters, transactions, events, and tests to be structured |
+| Review | One shared architecture-review contract finds boundary violations and cites stable rule IDs |
+| Enforce | Selectable profiles and optional review-agent hooks keep the active policy consistent during implementation |
+| Explain | `tenets explain` returns canonical rationale, incorrect and correct examples, remediation, and a review check without network access |
+
+The current product enforces architecture through agent context and review
+workflows. Deterministic source analysis and CI enforcement are part of the
+planned architecture-quality loop.
+
+## Choose Your Commitment
+
+Fresh installations use the `pragmatic` profile.
+
+| Profile | Intended use |
+| --- | --- |
+| `core` | Essential dependency direction and domain-boundary rules |
+| `pragmatic` | Recommended production baseline with practical implementation guidance |
+| `strict` | Complete applicable catalog for teams standardizing deeply on the architecture |
 
 ```bash
-npx tenets doctor
-npx tenets diff
-npx tenets update
+npx tenets init --profile core
 npx tenets update --profile strict
 ```
 
-This installs the rules bundled with the current `tenets` package into every
-previously configured integration. Package-bundled content makes the result
-versioned, reproducible, and available offline. The command also updates an
-installed Spec-Kit preset. If an older output format is detected, the CLI
-migrates it while preserving content outside Tenets ownership markers.
+Profiles control both the knowledge delivered to agents and the rules an
+architecture review may enforce. See
+[Architecture Profiles](docs/architecture-profiles.md).
 
-### Safe File Ownership
+## Supported Integrations
 
-Tenets distinguishes fully generated files from shared repository files:
-
-- Fully generated rules, commands, prompts, hooks, and agents carry a Tenets
-  ownership marker. `tenets update` replaces them only when that ownership can
-  be verified.
-- Shared files such as `CLAUDE.md`, `AGENTS.md`, and
-  `.github/copilot-instructions.md` are updated only between
-  `<!-- tenets:start -->` and `<!-- tenets:end -->`.
-- `.claude/settings.json` is parsed and merged. Existing settings are preserved,
-  and malformed JSON is never replaced.
-- When an `init` target already contains an unowned file, Tenets lists the
-  conflicting path and requires explicit confirmation before replacement.
-- Noninteractive `tenets update` refuses unowned conflicts and leaves the files
-  unchanged. Review, move, or remove the listed files before retrying.
-
-### Diagnose, Preview, and Remove
-
-```bash
-npx tenets doctor                   # inspect installation health
-npx tenets doctor --json            # machine-readable diagnostics
-npx tenets diff                     # preview the next update as a unified diff
-npx tenets init --cursor --dry-run  # preview initialization
-npx tenets uninstall --dry-run      # preview ownership-safe removal
-npx tenets uninstall --yes          # remove configured integrations
-npx tenets --version
-```
-
-`tenets diff` and `--dry-run` execute the real command logic against a virtual
-filesystem and print every planned create, update, delete, and mode change.
-They do not modify the repository.
-
-See the [changelog](CHANGELOG.md) and [migration notes](docs/migrations.md)
-before upgrading across output-format changes.
-
----
-
-## Code Review Agent
-
-Tenets can install a repository-local code review agent prompt:
-
-```bash
-npx tenets init --code-review-agent
-```
-
-This writes `.tenets/agents/code-review-agent.md`, a standalone reviewer contract that a parent agent can load after it writes code. The code review agent is instructed to inspect the diff, classify changed files by architectural layer, check the implementation against the Tenets rulebook, and return feedback in a structured format:
-
-- `pass` when no blocking architecture issues are found
-- `changes_requested` when the parent agent should revise the code
-- `blocked` when required context is missing or the boundary cannot be reviewed responsibly
-
-The generated prompt embeds the full DDD and Hexagonal Architecture rules so it works even when the review runner has no local Tenets CLI available at review time. `npx tenets update` refreshes this agent prompt along with any other installed integrations.
-
-For Claude Code, install it together with the Claude integration:
-
-```bash
-npx tenets init --claude --code-review-agent
-```
-
-This also writes `.claude/agents/code-review-agent.md` and adds a `PostToolUse` agent hook to `.claude/settings.json`. After Claude edits a file with `Edit`, `MultiEdit`, or `Write`, Claude Code runs the Tenets code review verifier and feeds any `changes_requested` feedback back to Claude so it can revise the code before continuing.
-
-To confirm Claude Code can see it:
-
-- Run `/agents` and look for `code-review-agent`
-- Inspect `.claude/settings.json` for a `PostToolUse` hook with `type: "agent"`
-- Start Claude Code with `claude --debug` or `claude --debug-file <path>` and edit a file; the debug log will show the `PostToolUse` hook firing
-
----
-
-## Using Tenets with Spec-Kit
-
-If you use [Spec-Kit](https://github.com/github/spec-kit) for spec-driven development, Tenets can extend your planning templates with DDD and Hexagonal Architecture sections — without overwriting your existing customizations.
-
-### How It Works
-
-Spec-Kit resolves templates through a priority stack. Tenets installs a **preset** at layer 2, below your own overrides:
-
-```
-.specify/templates/overrides/   ← your customizations (always wins)
-.specify/presets/tenets-ddd/    ← Tenets DDD preset (layer 2)
-.specify/extensions/.../        ← other extensions
-.specify/templates/             ← Spec-Kit core templates
-```
-
-Your files are never touched. If you have custom templates in `.specify/templates/overrides/`, they take priority over everything.
-
-### Setup
-
-**Prerequisites**: Spec-Kit must already be initialized in your project (`specify init`).
-
-```bash
-npx tenets init --speckit
-```
-
-Or combine with your AI tool in one step:
+Zero-argument initialization recommends integrations based on the repository.
+Explicit flags can be combined when needed:
 
 ```bash
 npx tenets init --claude --speckit
 ```
 
-### What Gets Added
+| Tool | Explicit flag | Installed workflow |
+| --- | --- | --- |
+| Claude Code | `--claude` | Context-aware rules, `CLAUDE.md` guidance, review skill, optional monitoring hook |
+| Cursor | `--cursor` | Always-on and path-scoped rules plus architecture-review command |
+| Augment | `--augment` | Repository rules plus architecture-review command |
+| GitHub Copilot | `--copilot` | Global and path-scoped instructions plus review prompt |
+| Generic agents | `--agents` | Portable `AGENTS.md` guidance plus review prompt |
+| Code review agent | `--code-review-agent` | Standalone structured reviewer contract |
+| Spec-Kit | `--speckit` | DDD and Hexagonal Architecture planning preset |
 
-| Template | DDD additions |
-|----------|--------------|
-| `spec-template` | **Domain Language** glossary table, **Bounded Context** decision with relationship mapping, **Candidate Domain Concepts** section |
-| `plan-template` | **Constitution Check** gate (hexagonal architecture compliance), **Complexity Tracking** table for justified violations |
-| `tasks-template` | DDD-aware phase structure (domain model → use cases → adapters), **BDD test-first** mandate, parallel execution `[P]` markers |
-| `checklist-template` | DDD/hexagonal checklist items covering domain model, application layer, adapters, and testing |
+See [Agent and Spec-Kit Integrations](docs/integrations.md) for installed paths,
+tool-specific behavior, review invocation, Claude hooks, and Spec-Kit setup.
 
-### Keeping the Preset Up to Date
+## Safe By Default
 
-```bash
-npx tenets update
-```
+Tenets is designed to coexist with repository and enterprise-owned
+configuration:
 
-This updates both your AI tool rules and the Spec-Kit preset in one command.
-
----
-
-## Claude Code Integration
-
-Claude Code gets a four-layer integration that goes beyond a single file dump:
-
-### Layer 1: Context-Aware Rules (`.claude/rules/tenets-*.md`)
-
-Rule files with glob frontmatter that **auto-load based on what you're editing**:
-
-- Editing `domain/` files? Domain rules (entities, VOs, aggregates) load automatically
-- Editing `adapters/` or `infrastructure/` files? Port and adapter rules load
-- Editing `application/` files? Use case and orchestration rules load
-- Editing anything in `src/`? Cross-cutting rules (structure, testing, naming) load
-
-No manual referencing needed. The right rules appear at the right time.
-
-### Layer 2: CLAUDE.md Snippet
-
-A concise block appended to your project's `CLAUDE.md` with the core non-negotiable principles. Always in context, every conversation.
-
-### Layer 3: `/tenets-review-architecture` Skill
-
-An on-demand architecture review command. Run `/tenets-review-architecture` (or `/tenets-review-architecture src/domain/`) and the agent reads all tenets rules, analyzes your codebase, and reports violations grouped by severity:
-
-- **Critical**: Dependency direction violations, domain layer impurity
-- **Major**: Business logic in the wrong layer, naked domain primitives at port boundaries, missing port abstractions, creation/hydration violations
-- **Minor**: Naming conventions, file organization
-
-### Layer 4: Continuous Monitoring Hook (opt-in)
-
-A `PostToolUse` hook that fires after every file edit. It detects which architectural layer was modified and injects a brief reminder about the relevant rules into the agent's context.
-
-Install with the hook:
+- `--dry-run` and `tenets diff` show exact filesystem changes before applying
+  them.
+- Generated files carry ownership markers; shared files are edited only inside
+  explicit Tenets markers.
+- Unowned conflicts stop noninteractive updates instead of being overwritten.
+- `tenets uninstall` removes only Tenets-owned files and marked content.
+- Package-bundled rules make installation and updates versioned, deterministic,
+  and available offline.
 
 ```bash
-npx tenets init --claude --with-hook
+npx tenets init --cursor --dry-run
+npx tenets diff
+npx tenets doctor
+npx tenets uninstall --dry-run
 ```
 
-Or skip and add it later by re-running `init`.
+See the [changelog](CHANGELOG.md) and
+[migration notes](docs/migrations.md) before upgrading across output-format
+changes.
 
-## What's Inside
+## Command Reference
 
-Tenets has a canonical catalog of atomic rules and reusable patterns under
-`knowledge/`. Stable IDs make policies independently explainable, reviewable,
-and selectable by architecture profile. The CLI assembles 32 agent-facing guide
-files organized into four compatibility sections:
+| Command | Purpose |
+| --- | --- |
+| `npx tenets init` | Detect the repository and install a recommended setup |
+| `npx tenets init --yes --json` | Initialize noninteractively with machine-readable output |
+| `npx tenets doctor` | Diagnose missing, stale, conflicting, or undiscoverable integrations |
+| `npx tenets diff` | Preview the exact changes from the next update |
+| `npx tenets update` | Refresh every configured integration from the installed package version |
+| `npx tenets update --profile strict` | Change profile and regenerate configured integrations |
+| `npx tenets explain <rule-id>` | Read canonical guidance for a finding |
+| `npx tenets uninstall --dry-run` | Preview ownership-safe removal |
+| `npx tenets uninstall --yes` | Remove configured Tenets integrations |
+| `npx tenets --version` | Print the installed CLI version |
 
-### Architecture (10 files)
-Hexagonal primer, components, ports, primary adapters, secondary adapters, adapter configuration, integration flow, infrastructure replaceability, API boundaries, semantic types at port boundaries.
+## What The Rules Cover
 
-### Domain (10 files)
-Entities, value objects, aggregates, domain services, repositories, domain events, bounded contexts, ubiquitous language, bounded context boundary rules, domain object creation and hydration.
+The canonical knowledge base currently focuses on Python backend services:
 
-### Application (5 files)
-Use cases, DDD + hexagonal synergy, event integration, cross-context communication, secondary port data flow.
+- **Architecture:** dependency direction, ports, adapters, configuration,
+  integration flow, replaceability, and API boundaries.
+- **Domain:** entities, value objects, aggregates, services, repositories,
+  events, bounded contexts, language, creation, and hydration.
+- **Application:** use cases, orchestration, secondary-port data flow,
+  cross-context communication, transactions, and event integration.
+- **Cross-cutting:** project structure, errors, naming, testing, idempotency,
+  and architecture decisions.
 
-### Global (7 files)
-Project structure, validation and error handling, naming conventions, dependency rules, testing, async idempotency, architecture decision records.
+Rules and reusable patterns are authored once under [`knowledge/`](knowledge/)
+and compiled into agent-specific views. Stable IDs allow reviews, profiles, and
+future automation to refer to policy without duplicating it.
 
-## Language Support
+## Current Scope
 
-Tenets currently focuses on Python implementations, providing concrete examples and patterns optimized for Python's language features and ecosystem.
+Tenets is most useful when a backend has meaningful business behavior and
+benefits from explicit domain and infrastructure boundaries. It is intentionally
+opinionated, and not every CRUD service needs every DDD pattern.
 
-We'd love to collaborate with experts in other languages to expand coverage. If you're experienced with Java, C#, Go, TypeScript, or other languages, contributions that translate these architectural rules into language-specific implementations are welcome.
+Concrete implementations currently target Python. Contributions for additional
+languages should preserve the same architectural meaning rather than translate
+examples mechanically.
+
+## Documentation
+
+- [Agent and Spec-Kit Integrations](docs/integrations.md)
+- [Architecture Profiles](docs/architecture-profiles.md)
+- [Knowledge Authoring](docs/knowledge-authoring.md)
+- [Migration Notes](docs/migrations.md)
+- [Changelog](CHANGELOG.md)
+- [Reproducible Demo](demo/act-009/)
 
 ## Contributing
 
-This is a living set of tenets based on real-world experience, and there's always room for improvement.
-
-### How to Contribute
-
-1. **Open an Issue** -- Propose new tenets, improvements, or discuss existing ones
-2. **Submit a PR** -- Add new patterns, fix examples, or improve clarity
-3. **Share Examples** -- Real-world implementations that follow Tenets rules
-4. **Language Adaptations** -- Help translate tenets to other languages
-
-Canonical policies are authored under `knowledge/rules/` and reusable
-implementations under `knowledge/patterns/`. Do not edit a guide carrying the
-`tenets:generated-source` marker directly. See
-[Knowledge Authoring](docs/knowledge-authoring.md) for the schema, ID policy,
-validation, and generation workflow.
-
-### What We're Looking For
-
-- **Uncovered Scenarios** -- Backend development situations not yet addressed by the current tenets
-- **Missing Design Patterns** -- Additional patterns that complement DDD and Hexagonal Architecture
-- **Implementation Strategies** -- Better approaches for distributed systems, event sourcing, or CQRS
-- **Advanced Testing Patterns** -- Testing strategies for complex domain logic and integration scenarios
-- **Real-World Examples** -- Case studies showing Tenets rules applied in production systems
-
-## Philosophy
-
-> "I think of AI coding agents as another developer on my team -- I expect them to follow the same best practices."
-
-These tenets ensure that:
-
-- **Code is reviewable** -- Predictable patterns make AI-generated code easier to understand
-- **Architecture is consistent** -- Clear tenets prevent architectural drift across features and services
-- **Teams can collaborate** -- Shared tenets improve team efficiency, whether the author is human or AI
-- **Systems remain maintainable** -- Good architecture scales with your codebase
-
-## Additional Resources
-
-- [Domain-Driven Design by Eric Evans](https://www.amazon.com/Domain-Driven-Design-Tackling-Complexity-Software/dp/0321125215)
-- [Hexagonal Architecture by Alistair Cockburn](https://alistair.cockburn.us/hexagonal-architecture/)
-- [Clean Architecture by Robert Martin](https://www.amazon.com/Clean-Architecture-Craftsmans-Software-Structure/dp/0134494164)
+Tenets welcomes rule clarifications, implementation patterns, realistic
+examples, architecture evaluation tasks, and language-pack expertise. Read
+[CONTRIBUTING.md](CONTRIBUTING.md) before changing canonical knowledge or
+generated views.
 
 ## License
 
-MIT License -- see [LICENSE](LICENSE) file for details.
-
----
-
-*Tenets for better backend services -- one rule at a time.*
+MIT License. See [LICENSE](LICENSE).

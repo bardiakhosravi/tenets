@@ -9,6 +9,10 @@ All notable changes to Tenets are documented here.
 - Reproducible 60-second installation and architecture-review demo backed by a
   purpose-built FastAPI fixture, real CLI captures, and deterministic video
   rendering.
+- Activation-focused README organized around the architecture problem,
+  reproducible proof, quick start, and repository-appropriate next actions,
+  with detailed agent and Spec-Kit setup moved into a dedicated integration
+  guide.
 
 ## [0.14.0] - 2026-07-27
 
