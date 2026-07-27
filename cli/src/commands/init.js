@@ -69,6 +69,9 @@ const {
   detectRepository,
 } = require('../services/repository-detector');
 const {
+  recommendNextAction,
+} = require('../services/next-action-recommender');
+const {
   inspectInstallation,
 } = require('../services/installation-inspector');
 
@@ -112,6 +115,17 @@ async function verifyInstalledSetup(toolKeys, speckitRequested) {
     process.exitCode = 1;
   }
   return result;
+}
+
+function recommendAfterSuccessfulInstall(detection, verification) {
+  if (!verification?.healthy) return null;
+
+  const nextAction = recommendNextAction(detection);
+  logger.blank();
+  logger.info('Next action:');
+  logger.dim(`  ${nextAction.instruction}`);
+  logger.dim(`  Why: ${nextAction.reason}`);
+  return nextAction;
 }
 
 function printOwnershipConflicts(filePaths) {
@@ -354,11 +368,16 @@ async function initCommand(args, options = {}) {
       const verification = options.dryRun
         ? null
         : await verifyInstalledSetup([], true);
+      const nextAction = recommendAfterSuccessfulInstall(
+        detection,
+        verification
+      );
       return {
         requestedTools: [],
         speckitRequested: true,
         detection,
         verification,
+        nextAction,
         profile,
         appliesTo,
       };
@@ -426,6 +445,7 @@ async function initCommand(args, options = {}) {
   const verification = options.dryRun
     ? null
     : await verifyInstalledSetup(toolKeys, speckitRequested);
+  const nextAction = recommendAfterSuccessfulInstall(detection, verification);
   return {
     requestedTools: toolKeys,
     speckitRequested,
@@ -433,6 +453,7 @@ async function initCommand(args, options = {}) {
     profile,
     appliesTo,
     verification,
+    nextAction,
   };
 }
 

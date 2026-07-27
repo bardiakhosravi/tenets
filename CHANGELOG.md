@@ -17,6 +17,12 @@ All notable changes to Tenets are documented here.
   and enterprise service starters, installed for Claude Code, Cursor, Augment,
   GitHub Copilot, and generic agents with plan approval and non-destructive
   enterprise safeguards.
+- Repository-aware post-install next actions in human and JSON `tenets init`
+  output, with scoped adoption guidance for established services.
+
+### Changed
+
+- Removed the installation demo video embed and showcase block from the README.
 
 ## [0.14.0] - 2026-07-27
 
