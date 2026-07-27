@@ -19,7 +19,8 @@ function rule(overrides = {}) {
     status: 'stable',
     category: 'testing',
     severity: 'error',
-    profiles: ['core'],
+    minimum_profile: 'core',
+    applies_to: ['all'],
     related: [],
     aliases: [],
     body: [
@@ -84,13 +85,13 @@ test('knowledge validation rejects duplicate IDs and broken references', () => {
 test('knowledge validation rejects incomplete records and unknown metadata', () => {
   const entry = rule({
     body: '## Rule\n\nOnly one section.',
-    profiles: ['core', 'core'],
+    applies_to: ['all', 'all'],
     invented: true,
   });
   const errors = validateCatalog([entry]);
 
   assert.ok(errors.some((error) => error.includes('unknown frontmatter field invented')));
-  assert.ok(errors.some((error) => error.includes('profiles values must be unique')));
+  assert.ok(errors.some((error) => error.includes('applies_to values must be unique')));
   assert.ok(errors.some((error) => error.includes('missing section ## Rationale')));
 });
 

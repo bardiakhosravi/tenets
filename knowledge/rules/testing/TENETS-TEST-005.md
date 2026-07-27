@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: testing
 severity: warning
-profiles: ["core", "python"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-LIFECYCLE-002", "TENETS-LIFECYCLE-005", "TENETS-ADAPTER-007"]
 aliases: []
 ---

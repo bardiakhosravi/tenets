@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: api
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-APP-007", "TENETS-ADAPTER-003", "TENETS-API-002"]
 aliases: []
 ---

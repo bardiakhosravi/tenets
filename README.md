@@ -50,6 +50,19 @@ detection and verification details as JSON:
 npx tenets init --yes --json
 ```
 
+Fresh installations use the `pragmatic` architecture profile. Select a smaller
+essential rule set or the complete applicable catalog explicitly:
+
+```bash
+npx tenets init --claude --profile core
+npx tenets init --claude --profile strict
+```
+
+Profiles change both the rules delivered to agents and the rule IDs that
+architecture review may enforce. See
+[Architecture Profiles](docs/architecture-profiles.md) for the profile
+contract and migration behavior.
+
 ### Pick Your Tool
 
 Explicit flags remain available when the desired setup is already known:
@@ -128,6 +141,7 @@ through catalog aliases and identify their replacement.
 npx tenets doctor
 npx tenets diff
 npx tenets update
+npx tenets update --profile strict
 ```
 
 This installs the rules bundled with the current `tenets` package into every
@@ -299,7 +313,7 @@ Or skip and add it later by re-running `init`.
 
 Tenets has a canonical catalog of atomic rules and reusable patterns under
 `knowledge/`. Stable IDs make policies independently explainable, reviewable,
-and selectable by future profiles. The CLI generates 33 agent-facing guide
+and selectable by architecture profile. The CLI assembles 32 agent-facing guide
 files organized into four compatibility sections:
 
 ### Architecture (10 files)
@@ -311,8 +325,8 @@ Entities, value objects, aggregates, domain services, repositories, domain event
 ### Application (5 files)
 Use cases, DDD + hexagonal synergy, event integration, cross-context communication, secondary port data flow.
 
-### Global (8 files)
-Project structure, cross-cutting concerns, validation and error handling, naming conventions, dependency rules, testing, async idempotency, architecture decision records.
+### Global (7 files)
+Project structure, validation and error handling, naming conventions, dependency rules, testing, async idempotency, architecture decision records.
 
 ## Language Support
 

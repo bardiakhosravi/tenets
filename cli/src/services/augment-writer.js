@@ -64,7 +64,10 @@ function writeAugmentIntegration(projectRoot, content, options = {}) {
     writtenFiles.push(`.augment/rules/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'augment', options));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'augment', {
+    ...options,
+    content,
+  }));
 
   return writtenFiles;
 }

@@ -9,7 +9,8 @@
     "status",
     "category",
     "severity",
-    "profiles",
+    "minimum_profile",
+    "applies_to",
     "related",
     "aliases"
   ],
@@ -35,7 +36,10 @@
     "severity": {
       "enum": ["error", "warning", "guidance"]
     },
-    "profiles": {
+    "minimum_profile": {
+      "enum": ["core", "pragmatic", "strict"]
+    },
+    "applies_to": {
       "type": "array",
       "items": {
         "type": "string"

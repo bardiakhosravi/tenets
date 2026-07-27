@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: events
 severity: error
-profiles: ["core"]
+minimum_profile: strict
+applies_to: ["all"]
 related: ["TENETS-EVENT-003", "TENETS-EVENT-006", "TENETS-NAME-004"]
 aliases: []
 ---

@@ -4,6 +4,7 @@ const { execSync } = require('node:child_process');
 const { TOOLS } = require('../constants');
 const {
   readConfig,
+  updateProjectPolicy,
   updateToolEntry,
   updateSpeckitEntry,
   getSpeckitEntries,
@@ -11,6 +12,14 @@ const {
   markMigrationDeclined,
   isMigrationDeclined,
 } = require('../services/config-tracker');
+const {
+  deriveApplicability,
+  profileFromArgs,
+  resolveProfile,
+} = require('../services/profiles');
+const {
+  detectRepository,
+} = require('../services/repository-detector');
 const {
   fetchContent,
   assembleContent,
@@ -121,7 +130,7 @@ async function updateCommand(args = [], options = {}) {
     );
   }
 
-  const config = readConfig();
+  let config = readConfig();
 
   if (!config || (!config.tools && !config.speckit) ||
       (Object.keys(config.tools || {}).length === 0 && Object.keys(config.speckit || {}).length === 0)) {
@@ -132,24 +141,44 @@ async function updateCommand(args = [], options = {}) {
     return;
   }
 
+  const profile = resolveProfile(config, profileFromArgs(args));
+  const migratedLegacyProfile = !config.profile;
+  const appliesTo = config.appliesTo ??
+    (migratedLegacyProfile ? [] : deriveApplicability(detectRepository()));
+  const changedProfile = config.profile && config.profile !== profile;
+  updateProjectPolicy(profile, appliesTo);
+  config = readConfig();
+  if (migratedLegacyProfile) {
+    logger.info(
+      'Migrated this existing installation to the strict profile to preserve its current rules.'
+    );
+  } else if (changedProfile) {
+    logger.info(`Changed the architecture profile to ${profile}.`);
+  } else {
+    logger.info(`Using the ${profile} architecture profile.`);
+  }
+
   // Update speckit presets first (independent of tool content hash)
   await updateSpeckitPresets(config, options);
 
   if (!config.tools || Object.keys(config.tools).length === 0) {
     logger.blank();
     logger.info('All up to date.');
-    return;
+    return { updatedCount: 0, profile, appliesTo };
   }
 
-  const content = await fetchContent();
+  const content = await fetchContent({ profile, appliesTo });
   const assembled = assembleContent(content);
-  const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
+  const codeReviewAgentContent = assembleCodeReviewAgentContent(
+    assembled,
+    content
+  );
   const baseHash = computeHash(assembled);
   const codeReviewAgentHash = computeHash(codeReviewAgentContent);
-  const claudeHash = computeClaudeHash(assembled);
-  const augmentHash = computeAugmentHash(assembled);
-  const cursorHash = computeCursorHash(assembled);
-  const copilotHash = computeCopilotHash(assembled);
+  const claudeHash = computeClaudeHash(assembled, content);
+  const augmentHash = computeAugmentHash(assembled, content);
+  const cursorHash = computeCursorHash(assembled, content);
+  const copilotHash = computeCopilotHash(assembled, content);
 
   let updatedCount = 0;
   const yes = args.includes('--yes');
@@ -167,7 +196,7 @@ async function updateCommand(args = [], options = {}) {
             : tool?.copilotMultiOutput
               ? copilotHash
               : tool?.reviewCommand
-                ? computeReviewCommandHash(assembled, toolKey)
+                ? computeReviewCommandHash(assembled, toolKey, content)
                 : baseHash;
 
     // Claude migration remains interactive because hook installation is optional.
@@ -316,7 +345,9 @@ async function updateCommand(args = [], options = {}) {
       }
 
       if (tool?.reviewCommand) {
-        const commandFile = writeReviewCommand(process.cwd(), toolKey);
+        const commandFile = writeReviewCommand(process.cwd(), toolKey, {
+          content,
+        });
         logger.dim(`  ${commandFile}`);
       }
     }
@@ -336,7 +367,7 @@ async function updateCommand(args = [], options = {}) {
   } else {
     logger.success(`Updated ${updatedCount} tool(s).`);
   }
-  return { updatedCount };
+  return { updatedCount, profile, appliesTo };
 }
 
 /**

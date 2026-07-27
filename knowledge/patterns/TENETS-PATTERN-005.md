@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: composition
 severity: guidance
-profiles: ["python", "flask"]
+minimum_profile: pragmatic
+applies_to: ["python", "flask"]
 related: ["TENETS-PORT-001", "TENETS-APP-001", "TENETS-APP-002"]
 aliases: []
 ---

@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: naming
 severity: warning
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-EVENT-004", "TENETS-EVENT-009"]
 aliases: []
 ---

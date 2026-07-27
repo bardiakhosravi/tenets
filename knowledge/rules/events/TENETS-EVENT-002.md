@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: events
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-EVENT-001", "TENETS-AGGREGATE-003"]
 aliases: []
 ---

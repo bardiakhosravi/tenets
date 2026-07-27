@@ -82,7 +82,10 @@ function writeCopilotIntegration(projectRoot, content, options = {}) {
     writtenFiles.push(`.github/instructions/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'copilot', options));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'copilot', {
+    ...options,
+    content,
+  }));
   return { writtenFiles, globalAction };
 }
 

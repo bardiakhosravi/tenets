@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: composition
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-COMPOSE-002", "TENETS-DEPEND-002", "TENETS-PATTERN-005"]
 aliases: []
 ---

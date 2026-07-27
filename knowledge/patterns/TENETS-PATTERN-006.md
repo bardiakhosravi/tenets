@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: unit-of-work
 severity: guidance
-profiles: ["core", "python", "flask"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-UOW-001", "TENETS-UOW-002", "TENETS-UOW-003", "TENETS-UOW-004", "TENETS-UOW-005", "TENETS-UOW-010", "TENETS-UOW-011"]
 aliases: []
 ---

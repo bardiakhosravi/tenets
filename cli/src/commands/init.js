@@ -43,7 +43,17 @@ const {
   findOwnershipConflicts,
   isTenetsOwnedFile,
 } = require('../services/file-writer');
-const { updateToolEntry, updateSpeckitEntry } = require('../services/config-tracker');
+const {
+  readConfig,
+  updateProjectPolicy,
+  updateToolEntry,
+  updateSpeckitEntry,
+} = require('../services/config-tracker');
+const {
+  deriveApplicability,
+  profileFromArgs,
+  resolveProfile,
+} = require('../services/profiles');
 const {
   promptRecommendedSetup,
   promptFileConflict,
@@ -306,6 +316,8 @@ async function initCommand(args, options = {}) {
     throw new Error('`tenets init --json` requires `--yes` for noninteractive use.');
   }
 
+  const explicitProfile = profileFromArgs(args);
+  const existingConfig = readConfig();
   let toolKeys = resolveToolsFromFlags(args);
   let speckitRequested = args.includes('--speckit');
   let detection = null;
@@ -325,6 +337,13 @@ async function initCommand(args, options = {}) {
     speckitRequested = setup.speckit;
   }
 
+  if (!detection) detection = detectRepository();
+  const profile = resolveProfile(existingConfig, explicitProfile);
+  const appliesTo = existingConfig?.appliesTo ??
+    (existingConfig ? [] : deriveApplicability(detection));
+  updateProjectPolicy(profile, appliesTo);
+  logger.info(`Using the ${profile} architecture profile.`);
+
   if (speckitRequested) {
     await initSpeckit({ ...options, yes: args.includes('--yes') });
     if (toolKeys.length === 0) {
@@ -336,11 +355,13 @@ async function initCommand(args, options = {}) {
         speckitRequested: true,
         detection,
         verification,
+        profile,
+        appliesTo,
       };
     }
   }
 
-  const content = await fetchContent();
+  const content = await fetchContent({ profile, appliesTo });
   const assembled = assembleContent(content);
 
   const installCodeReviewAgentForClaude =
@@ -350,13 +371,17 @@ async function initCommand(args, options = {}) {
     const tool = TOOLS[toolKey];
 
     if (tool.codeReviewAgent) {
-      const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
+      const codeReviewAgentContent = assembleCodeReviewAgentContent(
+        assembled,
+        content
+      );
       const hash = computeHash(codeReviewAgentContent);
       await initSingleFile(toolKey, tool, codeReviewAgentContent, hash, {
         yes: args.includes('--yes'),
+        content,
       });
     } else if (tool.multiOutput) {
-      const hash = computeClaudeHash(assembled);
+      const hash = computeClaudeHash(assembled, content);
       await initClaudeMultiOutput(args, toolKey, tool, content, hash, {
         installCodeReviewAgent: installCodeReviewAgentForClaude,
       });
@@ -365,7 +390,7 @@ async function initCommand(args, options = {}) {
         toolKey,
         tool,
         content,
-        computeAugmentHash(assembled),
+        computeAugmentHash(assembled, content),
         { yes: args.includes('--yes') }
       );
     } else if (tool.cursorMultiOutput) {
@@ -373,7 +398,7 @@ async function initCommand(args, options = {}) {
         toolKey,
         tool,
         content,
-        computeCursorHash(assembled),
+        computeCursorHash(assembled, content),
         { yes: args.includes('--yes') }
       );
     } else if (tool.copilotMultiOutput) {
@@ -381,15 +406,16 @@ async function initCommand(args, options = {}) {
         toolKey,
         tool,
         content,
-        computeCopilotHash(assembled),
+        computeCopilotHash(assembled, content),
         { yes: args.includes('--yes') }
       );
     } else {
       const hash = tool.reviewCommand
-        ? computeReviewCommandHash(assembled, toolKey)
+        ? computeReviewCommandHash(assembled, toolKey, content)
         : computeHash(assembled);
       await initSingleFile(toolKey, tool, assembled, hash, {
         yes: args.includes('--yes'),
+        content,
       });
     }
   }
@@ -400,6 +426,8 @@ async function initCommand(args, options = {}) {
     requestedTools: toolKeys,
     speckitRequested,
     detection,
+    profile,
+    appliesTo,
     verification,
   };
 }
@@ -635,6 +663,7 @@ async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
   const commandFile = tool.reviewCommand
     ? writeReviewCommand(process.cwd(), toolKey, {
       overwriteConflicts: overwriteCommandConflict,
+      content: options.content,
     })
     : null;
   updateToolEntry(toolKey, tool.targetFile, hash, mode);

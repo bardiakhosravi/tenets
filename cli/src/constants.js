@@ -37,7 +37,6 @@ const CONTENT_SECTIONS = [
     section: 'Application',
     files: [
       { path: 'context/application/01-use-cases.md', title: 'Use Cases' },
-      { path: 'context/application/02-synergy-rules.md', title: 'DDD + Hexagonal Synergy' },
       { path: 'context/application/03-event-integration.md', title: 'Event Integration' },
       { path: 'context/application/04-cross-context-communication.md', title: 'Cross-Context Communication' },
       { path: 'context/application/05-secondary-port-data-flow.md', title: 'Secondary Port Data Flow' },
@@ -48,7 +47,6 @@ const CONTENT_SECTIONS = [
     section: 'Global',
     files: [
       { path: 'context/global/project_structure.md', title: 'Project Structure' },
-      { path: 'context/global/cross-cutting-concerns.md', title: 'Cross-Cutting Concerns' },
       { path: 'context/global/validation-error-handling.md', title: 'Validation and Error Handling' },
       { path: 'context/global/naming-conventions.md', title: 'Naming Conventions' },
       { path: 'context/global/dependency-rules.md', title: 'Dependency Rules' },

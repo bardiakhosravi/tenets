@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: ports
 severity: guidance
-profiles: ["core", "python"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-PORT-005", "TENETS-PORT-006", "TENETS-PORT-011"]
 aliases: []
 ---

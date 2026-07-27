@@ -146,6 +146,7 @@ function writeClaudeIntegration(projectRoot, content, options = {}) {
   // --- Layer 3: Skill file ---
   const skillFile = writeReviewCommand(projectRoot, 'claude', {
     overwriteConflicts,
+    content,
   });
   writtenFiles.push(skillFile);
   const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
@@ -166,7 +167,12 @@ function writeClaudeIntegration(projectRoot, content, options = {}) {
     const agentPath = path.join(agentDir, `${CODE_REVIEW_AGENT_NAME}.md`);
     writeOwnedFile(
       agentPath,
-      readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE),
+      readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE)
+        .replace('{{ACTIVE_PROFILE}}', content.profile)
+        .replace(
+          '{{ACTIVE_RULE_IDS}}',
+          content.activeRuleIds.map((id) => `- \`${id}\``).join('\n')
+        ),
       { overwriteConflicts }
     );
     writtenFiles.push(`.claude/agents/${CODE_REVIEW_AGENT_NAME}.md`);

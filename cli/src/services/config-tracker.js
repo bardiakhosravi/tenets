@@ -9,8 +9,9 @@ const { logger } = require('../ui/logger');
  *   v2 (0.2.x): claude gets multi-output (rules/ + skill + hook + CLAUDE.md snippet),
  *               augment uses repository-local rules, and other tools remain single-file.
  *   v3: Cursor and Copilot use scoped, repository-local rule files.
+ *   v4: project profile and technology applicability are explicit.
  */
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 
 function configPath(projectRoot = process.cwd()) {
   return path.resolve(projectRoot, CONFIG_FILE);
@@ -33,6 +34,18 @@ function readConfig(projectRoot = process.cwd()) {
 
 function writeConfig(config) {
   fs.writeFileSync(configPath(), JSON.stringify(config, null, 2) + '\n', 'utf-8');
+}
+
+function updateProjectPolicy(profile, appliesTo = []) {
+  const config = readConfig() || {
+    schemaVersion: SCHEMA_VERSION,
+    tools: {},
+  };
+  config.schemaVersion = SCHEMA_VERSION;
+  config.profile = profile;
+  config.appliesTo = [...new Set(appliesTo)].sort();
+  writeConfig(config);
+  return config;
 }
 
 function updateToolEntry(toolKey, targetFile, contentHash, mode) {
@@ -103,6 +116,7 @@ function isMigrationDeclined(config, toolKey) {
 module.exports = {
   readConfig,
   writeConfig,
+  updateProjectPolicy,
   updateToolEntry,
   updateSpeckitEntry,
   getSpeckitEntries,

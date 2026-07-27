@@ -32,8 +32,14 @@ Every rule has a permanent `TENETS-{AREA}-{NNN}` ID and these sections:
 Every pattern has `Purpose`, `Implementation`, `Trade-offs`, and
 `Related rules`. Metadata follows `knowledge/schema.json`. `related` records
 useful neighbours, `requires` records prerequisites, and `supersedes` records
-policy lineage. Use `profiles` to identify general and language-specific
-applicability.
+policy lineage. `minimum_profile` identifies the first cumulative architecture
+profile that activates the entry. `applies_to` independently identifies its
+technology applicability; use `all` for technology-neutral knowledge.
+
+The profile order is `core`, `pragmatic`, then `strict`. A `core` entry is
+active in every profile, while a `strict` entry is active only in `strict`.
+See [Architecture Profiles](architecture-profiles.md) for the user-facing
+contract.
 
 An ID identifies policy meaning, not a filename or heading. Never renumber,
 reuse, or silently change the meaning of an ID. A removed policy remains

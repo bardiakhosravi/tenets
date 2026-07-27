@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: events
 severity: guidance
-profiles: ["core", "python", "flask"]
+minimum_profile: strict
+applies_to: ["python"]
 related: ["TENETS-EVENT-007", "TENETS-EVENT-008", "TENETS-UOW-004", "TENETS-UOW-007", "TENETS-ASYNC-008"]
 aliases: []
 ---

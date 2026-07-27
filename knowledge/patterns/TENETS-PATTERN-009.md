@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: async-reliability
 severity: guidance
-profiles: ["core", "python"]
+minimum_profile: strict
+applies_to: ["python"]
 related: ["TENETS-EVENT-009", "TENETS-ASYNC-002", "TENETS-ASYNC-003", "TENETS-ASYNC-004", "TENETS-ASYNC-005", "TENETS-UOW-004"]
 aliases: []
 ---

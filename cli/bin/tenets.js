@@ -88,6 +88,7 @@ Init options:
                     Write a code review agent prompt
   --agents          Write AGENTS.md and a generic review prompt
   --speckit         Install DDD preset into an existing Spec-Kit project
+  --profile <name>  Select core, pragmatic (default), or strict
   --dry-run         Preview exact filesystem changes without writing
   --json            Return machine-readable JSON
   --yes             Confirm uninstall or migration choices noninteractively
@@ -98,6 +99,7 @@ Claude-specific options:
 Examples:
   npx tenets init
   npx tenets init --claude
+  npx tenets init --claude --profile pragmatic
   npx tenets init --claude --with-hook
   npx tenets init --claude --code-review-agent
   npx tenets init --code-review-agent
@@ -107,9 +109,11 @@ Examples:
   npx tenets init --claude --speckit
   npx tenets init --cursor --dry-run
   npx tenets update --dry-run
+  npx tenets update --profile strict
   npx tenets diff
   npx tenets doctor
   npx tenets explain TENETS-PORT-005
+  npx tenets explain TENETS-ADR-001 --profile pragmatic
   npx tenets explain TENETS-PORT-005 --json
   npx tenets uninstall --dry-run
   npx tenets uninstall --yes

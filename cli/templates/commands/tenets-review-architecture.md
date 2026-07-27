@@ -9,6 +9,15 @@ Canonical rules have stable IDs such as `TENETS-PORT-005`. When the local CLI is
 available, `npx tenets explain <rule-id>` provides the canonical rule,
 remediation, and review check.
 
+This repository uses the **{{ACTIVE_PROFILE}}** profile. The following rule IDs
+are the complete compliance allowlist for this review:
+
+{{ACTIVE_RULE_IDS}}
+
+Do not report an ID outside this allowlist as a Tenets violation. A concern
+governed only by an inactive rule may appear under optional recommendations,
+clearly labeled as outside the active profile.
+
 ## Step 2: Analyze the codebase
 
 {{SCOPE_INSTRUCTION}}

@@ -10,6 +10,10 @@ function renderDoctorResult(
   if (logger.isJsonMode()) return;
 
   logger.info(heading);
+  logger.dim(
+    `  Profile: ${result.profile}; applicability: ` +
+    `${result.appliesTo.length > 0 ? result.appliesTo.join(', ') : 'unrestricted'}`
+  );
   for (const tool of result.tools) {
     const output = tool.status === 'healthy' ? logger.success : logger.warn;
     output(`${tool.name}: ${tool.status}`);

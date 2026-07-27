@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: project-structure
 severity: guidance
-profiles: ["core", "python", "flask"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-DEPEND-001", "TENETS-DEPEND-002", "TENETS-DEPEND-003", "TENETS-COMPOSE-001", "TENETS-ERROR-008", "TENETS-ADR-001"]
 aliases: []
 ---

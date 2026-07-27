@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: testing
 severity: warning
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-ADAPTER-004", "TENETS-ADAPTER-006", "TENETS-REPO-005", "TENETS-PATTERN-011"]
 aliases: []
 ---

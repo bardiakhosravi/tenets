@@ -1,5 +1,31 @@
 # Tenets Migration Notes
 
+## Upgrading to the Profile-Aware Release
+
+Fresh installations now use the `pragmatic` architecture profile. Repositories
+with an existing `.tenets.json` that predates profiles migrate to `strict` with
+unrestricted technology applicability. This preserves the complete rule set
+they previously received.
+
+Inspect the migration before applying it:
+
+```bash
+npx tenets@latest diff
+npx tenets@latest update
+npx tenets@latest doctor
+```
+
+Choose a different commitment level explicitly when ready:
+
+```bash
+npx tenets@latest update --profile core
+npx tenets@latest update --profile pragmatic
+npx tenets@latest update --profile strict
+```
+
+Profile selection regenerates every configured integration and its architecture
+review allowlist. See [Architecture Profiles](architecture-profiles.md).
+
 ## Upgrading to 0.10.0
 
 Upgrade and inspect the repository before applying changes:

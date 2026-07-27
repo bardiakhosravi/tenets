@@ -4,6 +4,22 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+### Added
+
+- Cumulative `core`, `pragmatic`, and `strict` architecture profiles, with
+  `pragmatic` as the default for fresh installations.
+- Profile and technology-applicability metadata for every canonical knowledge
+  entry.
+- Profile-aware architecture review allowlists and activation details in
+  `tenets explain` and `tenets doctor`.
+
+### Changed
+
+- Agent rule files are generated from only the knowledge entries active for the
+  repository's profile and detected technology.
+- Existing installations without profile metadata migrate to unrestricted
+  `strict` behavior to preserve their current rule set.
+
 ## [0.13.0] - 2026-07-26
 
 ### Added

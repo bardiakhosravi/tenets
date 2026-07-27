@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "generated_from": "knowledge/",
   "entries": [
     {
@@ -9,8 +9,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-001",
@@ -28,8 +29,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-001",
@@ -47,8 +49,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-001",
@@ -65,8 +68,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-004",
@@ -84,8 +88,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-001",
@@ -103,8 +108,9 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-004",
@@ -121,8 +127,8 @@
       "status": "stable",
       "category": "adapters",
       "severity": "error",
-      "profiles": [
-        "core",
+      "minimum_profile": "core",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -141,8 +147,9 @@
       "status": "stable",
       "category": "architecture-decisions",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADR-002",
@@ -159,8 +166,9 @@
       "status": "stable",
       "category": "architecture-decisions",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADR-001",
@@ -177,8 +185,9 @@
       "status": "stable",
       "category": "architecture-decisions",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADR-001",
@@ -195,8 +204,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-AGGREGATE-002",
@@ -214,8 +224,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-AGGREGATE-001",
@@ -233,8 +244,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-AGGREGATE-001",
@@ -252,8 +264,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-REPO-001",
@@ -271,8 +284,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-010",
@@ -290,8 +304,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -309,8 +324,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-AGGREGATE-002",
@@ -327,8 +343,9 @@
       "status": "stable",
       "category": "aggregates",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-AGGREGATE-002",
@@ -346,8 +363,9 @@
       "status": "stable",
       "category": "api",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-005",
@@ -365,8 +383,9 @@
       "status": "stable",
       "category": "api",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-002",
@@ -384,8 +403,9 @@
       "status": "stable",
       "category": "api",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-007",
@@ -403,8 +423,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -421,8 +442,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-001",
@@ -439,8 +461,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-005",
@@ -457,8 +480,8 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core",
+      "minimum_profile": "core",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -477,8 +500,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-007",
@@ -496,8 +520,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -514,8 +539,9 @@
       "status": "stable",
       "category": "application",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-001"
@@ -531,8 +557,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-002",
@@ -549,8 +576,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-001",
@@ -567,8 +595,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-002",
@@ -585,8 +614,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-003",
@@ -604,8 +634,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-009",
@@ -622,8 +653,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-001",
@@ -640,8 +672,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-002",
@@ -658,8 +691,9 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ASYNC-001",
@@ -677,8 +711,9 @@
       "status": "stable",
       "category": "composition",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-COMPOSE-002",
@@ -696,8 +731,9 @@
       "status": "stable",
       "category": "composition",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-COMPOSE-001",
@@ -715,8 +751,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-002",
@@ -734,8 +771,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-003",
@@ -752,8 +790,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-002",
@@ -771,8 +810,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-002",
@@ -790,8 +830,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-002",
@@ -809,8 +850,9 @@
       "status": "stable",
       "category": "context",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-004",
@@ -828,8 +870,9 @@
       "status": "stable",
       "category": "dependencies",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-002",
@@ -846,8 +889,9 @@
       "status": "stable",
       "category": "dependencies",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-001",
@@ -865,8 +909,9 @@
       "status": "stable",
       "category": "dependencies",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-002",
@@ -884,8 +929,9 @@
       "status": "stable",
       "category": "entities",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ENTITY-002",
@@ -902,8 +948,9 @@
       "status": "stable",
       "category": "entities",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ENTITY-001",
@@ -921,8 +968,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ERROR-002",
@@ -940,8 +988,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-001",
@@ -959,8 +1008,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -978,8 +1028,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-004",
@@ -997,8 +1048,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-006",
@@ -1016,8 +1068,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-003",
@@ -1036,8 +1089,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ERROR-005",
@@ -1055,8 +1109,9 @@
       "status": "stable",
       "category": "errors",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ERROR-001",
@@ -1074,8 +1129,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-002",
@@ -1092,8 +1148,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-001",
@@ -1110,8 +1167,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-001",
@@ -1129,8 +1187,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-003",
@@ -1148,8 +1207,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-003",
@@ -1166,8 +1226,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-004",
@@ -1185,8 +1246,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-005",
@@ -1204,8 +1266,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-004",
@@ -1223,8 +1286,9 @@
       "status": "stable",
       "category": "events",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-001",
@@ -1242,8 +1306,9 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-004",
@@ -1261,7 +1326,8 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1279,8 +1345,9 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-LIFECYCLE-004",
@@ -1297,8 +1364,9 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-LIFECYCLE-002",
@@ -1316,8 +1384,8 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1336,8 +1404,9 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-LIFECYCLE-003"
@@ -1353,8 +1422,9 @@
       "status": "stable",
       "category": "naming",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-001",
@@ -1372,8 +1442,9 @@
       "status": "stable",
       "category": "naming",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-NAME-001",
@@ -1391,8 +1462,9 @@
       "status": "stable",
       "category": "naming",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-001",
@@ -1409,8 +1481,9 @@
       "status": "stable",
       "category": "naming",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-EVENT-004",
@@ -1427,8 +1500,9 @@
       "status": "stable",
       "category": "naming",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-NAME-001",
@@ -1445,8 +1519,8 @@
       "status": "stable",
       "category": "ports",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1465,8 +1539,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "guidance",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-007",
@@ -1485,7 +1560,8 @@
       "status": "stable",
       "category": "lifecycle",
       "severity": "guidance",
-      "profiles": [
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1505,8 +1581,8 @@
       "status": "stable",
       "category": "context",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1527,7 +1603,8 @@
       "status": "stable",
       "category": "composition",
       "severity": "guidance",
-      "profiles": [
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python",
         "flask"
       ],
@@ -1547,10 +1624,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "guidance",
-      "profiles": [
-        "core",
-        "python",
-        "flask"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "python"
       ],
       "related": [
         "TENETS-UOW-001",
@@ -1572,8 +1648,8 @@
       "status": "stable",
       "category": "events",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "strict",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1596,10 +1672,9 @@
       "status": "stable",
       "category": "events",
       "severity": "guidance",
-      "profiles": [
-        "core",
-        "python",
-        "flask"
+      "minimum_profile": "strict",
+      "applies_to": [
+        "python"
       ],
       "related": [
         "TENETS-EVENT-007",
@@ -1619,8 +1694,8 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "strict",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1642,8 +1717,8 @@
       "status": "stable",
       "category": "async-reliability",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "strict",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1663,8 +1738,8 @@
       "status": "stable",
       "category": "testing",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -1684,8 +1759,8 @@
       "status": "stable",
       "category": "errors",
       "severity": "guidance",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python",
         "flask"
       ],
@@ -1710,10 +1785,9 @@
       "status": "stable",
       "category": "project-structure",
       "severity": "guidance",
-      "profiles": [
-        "core",
-        "python",
-        "flask"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "python"
       ],
       "related": [
         "TENETS-DEPEND-001",
@@ -1734,8 +1808,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-001",
@@ -1752,8 +1827,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-004",
@@ -1770,8 +1846,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-006",
@@ -1788,8 +1865,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-002",
@@ -1807,8 +1885,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-003",
@@ -1826,8 +1905,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-003",
@@ -1845,8 +1925,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-005",
@@ -1864,8 +1945,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-006",
@@ -1883,8 +1965,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-008",
@@ -1901,8 +1984,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-CONTEXT-005",
@@ -1920,8 +2004,9 @@
       "status": "stable",
       "category": "ports",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -1939,8 +2024,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-REPO-002",
@@ -1957,8 +2043,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-REPO-001",
@@ -1975,8 +2062,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-007",
@@ -1994,8 +2082,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-REPO-003",
@@ -2012,8 +2101,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-002",
@@ -2031,8 +2121,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-009",
@@ -2050,8 +2141,9 @@
       "status": "stable",
       "category": "repositories",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-LIFECYCLE-005",
@@ -2069,8 +2161,9 @@
       "status": "stable",
       "category": "services",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-SERVICE-002",
@@ -2088,8 +2181,9 @@
       "status": "stable",
       "category": "services",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-SERVICE-001",
@@ -2107,8 +2201,9 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-001",
@@ -2126,8 +2221,9 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-001",
@@ -2145,8 +2241,9 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-004",
@@ -2165,8 +2262,9 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-001",
@@ -2184,8 +2282,8 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core",
+      "minimum_profile": "pragmatic",
+      "applies_to": [
         "python"
       ],
       "related": [
@@ -2204,8 +2302,9 @@
       "status": "stable",
       "category": "testing",
       "severity": "warning",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-PORT-007",
@@ -2224,8 +2323,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-DEPEND-002",
@@ -2242,8 +2342,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-003",
@@ -2260,8 +2361,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-002",
@@ -2278,8 +2380,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-001",
@@ -2297,8 +2400,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-003",
@@ -2315,8 +2419,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-APP-001",
@@ -2333,8 +2438,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-002",
@@ -2352,8 +2458,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-006",
@@ -2370,8 +2477,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-002",
@@ -2388,8 +2496,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-006",
@@ -2406,8 +2515,9 @@
       "status": "stable",
       "category": "unit-of-work",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "pragmatic",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-UOW-005",
@@ -2424,8 +2534,9 @@
       "status": "stable",
       "category": "validation",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ENTITY-002",
@@ -2443,8 +2554,9 @@
       "status": "stable",
       "category": "validation",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-ADAPTER-001",
@@ -2462,8 +2574,9 @@
       "status": "stable",
       "category": "values",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-VALUE-002",
@@ -2480,8 +2593,9 @@
       "status": "stable",
       "category": "values",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-VALUE-001",
@@ -2499,8 +2613,9 @@
       "status": "stable",
       "category": "values",
       "severity": "error",
-      "profiles": [
-        "core"
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
       ],
       "related": [
         "TENETS-VALUE-001",

@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: testing
 severity: warning
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-PORT-007", "TENETS-PORT-008", "TENETS-PORT-009", "TENETS-REPO-003"]
 aliases: []
 ---

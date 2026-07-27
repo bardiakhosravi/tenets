@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: repositories
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-PORT-007", "TENETS-PORT-010", "TENETS-REPO-004"]
 aliases: []
 ---
