@@ -16,6 +16,11 @@ const {
   reviewCommandExists,
 } = require('./review-command-writer');
 const {
+  writeScaffoldCommand,
+  scaffoldCommandPath,
+  scaffoldCommandExists,
+} = require('./scaffold-command-writer');
+const {
   assertCanWriteOwnedFiles,
   isTenetsOwnedFile,
   upsertMarkedContent,
@@ -66,8 +71,9 @@ function buildRuleFile(definition, sections) {
  * 1. .claude/rules/tenets-*.md  — glob-based auto-loading rules
  * 2. CLAUDE.md snippet          — top-level principles (appended/replaced)
  * 3. .claude/skills/tenets-review-architecture/SKILL.md — on-demand review command
- * 4. .claude/hooks/check-architecture.js — continuous monitoring hook
- * 5. .claude/agents/code-review-agent.md — optional Claude Code subagent
+ * 4. .claude/skills/tenets-scaffold/SKILL.md — service scaffold workflow
+ * 5. .claude/hooks/check-architecture.js — continuous monitoring hook
+ * 6. .claude/agents/code-review-agent.md — optional Claude Code subagent
  */
 function claudeOwnedPaths(projectRoot, options = {}) {
   const paths = [
@@ -75,6 +81,7 @@ function claudeOwnedPaths(projectRoot, options = {}) {
       path.join(projectRoot, '.claude', 'rules', definition.fileName)
     ),
     reviewCommandPath(projectRoot, 'claude'),
+    scaffoldCommandPath(projectRoot, 'claude'),
     path.join(projectRoot, '.claude', 'hooks', 'check-architecture.js'),
   ];
 
@@ -149,6 +156,9 @@ function writeClaudeIntegration(projectRoot, content, options = {}) {
     content,
   });
   writtenFiles.push(skillFile);
+  writtenFiles.push(writeScaffoldCommand(projectRoot, 'claude', {
+    overwriteConflicts,
+  }));
   const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
 
   // Clean up old skill files from pre-0.6.0 installs (renamed from SKILL.md to TENETS-SKILL.md)
@@ -326,7 +336,8 @@ function claudeIntegrationComplete(projectRoot) {
     hasSnippet &&
     hasRules &&
     hasHookScript &&
-    reviewCommandExists(projectRoot, 'claude')
+    reviewCommandExists(projectRoot, 'claude') &&
+    scaffoldCommandExists(projectRoot, 'claude')
   );
 }
 

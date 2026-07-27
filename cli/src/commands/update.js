@@ -60,6 +60,11 @@ const {
   writeReviewCommand,
   reviewCommandExists,
 } = require('../services/review-command-writer');
+const {
+  scaffoldCommandPath,
+  writeScaffoldCommand,
+  scaffoldCommandExists,
+} = require('../services/scaffold-command-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 const { runPreview } = require('../services/preview-runner');
@@ -245,6 +250,9 @@ async function updateCommand(args = [], options = {}) {
 
     const commandMissing =
       tool?.reviewCommand && !reviewCommandExists(process.cwd(), toolKey);
+    const scaffoldCommandMissing =
+      tool?.scaffoldCommand &&
+      !scaffoldCommandExists(process.cwd(), toolKey);
     const integrationIncomplete =
       (tool?.multiOutput && !claudeIntegrationComplete(process.cwd())) ||
       (tool?.augmentMultiOutput && !augmentIntegrationComplete(process.cwd())) ||
@@ -260,6 +268,7 @@ async function updateCommand(args = [], options = {}) {
     if (
       entry.contentHash === newHash &&
       !commandMissing &&
+      !scaffoldCommandMissing &&
       !integrationIncomplete &&
       !targetUnownedOrMissing
     ) {
@@ -267,15 +276,20 @@ async function updateCommand(args = [], options = {}) {
       continue;
     }
 
-    const isSingleFileReviewIntegration =
-      tool?.reviewCommand &&
+    const isSingleFileAgentIntegration =
+      (tool?.reviewCommand || tool?.scaffoldCommand) &&
       !tool?.multiOutput &&
       !tool?.augmentMultiOutput &&
       !tool?.cursorMultiOutput &&
       !tool?.copilotMultiOutput;
-    if (isSingleFileReviewIntegration) {
+    if (isSingleFileAgentIntegration) {
       assertCanWriteOwnedFiles([
-        reviewCommandPath(process.cwd(), toolKey),
+        ...(tool?.reviewCommand
+          ? [reviewCommandPath(process.cwd(), toolKey)]
+          : []),
+        ...(tool?.scaffoldCommand
+          ? [scaffoldCommandPath(process.cwd(), toolKey)]
+          : []),
       ]);
     }
 
@@ -348,6 +362,10 @@ async function updateCommand(args = [], options = {}) {
         const commandFile = writeReviewCommand(process.cwd(), toolKey, {
           content,
         });
+        logger.dim(`  ${commandFile}`);
+      }
+      if (tool?.scaffoldCommand) {
+        const commandFile = writeScaffoldCommand(process.cwd(), toolKey);
         logger.dim(`  ${commandFile}`);
       }
     }

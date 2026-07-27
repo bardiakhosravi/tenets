@@ -64,6 +64,7 @@ const TOOLS = {
     targetFile: 'CLAUDE.md',
     multiOutput: true,
     reviewCommand: true,
+    scaffoldCommand: true,
   },
   cursor: {
     name: 'Cursor',
@@ -71,6 +72,7 @@ const TOOLS = {
     targetFile: '.cursor/rules/tenets-*.mdc',
     cursorMultiOutput: true,
     reviewCommand: true,
+    scaffoldCommand: true,
   },
   augment: {
     name: 'Augment',
@@ -78,6 +80,7 @@ const TOOLS = {
     targetFile: '.augment/rules/tenets-*.md',
     augmentMultiOutput: true,
     reviewCommand: true,
+    scaffoldCommand: true,
   },
   copilot: {
     name: 'GitHub Copilot',
@@ -85,6 +88,7 @@ const TOOLS = {
     targetFile: '.github/copilot-instructions.md',
     copilotMultiOutput: true,
     reviewCommand: true,
+    scaffoldCommand: true,
   },
   codeReviewAgent: {
     name: 'Tenets Code Review Agent',
@@ -97,6 +101,7 @@ const TOOLS = {
     flag: '--agents',
     targetFile: 'AGENTS.md',
     reviewCommand: true,
+    scaffoldCommand: true,
   },
 };
 

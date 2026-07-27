@@ -16,6 +16,11 @@ const {
   reviewCommandPath,
   reviewCommandExists,
 } = require('./review-command-writer');
+const {
+  writeScaffoldCommand,
+  scaffoldCommandPath,
+  scaffoldCommandExists,
+} = require('./scaffold-command-writer');
 
 function buildCopilotInstructionFile(definition, content) {
   const section = content.sections.find(
@@ -52,6 +57,7 @@ function copilotOwnedPaths(projectRoot) {
       )
     ),
     reviewCommandPath(projectRoot, 'copilot'),
+    scaffoldCommandPath(projectRoot, 'copilot'),
   ];
 }
 
@@ -86,6 +92,7 @@ function writeCopilotIntegration(projectRoot, content, options = {}) {
     ...options,
     content,
   }));
+  writtenFiles.push(writeScaffoldCommand(projectRoot, 'copilot', options));
   return { writtenFiles, globalAction };
 }
 
@@ -119,7 +126,8 @@ function copilotIntegrationComplete(projectRoot) {
   return (
     hasGlobalInstructions &&
     hasScopedInstructions &&
-    reviewCommandExists(projectRoot, 'copilot')
+    reviewCommandExists(projectRoot, 'copilot') &&
+    scaffoldCommandExists(projectRoot, 'copilot')
   );
 }
 

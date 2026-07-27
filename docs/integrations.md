@@ -28,14 +28,14 @@ npx tenets init --claude --code-review-agent --speckit
 
 ## Installed Files
 
-| Tool | Rules and instructions | Architecture review |
-| --- | --- | --- |
-| Claude Code | `.claude/rules/tenets-*.md`, marked `CLAUDE.md` guidance | `.claude/skills/tenets-review-architecture/TENETS-SKILL.md` |
-| Cursor | `.cursor/rules/tenets-*.mdc` | `.cursor/commands/tenets-review-architecture.md` |
-| Augment | `.augment/rules/tenets-*.md` | `.augment/commands/tenets-review-architecture.md` |
-| GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/tenets-*.instructions.md` | `.github/prompts/tenets-review-architecture.prompt.md` |
-| Generic agents | Marked `AGENTS.md` guidance | `.tenets/prompts/tenets-review-architecture.md` |
-| Code review agent | `.tenets/agents/code-review-agent.md` | Embedded reviewer workflow |
+| Tool | Rules and instructions | Architecture review | Service scaffold |
+| --- | --- | --- | --- |
+| Claude Code | `.claude/rules/tenets-*.md`, marked `CLAUDE.md` guidance | `.claude/skills/tenets-review-architecture/TENETS-SKILL.md` | `.claude/skills/tenets-scaffold/TENETS-SKILL.md` |
+| Cursor | `.cursor/rules/tenets-*.mdc` | `.cursor/commands/tenets-review-architecture.md` | `.cursor/commands/tenets-scaffold.md` |
+| Augment | `.augment/rules/tenets-*.md` | `.augment/commands/tenets-review-architecture.md` | `.augment/commands/tenets-scaffold.md` |
+| GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/tenets-*.instructions.md` | `.github/prompts/tenets-review-architecture.prompt.md` | `.github/prompts/tenets-scaffold.prompt.md` |
+| Generic agents | Marked `AGENTS.md` guidance | `.tenets/prompts/tenets-review-architecture.md` | `.tenets/prompts/tenets-scaffold.md` |
+| Code review agent | `.tenets/agents/code-review-agent.md` | Embedded reviewer workflow | Not applicable |
 
 All architecture-review variants are generated from one canonical checklist and
 refreshed by `npx tenets update`.
@@ -68,6 +68,39 @@ If a tool does not show a newly installed custom command, reopen the repository
 or reload its command configuration so it rescans the repository-local command
 directory.
 
+## Service Scaffold
+
+Invoke the installed agent workflow after `tenets init`:
+
+```text
+/tenets-scaffold
+```
+
+The command initializes the architecture foundation for the service represented
+by the current repository. It supports:
+
+- `greenfield`: use the canonical minimal Flask service foundation.
+- `enterprise_starter`: analyze existing application creation, composition,
+  routing, configuration, persistence setup, tests, and enterprise
+  infrastructure, then propose an additive plan.
+- `active_service`: stop without editing and recommend a scoped architecture
+  assessment rather than attempting modernization.
+
+Every mode follows:
+
+```text
+Analyze -> Classify -> Propose -> Approve -> Implement -> Verify
+```
+
+The command cites code evidence instead of inferring responsibilities from
+filenames. It never moves, renames, or deletes existing files, and it cannot
+edit an existing file until the complete plan has been explicitly approved.
+Greenfield output follows a versioned structure contract; enterprise output
+adapts that contract to verified repository conventions. Application files
+created by the workflow are user-owned source code, not Tenets-managed output.
+Updating or uninstalling Tenets changes the installed workflow but never removes
+or replaces the scaffolded service.
+
 ## Claude Code
 
 Claude Code receives multiple integration layers:
@@ -76,8 +109,8 @@ Claude Code receives multiple integration layers:
    files being edited.
 2. **Persistent project guidance:** A concise generated block is added to
    `CLAUDE.md`.
-3. **Architecture review:** `/tenets-review-architecture` runs the shared
-   review contract.
+3. **Agent workflows:** `/tenets-review-architecture` runs the shared review
+   contract and `/tenets-scaffold` initializes a Flask service.
 4. **Optional monitoring hook:** A `PostToolUse` hook can remind Claude of
    relevant boundaries after file edits.
 
@@ -109,7 +142,8 @@ and application rules. Tenets-owned legacy content can be migrated from
 `.cursorrules` while unrelated user content is preserved.
 
 Run the installed `/tenets-review-architecture` command from Cursor's command
-interface.
+interface. Run `/tenets-scaffold` to initialize an empty repository or
+enterprise Flask starter.
 
 ## Augment
 
@@ -118,8 +152,8 @@ rules. The architecture review is written to
 `.augment/commands/tenets-review-architecture.md`.
 
 After initialization, reopen the workspace or use Augment's command settings to
-rescan custom commands if `/tenets-review-architecture` does not appear
-immediately.
+rescan custom commands if `/tenets-review-architecture` or
+`/tenets-scaffold` does not appear immediately.
 
 ## GitHub Copilot
 

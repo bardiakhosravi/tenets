@@ -14,6 +14,7 @@ const {
   removeMarkedContent,
 } = require('../services/file-writer');
 const { reviewCommandPath } = require('../services/review-command-writer');
+const { scaffoldCommandPath } = require('../services/scaffold-command-writer');
 const { promptYesNo } = require('../ui/prompts');
 const { logger } = require('../ui/logger');
 const { runPreview } = require('../services/preview-runner');
@@ -142,6 +143,9 @@ function removeTool(projectRoot, toolKey, result) {
   }
   if (tool.reviewCommand) {
     removeOwnedFile(reviewCommandPath(projectRoot, toolKey), result);
+  }
+  if (tool.scaffoldCommand) {
+    removeOwnedFile(scaffoldCommandPath(projectRoot, toolKey), result);
   }
 }
 
@@ -328,6 +332,12 @@ async function uninstallCommand(args = [], options = {}) {
       '.claude',
       'skills',
       'tenets-review-architecture'
+    ),
+    path.join(
+      projectRoot,
+      '.claude',
+      'skills',
+      'tenets-scaffold'
     ),
     path.join(projectRoot, '.claude', 'agents'),
     path.join(projectRoot, '.claude', 'hooks'),

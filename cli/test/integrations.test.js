@@ -35,7 +35,7 @@ test('Cursor writes always-on and path-scoped MDC rules', async (t) => {
 
   const result = writeCursorIntegration(directory, await fetchContent());
 
-  assert.equal(result.writtenFiles.length, 5);
+  assert.equal(result.writtenFiles.length, 6);
   assert.equal(result.removedLegacyRules, true);
   assert.equal(
     fs.readFileSync(path.join(directory, '.cursorrules'), 'utf-8'),
@@ -70,6 +70,15 @@ test('Cursor writes always-on and path-scoped MDC rules', async (t) => {
   assert.match(reviewCommand, /One valid stable Tenets rule ID and its title/);
   assert.match(reviewCommand, /Do not invent rule IDs/);
   assert.doesNotMatch(reviewCommand, /One class per file/);
+  const scaffoldCommand = fs.readFileSync(
+    path.join(directory, '.cursor/commands/tenets-scaffold.md'),
+    'utf-8'
+  );
+  assert.match(scaffoldCommand, /Choose exactly one state/);
+  assert.match(scaffoldCommand, /enterprise_starter/);
+  assert.match(scaffoldCommand, /Do not write files before the user explicitly approves/);
+  assert.match(scaffoldCommand, /Do not infer that a file is a composition root/);
+  assert.match(scaffoldCommand, /Do not move, rename, or delete existing files/);
 });
 
 test('Copilot preserves global user content and writes scoped instructions', async (t) => {
@@ -83,7 +92,7 @@ test('Copilot preserves global user content and writes scoped instructions', asy
 
   assert.equal(first.globalAction, 'appended');
   assert.equal(second.globalAction, 'replaced');
-  assert.equal(first.writtenFiles.length, 6);
+  assert.equal(first.writtenFiles.length, 7);
 
   const globalInstructions = fs.readFileSync(globalPath, 'utf-8');
   assert.match(globalInstructions, /Keep this rule\./);
@@ -116,6 +125,14 @@ test('Copilot preserves global user content and writes scoped instructions', asy
       path.join(
         directory,
         '.github/prompts/tenets-review-architecture.prompt.md'
+      )
+    )
+  );
+  assert.ok(
+    fs.existsSync(
+      path.join(
+        directory,
+        '.github/prompts/tenets-scaffold.prompt.md'
       )
     )
   );

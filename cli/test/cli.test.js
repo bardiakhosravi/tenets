@@ -76,6 +76,18 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     fs.existsSync(path.join(directory, '.tenets/agents/code-review-agent.md'))
   );
   assert.ok(fs.existsSync(path.join(directory, 'AGENTS.md')));
+  for (const scaffoldPath of [
+    '.claude/skills/tenets-scaffold/TENETS-SKILL.md',
+    '.augment/commands/tenets-scaffold.md',
+    '.cursor/commands/tenets-scaffold.md',
+    '.github/prompts/tenets-scaffold.prompt.md',
+    '.tenets/prompts/tenets-scaffold.md',
+  ]) {
+    assert.ok(
+      fs.existsSync(path.join(directory, scaffoldPath)),
+      `Missing scaffold command: ${scaffoldPath}`
+    );
+  }
   assert.match(
     fs.readFileSync(
       path.join(directory, '.claude/rules/tenets-application.md'),
@@ -200,8 +212,8 @@ test('zero-argument init detects agents and accepts recommended setup', (t) => {
   assert.match(output, /\[x\] Cursor/);
   assert.match(output, /\[x\] Augment/);
   assert.match(output, /Post-install verification:/);
-  assert.match(output, /Cursor: rules and review command found/);
-  assert.match(output, /Augment: rules and review command found/);
+  assert.match(output, /Cursor: rules and agent commands found/);
+  assert.match(output, /Augment: rules and agent commands found/);
   assert.match(output, /Installation verified/);
 
   const config = readConfig(directory);
@@ -220,7 +232,7 @@ test('zero-argument init allows a subset of the recommended tools', (t) => {
 
   assert.match(output, /\[x\] Claude Code/);
   assert.match(output, /\[x\] Cursor/);
-  assert.match(output, /Cursor: rules and review command found/);
+  assert.match(output, /Cursor: rules and agent commands found/);
   const config = readConfig(directory);
   assert.deepEqual(Object.keys(config.tools), ['cursor']);
   assert.equal(fs.existsSync(path.join(directory, 'CLAUDE.md')), false);
@@ -277,6 +289,21 @@ test('update repairs a missing generated integration file', (t) => {
   const output = runCli(directory, ['update']);
   assert.match(output, /augment.*updated/s);
   assert.ok(fs.existsSync(rulePath));
+});
+
+test('update repairs a missing scaffold command', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--augment']);
+
+  const scaffoldPath = path.join(
+    directory,
+    '.augment/commands/tenets-scaffold.md'
+  );
+  fs.unlinkSync(scaffoldPath);
+
+  const output = runCli(directory, ['update']);
+  assert.match(output, /augment.*updated/s);
+  assert.ok(fs.existsSync(scaffoldPath));
 });
 
 test('update changes the active profile and regenerates review enforcement', (t) => {
@@ -451,11 +478,32 @@ test('review command conflicts are detected before shared rules change', (t) => 
   );
 });
 
+test('scaffold command conflicts are detected before shared rules change', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--agents']);
+  const agentsPath = path.join(directory, 'AGENTS.md');
+  const commandPath = path.join(
+    directory,
+    '.tenets/prompts/tenets-scaffold.md'
+  );
+  const agentsBefore = fs.readFileSync(agentsPath, 'utf-8');
+  fs.writeFileSync(commandPath, 'User-authored scaffold workflow\n');
+
+  const result = spawnCli(directory, ['update']);
+  assert.equal(result.status, 1);
+  assert.equal(fs.readFileSync(agentsPath, 'utf-8'), agentsBefore);
+  assert.equal(
+    fs.readFileSync(commandPath, 'utf-8'),
+    'User-authored scaffold workflow\n'
+  );
+});
+
 test('init dry-run prints exact creates and writes nothing', (t) => {
   const directory = temporaryDirectory(t);
 
   const output = runCli(directory, ['init', '--cursor', '--dry-run']);
   assert.match(output, /CREATE \.cursor\/rules\/tenets-global\.mdc/);
+  assert.match(output, /CREATE \.cursor\/commands\/tenets-scaffold\.md/);
   assert.match(output, /CREATE \.tenets\.json/);
   assert.match(output, /No changes were applied/);
   assert.deepEqual(fs.readdirSync(directory), []);
@@ -496,6 +544,26 @@ test('doctor reports healthy and conflicting integrations in JSON', (t) => {
   );
 });
 
+test('doctor reports a missing scaffold command', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--cursor']);
+  const scaffoldPath = path.join(
+    directory,
+    '.cursor/commands/tenets-scaffold.md'
+  );
+  fs.unlinkSync(scaffoldPath);
+
+  const result = spawnCli(directory, ['doctor', '--json']);
+  assert.equal(result.status, 1);
+  const output = JSON.parse(result.stdout);
+  const missing = output.result.tools[0].findings.find(
+    (item) =>
+      item.code === 'missing_file' &&
+      item.path.endsWith('.cursor/commands/tenets-scaffold.md')
+  );
+  assert.ok(missing);
+});
+
 test('doctor treats the optional Claude monitoring hook as optional', (t) => {
   const directory = temporaryDirectory(t);
   runCli(directory, ['init', '--claude'], 'n\n');
@@ -533,6 +601,7 @@ test('uninstall dry-run is non-destructive and uninstall preserves shared conten
 
   const preview = runCli(directory, ['uninstall', '--dry-run']);
   assert.match(preview, /DELETE \.tenets\/prompts\/tenets-review-architecture\.md/);
+  assert.match(preview, /DELETE \.tenets\/prompts\/tenets-scaffold\.md/);
   assert.ok(fs.existsSync(path.join(directory, '.tenets.json')));
   assert.match(fs.readFileSync(agentsPath, 'utf-8'), /tenets:start/);
 
@@ -542,6 +611,12 @@ test('uninstall dry-run is non-destructive and uninstall preserves shared conten
   assert.equal(
     fs.existsSync(
       path.join(directory, '.tenets/prompts/tenets-review-architecture.md')
+    ),
+    false
+  );
+  assert.equal(
+    fs.existsSync(
+      path.join(directory, '.tenets/prompts/tenets-scaffold.md')
     ),
     false
   );

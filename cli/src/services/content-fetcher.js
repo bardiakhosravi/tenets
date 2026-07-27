@@ -200,6 +200,7 @@ function computeClaudeHash(assembled, content = {}) {
     CLAUDE_HOOK_SCRIPT,
   } = require('../constants');
   const { buildReviewCommand } = require('./review-command-writer');
+  const { buildScaffoldCommand } = require('./scaffold-command-writer');
   const codeReviewAgentTemplate = readCliFile(CLAUDE_CODE_REVIEW_AGENT_TEMPLATE);
   const codeReviewHookPromptTemplate = readCliFile(CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE);
   const combined =
@@ -208,6 +209,7 @@ function computeClaudeHash(assembled, content = {}) {
     JSON.stringify(CLAUDE_RULE_DEFINITIONS) +
     CLAUDE_MD_SNIPPET +
     buildReviewCommand('claude', content) +
+    buildScaffoldCommand('claude') +
     codeReviewAgentTemplate +
     codeReviewHookPromptTemplate +
     CLAUDE_HOOK_SCRIPT;
@@ -217,18 +219,22 @@ function computeClaudeHash(assembled, content = {}) {
 function computeAugmentHash(assembled, content = {}) {
   const { AUGMENT_RULE_DEFINITIONS } = require('../constants');
   const { buildReviewCommand } = require('./review-command-writer');
+  const { buildScaffoldCommand } = require('./scaffold-command-writer');
   return computeHash(
     `${assembled}\n---AUGMENT_RULES---\n${JSON.stringify(AUGMENT_RULE_DEFINITIONS)}` +
-    `\n---AUGMENT_COMMAND---\n${buildReviewCommand('augment', content)}`
+    `\n---AUGMENT_REVIEW_COMMAND---\n${buildReviewCommand('augment', content)}` +
+    `\n---AUGMENT_SCAFFOLD_COMMAND---\n${buildScaffoldCommand('augment')}`
   );
 }
 
 function computeCursorHash(assembled, content = {}) {
   const { CURSOR_RULE_DEFINITIONS } = require('../constants');
   const { buildReviewCommand } = require('./review-command-writer');
+  const { buildScaffoldCommand } = require('./scaffold-command-writer');
   return computeHash(
     `${assembled}\n---CURSOR_RULES---\n${JSON.stringify(CURSOR_RULE_DEFINITIONS)}` +
-    `\n---CURSOR_COMMAND---\n${buildReviewCommand('cursor', content)}`
+    `\n---CURSOR_REVIEW_COMMAND---\n${buildReviewCommand('cursor', content)}` +
+    `\n---CURSOR_SCAFFOLD_COMMAND---\n${buildScaffoldCommand('cursor')}`
   );
 }
 
@@ -238,18 +244,22 @@ function computeCopilotHash(assembled, content = {}) {
     COPILOT_MD_SNIPPET,
   } = require('../constants');
   const { buildReviewCommand } = require('./review-command-writer');
+  const { buildScaffoldCommand } = require('./scaffold-command-writer');
   return computeHash(
     `${assembled}\n---COPILOT_INSTRUCTIONS---\n` +
     JSON.stringify(COPILOT_INSTRUCTION_DEFINITIONS) +
     COPILOT_MD_SNIPPET +
-    `\n---COPILOT_PROMPT---\n${buildReviewCommand('copilot', content)}`
+    `\n---COPILOT_REVIEW_PROMPT---\n${buildReviewCommand('copilot', content)}` +
+    `\n---COPILOT_SCAFFOLD_PROMPT---\n${buildScaffoldCommand('copilot')}`
   );
 }
 
 function computeReviewCommandHash(assembled, toolKey, content = {}) {
   const { buildReviewCommand } = require('./review-command-writer');
+  const { buildScaffoldCommand } = require('./scaffold-command-writer');
   return computeHash(
-    `${assembled}\n---REVIEW_COMMAND:${toolKey}---\n${buildReviewCommand(toolKey, content)}`
+    `${assembled}\n---REVIEW_COMMAND:${toolKey}---\n${buildReviewCommand(toolKey, content)}` +
+    `\n---SCAFFOLD_COMMAND:${toolKey}---\n${buildScaffoldCommand(toolKey)}`
   );
 }
 
