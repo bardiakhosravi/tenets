@@ -45,29 +45,29 @@
 - [ ] CHK015 Use cases contain no business logic (delegated to domain)
 - [ ] CHK016 Use cases do not create incomplete objects and immediately mutate them with already-available creation data
 - [ ] CHK017 All external dependencies injected through port interfaces
-- [ ] CHK018 Primary ports defined in `application/ports/primary/`
-- [ ] CHK019 Infrastructure ports defined in `application/ports/secondary/`
+- [ ] CHK018 Primary ports are owned by the application boundary
+- [ ] CHK019 External capability ports are owned by the application workflow that consumes them
 - [ ] CHK020 Secondary ports use cohesive domain types or immutable application capability contracts, not naked domain primitives
 
 ## Adapters
 
 - [ ] CHK021 Primary adapters (controllers) contain no business logic
 - [ ] CHK022 API responses use DTOs, not domain entities or persistence models
-- [ ] CHK023 Secondary adapters wrap all infrastructure errors in `AdapterException`
+- [ ] CHK023 Secondary adapters translate specific expected vendor failures into port-declared failures and preserve each cause
 - [ ] CHK024 Public secondary-adapter methods preserve semantic port types and unwrap them only during external mapping
-- [ ] CHK025 DI container is the only place that knows which adapter is active
+- [ ] CHK025 The composition root wires concrete adapters without leaking them into business code
 
 ## Testing
 
-- [ ] CHK026 BDD tests written BEFORE implementation and verified to fail first
-- [ ] CHK027 Domain logic tested without mocking domain objects
-- [ ] CHK028 Use case tests mock secondary ports, not domain objects
-- [ ] CHK029 Each user story independently testable from acceptance scenarios in spec
+- [ ] CHK026 Domain logic is tested with real domain objects and no infrastructure
+- [ ] CHK027 Use cases are tested through controlled port dependencies
+- [ ] CHK028 Material secondary adapters run reusable port contract tests
+- [ ] CHK029 Critical workflows are tested through real primary, application, and domain layers with controlled secondary adapters
 
 ## [Category 4]
 
-- [ ] CHK030 [Additional project-specific item]
-- [ ] CHK031 [Additional project-specific item]
+- [ ] CHK030 Domain invariants and external input-shape validation have distinct owners
+- [ ] CHK031 Material architecture choices and qualifying exceptions have complete ADRs
 
 ## Notes
 

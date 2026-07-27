@@ -40,6 +40,8 @@ For each file, verify:
 - Domain events are immutable internal records (`TENETS-EVENT-001`), are recorded by successful domain behavior (`TENETS-EVENT-002`), and are never published directly as external contracts (`TENETS-EVENT-003`)
 - New Python entities, aggregates, and value objects use module-level `create_<domain_object>()` functions (`TENETS-LIFECYCLE-002`)
 - Constructors used by repositories hydrate explicit persisted state without generating identities, defaults, or creation events (`TENETS-LIFECYCLE-005`)
+- Domain objects enforce invariants on every applicable lifecycle path (`TENETS-VALIDATE-001`)
+- Domain failures use business language and remain technology-agnostic (`TENETS-ERROR-002`)
 
 ### Application layer (`**/application/**`)
 - Use cases orchestrate supplied domain behavior rather than implementing domain rules (`TENETS-APP-002`)
@@ -61,17 +63,22 @@ For each file, verify:
 - Application domain-event handlers select publishable occurrences and event-specific factories create complete versioned integration events (`TENETS-EVENT-004`, `TENETS-EVENT-005`, `TENETS-EVENT-006`)
 - Publisher ports receive complete integration events and reliable state-change publication uses the transactional outbox (`TENETS-EVENT-007`, `TENETS-EVENT-008`)
 - Consumer handlers atomically persist inbox receipts, local effects, and resulting outbox records (`TENETS-ASYNC-004`)
+- Application failures describe workflow outcomes rather than adapter technology (`TENETS-ERROR-003`)
+- Expected outbound failures that use cases handle are declared beside their consuming ports (`TENETS-ERROR-004`)
 
 ### Infrastructure and adapter layers (`**/infrastructure/**`, `**/adapters/**`)
 - Secondary adapters implement and translate inward-facing port contracts (`TENETS-ADAPTER-004`)
 - Public adapter methods preserve semantic port types and keep external models private (`TENETS-ADAPTER-005`, `TENETS-PORT-009`)
 - Secondary adapters translate expected technical failures into port-declared failures (`TENETS-ADAPTER-006`)
+- Secondary adapters catch specific vendor failures and preserve translated causes (`TENETS-ERROR-005`)
 - Secondary adapters do not receive or call repositories (`TENETS-PORT-005`)
 - Secondary adapters do not perform additional domain-object loading (`TENETS-PORT-006`)
 - No domain logic exists in adapters
 - Repository adapters hydrate through constructors and directional mappers (`TENETS-ADAPTER-007`)
 - Technology-specific models stay within their owning adapters (`TENETS-ADAPTER-005`)
 - Primary adapters translate, delegate, and map protocol outcomes (`TENETS-ADAPTER-001`, `TENETS-ADAPTER-002`, `TENETS-ADAPTER-003`)
+- Primary adapters validate external shape without duplicating domain invariants (`TENETS-VALIDATE-002`)
+- Primary adapters map known failures, while one outer safety boundary handles unexpected failures without exposing internals (`TENETS-ERROR-006`, `TENETS-ERROR-007`)
 - External request and response schemas remain in primary adapters (`TENETS-API-002`)
 - Primary adapters never expose persistence models and explicitly map returned values (`TENETS-API-001`, `TENETS-API-003`)
 - Unit of Work adapters roll back incomplete work, release resources on every path, preserve primary failures when rollback also fails, and do not leak driver types inward (`TENETS-UOW-001`, `TENETS-UOW-005`, `TENETS-UOW-010`)
@@ -95,9 +102,19 @@ For each file, verify:
 - Technology configuration remains outside business logic (`TENETS-COMPOSE-002`)
 - No circular dependencies
 
+### Testing and decision evidence
+- Domain tests exercise real domain objects without infrastructure (`TENETS-TEST-001`)
+- Use-case tests instantiate real use cases with controlled port dependencies and verify orchestration and transaction outcomes (`TENETS-TEST-002`)
+- Every material secondary adapter runs reusable contract tests for its inward-facing port (`TENETS-TEST-003`)
+- Critical workflows have integration tests through real primary, application, and domain layers with controlled secondary adapters (`TENETS-TEST-004`)
+- Tests distinguish creation from hydration and assert semantic port values (`TENETS-TEST-005`, `TENETS-TEST-006`)
+- Material choices and qualifying rule exceptions have ADRs with status, context, decision, and consequences (`TENETS-ADR-001`, `TENETS-ADR-002`)
+- Superseded ADRs preserve the historical decision and point to the replacement (`TENETS-ADR-003`)
+
 ### Project structure
-- Modules contain cohesive concepts; multiple classes alone are not an architecture violation
+- Modules contain cohesive concepts; multiple classes or a coherent alternative folder layout alone are not architecture violations (`TENETS-PATTERN-013`)
 - No implementation code in `__init__.py`
+- Failures live with their owning concept, workflow, or port contract instead of a global shared-kernel dumping ground (`TENETS-ERROR-001`, `TENETS-ERROR-008`)
 - Configuration or a DI container wires adapters to ports at startup (`TENETS-COMPOSE-001`)
 - Flask requests, worker batches, and scheduled commands receive fresh use cases and transaction resources; long-lived workers do not retain sessions between batches (`TENETS-UOW-002`, `TENETS-UOW-005`, `TENETS-UOW-007`)
 
@@ -118,8 +135,8 @@ than presenting them as Tenets violations.
 Use these severity levels:
 
 - **Critical**: Dependency-direction violations or domain-layer impurity
-- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, unsafe transaction ownership, non-atomic outbox or inbox work, premature acknowledgement, or missing idempotency protection
-- **Minor**: Naming conventions or file organization
+- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, unsafe transaction ownership, non-atomic outbox or inbox work, premature acknowledgement, missing idempotency protection, invalid validation ownership, or failure leakage across boundaries
+- **Minor**: Naming conventions, missing test or ADR evidence, or file organization
 
 Then report:
 

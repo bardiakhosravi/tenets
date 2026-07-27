@@ -1,10 +1,14 @@
-<!-- tenets:generated-source -->
-# Python Project Structure
-
-> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
-
-## TENETS-PATTERN-013: Python bounded-context project structure
-
+---
+id: TENETS-PATTERN-013
+title: Python bounded-context project structure
+kind: pattern
+status: stable
+category: project-structure
+severity: guidance
+profiles: ["core", "python", "flask"]
+related: ["TENETS-DEPEND-001", "TENETS-DEPEND-002", "TENETS-DEPEND-003", "TENETS-COMPOSE-001", "TENETS-ERROR-008", "TENETS-ADR-001"]
+aliases: []
+---
 ## Purpose
 
 Provide a coherent Python package layout that makes bounded-context ownership,

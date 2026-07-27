@@ -165,3 +165,105 @@ Define the intended external response fields and add an explicit directional map
 ## Review check
 
 Verify endpoints do not serialize inward objects generically or return them directly through framework auto-serialization.
+
+## TENETS-VALIDATE-002: Primary adapters validate external input shape
+
+## Rule
+
+Primary adapters validate protocol shape and map valid external inputs into application or domain semantics without duplicating domain invariants.
+
+## Rationale
+
+Transport concerns such as required JSON fields belong at the protocol boundary, while business meaning remains reusable and authoritative inside the domain.
+
+## Incorrect
+
+```python
+command = CreateOrderCommand(**request.get_json())
+```
+
+## Correct
+
+```python
+request_body = CreateOrderRequest.from_json(request.get_json())
+command = CreateOrderCommand(
+    customer_account_id=CustomerAccountId(request_body.customer_account_id),
+    lines=tuple(map_request_line_to_command_line(line) for line in request_body.lines),
+)
+```
+
+## Remediation
+
+Introduce a protocol request model, validate its shape, and map it explicitly to semantic input types.
+
+## Review check
+
+Check that malformed external data stops at the primary adapter and domain rules are not independently reimplemented there.
+
+## TENETS-ERROR-006: Primary adapters map known failures
+
+## Rule
+
+Primary adapters map known domain, application, and port-declared failures into explicit protocol-specific outcomes.
+
+## Rationale
+
+Transport status, response shape, acknowledgment, and exit codes belong to the driving boundary rather than to reusable business code.
+
+## Incorrect
+
+```python
+raise OrderNotFound(order_id)  # Escapes the HTTP boundary unmapped.
+```
+
+## Correct
+
+```python
+@app.errorhandler(OrderNotFound)
+def handle_order_not_found(error: OrderNotFound):
+    return {"code": "order_not_found"}, 404
+```
+
+## Remediation
+
+Add centralized primary-adapter mappings for every known failure that can reach that protocol.
+
+## Review check
+
+Trace known failures to stable protocol responses and verify that domain or application code does not choose those responses.
+
+## TENETS-ERROR-007: Unexpected failures terminate at an outer boundary
+
+## Rule
+
+Let unexpected failures reach a true outer safety boundary that logs them once with correlation context and returns a safe generic protocol outcome.
+
+## Rationale
+
+Intermediate broad catches hide defects and duplicate logging, while an outer boundary prevents internal messages, SQL, payloads, and stack traces from leaking externally.
+
+## Incorrect
+
+```python
+try:
+    self._order_repository.save(order)
+except Exception:
+    return None
+```
+
+## Correct
+
+```python
+@app.errorhandler(Exception)
+def handle_unexpected_error(error: Exception):
+    app.logger.exception("Unhandled request failure")
+    return {"code": "internal_error"}, 500
+```
+
+## Remediation
+
+Remove broad intermediate catches unless they are cleanup boundaries that preserve the primary failure, and install one outer protocol safety boundary.
+
+## Review check
+
+Verify that unexpected failures are logged once, produce no internal detail in responses, and are not mislabeled as expected outcomes.

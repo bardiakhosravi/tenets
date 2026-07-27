@@ -97,6 +97,20 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     /TENETS-ASYNC-008/
   );
   assert.match(
+    fs.readFileSync(
+      path.join(directory, '.augment/rules/tenets-global.md'),
+      'utf-8'
+    ),
+    /TENETS-ERROR-008/
+  );
+  assert.match(
+    fs.readFileSync(
+      path.join(directory, '.cursor/rules/tenets-global.mdc'),
+      'utf-8'
+    ),
+    /TENETS-ADR-003/
+  );
+  assert.match(
     fs.readFileSync(path.join(directory, 'AGENTS.md'), 'utf-8'),
     /TENETS-UOW-001/
   );

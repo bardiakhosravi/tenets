@@ -1,172 +1,95 @@
-# Hexagonal Architecture Project Structure
+<!-- tenets:generated-source -->
+# Python Project Structure
 
-This document defines the standard folder structure for Python backend services following Domain Driven Design and Hexagonal Architecture (Ports & Adapters) patterns.
+> Generated from atomic Tenets rules. Edit the sources under `knowledge/`, then run `npm run catalog` from `cli/`.
 
-## Overview
+## TENETS-PATTERN-013: Python bounded-context project structure
 
-- Organize by hexagonal architecture layers with clear port placement
-- **Domain ports**: Repository interfaces and domain service ports in domain layer
-- **Primary ports**: (driving) define application use cases - belong in application layer
-- **Infrastructure secondary ports** (email, messaging, external APIs) - belong in application layer
-- **Secondary adapters**: Organize by technology for shared infrastructure and easier maintenance
-- **Technology-specific models**: Persistence models live within their respective technology adapters
-- **Configuration layer**: Cross-cutting concerns that wire all layers together
-- Domain and application layers should only depend on their respective port interfaces
-- Adapters layer contains all adapter implementations
-- **Cohesive modules** — a module may contain a primary type, its creation
-  function, closely related value types, exceptions, and private helpers when
-  they form one understandable concept. Split unrelated responsibilities or
-  independently evolving concepts. Multiple classes alone are not an
-  architecture violation.
-- **No implementation code in `__init__.py`** — `__init__.py` files should be empty or contain only re-exports. Public interfaces, services, and classes must be in dedicated files.
+## Purpose
 
-**Domain layer organization** — two valid approaches (pick one and be consistent within a module):
+Provide a coherent Python package layout that makes bounded-context ownership,
+dependency direction, port placement, and adapter technology visible without
+turning path names or class counts into architecture rules.
 
-**Option A: Organize by subdomain** (group related entities and value objects together):
-```
-domain/
-├── model/
-│   ├── user/
-│   │   ├── user.py              # Entity
-│   │   └── email.py             # Value Object
-│   └── order/
-```
+## Implementation
 
-**Option B: Organize by type** (group all entities together, all value objects together):
-```
-domain/
-├── entities/
-│   ├── user.py
-│   └── order.py
-├── value_objects/
-│   ├── email.py
-│   ├── user_id.py
-│   └── order_id.py
-```
+Organize each bounded context as a package:
 
-Both approaches MUST keep ports, events, and exceptions in their own directories regardless.
-
-## Standard Structure
-
-```
+```text
 src/
-├── domain/
-│   ├── ... (entities and value objects per chosen option above)
-│   │   # Option A example shown below:
-│   ├── ports/                       # Domain Ports (Secondary)
-│   │   ├── user_repository.py       # Repository interface (domain concept)
-│   │   ├── order_repository.py
-│   │   ├── pricing_service_port.py  # Domain service interface
-│   │   ├── inventory_service_port.py
-│   │   └── domain_event_store_port.py  # Domain-specific event storage
-│   └── events/                      # Domain Events
-├── application/
-│   ├── ports/
-│   │   ├── primary/                 # Primary Ports (Use Cases)
-│   │   │   ├── create_user_port.py          # Primary Port
-│   │   │   ├── change_user_email_port.py    # Primary Port
-│   │   │   └── deactivate_user_port.py      # Primary Port
-│   │   └── secondary/               # Infrastructure Ports (Secondary)
-│   │       ├── email_notification_port.py   # Infrastructure service
-│   │       ├── event_publisher_port.py      # Infrastructure service
-│   │       └── payment_gateway_port.py      # Infrastructure service
-│   ├── use_cases/
-│   │   ├── create_user_use_case.py          # Use Case (Primary Port Implementation)
-│   │   ├── change_user_email_use_case.py    # Use Case (Primary Port Implementation)
-│   │   └── deactivate_user_use_case.py      # Use Case (Primary Port Implementation)
-│   ├── commands/
-│   ├── queries/
-│   └── handlers/
-├── adapters/
-│   ├── primary/
-│   │   ├── web/
-│   │   │   ├── user_controller.py       # Primary Adapter
-│   │   │   └── order_controller.py
-│   │   ├── cli/
-│   │   └── messaging/
-│   └── secondary/                       # Organized by Technology
-│       ├── sql/
-│       │   ├── models/                          # SQLAlchemy models
-│       │   │   ├── user_model.py
-│       │   │   └── order_model.py
-│       │   ├── base_sql_repository.py          # Shared base class
-│       │   ├── sql_connection_manager.py       # Shared connection handling
-│       │   ├── sql_user_repository.py          # Implements UserRepository
-│       │   ├── sql_order_repository.py         # Implements OrderRepository
-│       │   └── sql_domain_event_store.py       # Implements DomainEventStorePort
-│       ├── mongodb/
-│       │   ├── schemas/                         # MongoDB schemas
-│       │   │   ├── user_schema.py
-│       │   │   └── order_schema.py
-│       │   ├── mongo_connection.py             # Shared connection
-│       │   ├── mongo_user_repository.py        # Implements UserRepository
-│       │   └── mongo_order_repository.py       # Implements OrderRepository
-│       ├── http/
-│       │   ├── base_http_client.py             # Shared HTTP utilities
-│       │   ├── http_retry_policy.py            # Shared retry logic
-│       │   ├── http_pricing_service.py         # Implements PricingServicePort
-│       │   ├── http_payment_gateway.py         # Implements PaymentGatewayPort
-│       │   └── http_email_service.py           # Implements EmailNotificationPort
-│       ├── messaging/
-│       │   ├── rabbitmq_connection.py          # Shared connection
-│       │   ├── rabbitmq_event_publisher.py     # Implements EventPublisherPort
-│       │   └── rabbitmq_notification_sender.py # Implements NotificationPort
-│       └── redis/
-│           ├── redis_connection.py             # Shared connection
-│           ├── redis_cache_service.py          # Implements CacheServicePort
-│           └── redis_session_store.py          # Implements SessionStorePort
-└── configuration/                           # Cross-cutting Configuration Layer
-    ├── di_container.py                      # Dependency injection container
-    ├── database_config.py                  # Database configuration
-    ├── app_settings.py                     # Application settings
-    └── environment_config.py               # Environment-specific config
+  ordering/
+    domain/
+      order.py
+      errors.py
+      events.py
+      ports/
+        order_repository.py
+    application/
+      commands.py
+      errors.py
+      handlers/
+      ports/
+        payment_gateway.py
+      use_cases/
+        submit_order_use_case.py
+    adapters/
+      primary/
+        flask/
+          routes.py
+          error_handlers.py
+      secondary/
+        sqlite/
+          order_repository.py
+          mappers.py
+        stripe/
+          payment_gateway.py
+          mappers.py
+    configuration/
+      container.py
 ```
 
-## Layer Descriptions
+Apply these organization principles:
 
-### Domain Layer (`src/domain/`)
-- **model/**: Contains Entities, Value Objects, and Aggregates organized by domain concept
-- **ports/**: Repository interfaces and domain service ports (secondary ports from domain perspective)
-- **events/**: Domain event definitions
+- A module represents one cohesive concept, not an arbitrary class count.
+- A module may contain its primary type, creation function, closely related
+  value types, precise failures, and private helpers.
+- Split unrelated responsibilities and independently evolving concepts.
+- Keep `__init__.py` limited to package declarations or re-exports; do not hide
+  business, orchestration, or adapter implementation there.
+- Keep technology-specific records, models, clients, and directional mappers
+  with the adapter that owns them.
+- Place repository ports with the domain model whose aggregates they persist.
+- Place external capability ports with the application workflow that consumes
+  them.
+- Wire concrete implementations in the composition root.
 
-### Application Layer (`src/application/`)
-- **ports/primary/**: Primary ports defining use case interfaces
-- **ports/secondary/**: Infrastructure service ports (email, messaging, external APIs)
-- **use_cases/**: Use case implementations that implement primary ports
-- **commands/**: Command objects for write operations
-- **queries/**: Query objects for read operations
-- **handlers/**: Event handlers and other cross-cutting handlers
+The following alternatives are valid when used consistently and when they
+preserve the same ownership and dependency direction:
 
-### Adapters Layer (`src/adapters/`)
-- **primary/**: Entry point adapters (web controllers, CLI, message consumers)
-- **secondary/**: Organized by technology (sql, mongodb, http, messaging, redis, etc.)
-  - Each technology folder contains its own models/schemas and adapter implementations
-  - Shared infrastructure code (connections, base classes, utilities) lives within technology folders
+```text
+ordering/adapters/secondary/...
+ordering/infrastructure/adapters/secondary/...
+```
 
-### Configuration Layer (`src/configuration/`)
-- Dependency injection container
-- Database and infrastructure configuration
-- Environment-specific settings
-- Wires all layers together at application startup
+Smaller codebases may combine closely related modules. Architecture review
+findings should identify an actual ownership or dependency problem, not merely:
 
-## Key Principles
+- More than one class in a module
+- `adapters/` instead of `infrastructure/adapters/`
+- A different but coherent package grouping
 
-1. **Port Placement**:
-   - Domain ports (repositories, domain services) → `domain/ports/`
-   - Primary ports (use case interfaces) → `application/ports/primary/`
-   - Infrastructure ports (external services) → `application/ports/secondary/`
+Record a project-specific layout decision when multiple teams or bounded
+contexts need a durable convention.
 
-2. **Adapter Organization**:
-   - Primary adapters → `adapters/primary/` (organized by adapter type)
-   - Secondary adapters → `adapters/secondary/` (organized by technology)
+## Trade-offs
 
-3. **Technology-Specific Models**:
-   - SQLAlchemy models → `adapters/secondary/sql/models/`
-   - MongoDB schemas → `adapters/secondary/mongodb/schemas/`
-   - Keep persistence models close to their adapter implementations
+Bounded-context-first packages make ownership and extraction boundaries clear,
+but shared technical operations may require carefully scoped adapter utilities.
+Type-first layouts can feel familiar in small services, but they become harder
+to navigate as bounded contexts grow. Neither layout compensates for violated
+dependency direction.
 
-4. **Dependency Direction**:
-   - Domain layer → No external dependencies
-   - Application layer → Depends on domain ports only
-   - Infrastructure layer → Implements all ports, depends on external frameworks
-   - Configuration layer → Depends on all layers to wire them together
+## Related rules
+
+See `TENETS-DEPEND-001` through `TENETS-DEPEND-003`,
+`TENETS-COMPOSE-001`, `TENETS-ERROR-008`, and `TENETS-ADR-001`.
