@@ -30,3 +30,7 @@ info Using versioned rules bundled with tenets v0.14.0...
 info Post-install verification:
 ✔ AGENTS.md: rules and agent commands found
 ✔ Installation verified.
+
+info Next action:
+  Run `/tenets-review-architecture <path-or-workflow>` against one existing boundary or the current change.
+  Why: Existing architecture boundaries were detected.

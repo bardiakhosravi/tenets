@@ -11,16 +11,6 @@ architecture review, and remediation:
 Specify -> Generate -> Review -> Explain
 ```
 
-## See It Work
-
-[![Watch the 60-second Tenets installation and architecture review demo](docs/assets/tenets-demo-preview.gif)](docs/assets/tenets-demo.mp4)
-
-This reproducible demo installs Tenets into an existing FastAPI service, reviews
-one workflow, reports three boundary violations with stable rule IDs, and
-explains how to fix one of them. Inspect the
-[fixture](examples/architecture-review-demo/) and
-[demo source](demo/act-009/) to verify every displayed claim.
-
 ## The Problem
 
 AI agents can generate an entire backend feature before a reviewer has time to
@@ -47,13 +37,23 @@ npx tenets init
 Tenets detects your coding agents, language, framework, repository layout,
 existing agent files, and Spec-Kit installation. Accept the recommended setup
 or select the integrations you want. Initialization ends by verifying every
-installed integration.
+installed integration and printing one repository-aware next action.
+
+- Empty repositories are directed to `/tenets-scaffold`.
+- Flask repositories without clear architecture boundaries use
+  `/tenets-scaffold` for agent-based starter-versus-active classification.
+- Repositories with existing boundaries are directed to a scoped
+  `/tenets-review-architecture`.
+- Other established repositories are guided to apply Tenets to the next bounded
+  change instead of reviewing the entire codebase.
 
 For CI or other noninteractive environments:
 
 ```bash
 npx tenets init --yes --json
 ```
+
+The JSON result includes the same recommendation under `nextAction`.
 
 ### Initialize The Service
 

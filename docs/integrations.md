@@ -26,6 +26,25 @@ Flags are composable:
 npx tenets init --claude --code-review-agent --speckit
 ```
 
+## Post-Install Next Action
+
+After verifying the installed integrations, `tenets init` prints one
+repository-aware next action. The recommendation uses deterministic evidence
+already collected during initialization:
+
+| Repository signal | Recommended action |
+| --- | --- |
+| No detected application stack or source layout | Run `/tenets-scaffold` |
+| Flask without established architecture directories | Run `/tenets-scaffold` and let the agent classify the repository before any edits |
+| Existing architecture directories | Review one boundary or current change with `/tenets-review-architecture <path-or-workflow>` |
+| Other established repository | Apply Tenets to the next bounded change and review only that scope |
+
+The CLI does not infer whether a Flask repository is an enterprise starter or
+an active service from filenames. `/tenets-scaffold` performs that semantic
+analysis and stops without editing when the repository is not a safe scaffold
+target. Noninteractive initialization exposes the recommendation as
+`result.nextAction` in `--json` output.
+
 ## Installed Files
 
 | Tool | Rules and instructions | Architecture review | Service scaffold |

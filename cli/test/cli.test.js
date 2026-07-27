@@ -215,6 +215,11 @@ test('zero-argument init detects agents and accepts recommended setup', (t) => {
   assert.match(output, /Cursor: rules and agent commands found/);
   assert.match(output, /Augment: rules and agent commands found/);
   assert.match(output, /Installation verified/);
+  assert.match(output, /Next action:/);
+  assert.match(
+    output,
+    /Use `\/tenets-review-architecture <changed-path-or-workflow>` on the next bounded change/
+  );
 
   const config = readConfig(directory);
   assert.ok(config.tools.cursor);
@@ -261,6 +266,11 @@ test('noninteractive zero-argument init returns detection and verification JSON'
   );
   assert.equal(output.result.verification.healthy, true);
   assert.equal(output.result.verification.tools[0].tool, 'agents');
+  assert.equal(output.result.nextAction.type, 'scoped_adoption');
+  assert.equal(
+    output.result.nextAction.command,
+    '/tenets-review-architecture <changed-path-or-workflow>'
+  );
 });
 
 test('zero-argument init recommends an initialized Spec-Kit project', (t) => {
