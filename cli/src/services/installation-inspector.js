@@ -3,6 +3,10 @@ const path = require('node:path');
 const { MARKERS, TOOLS } = require('../constants');
 const { readConfig } = require('./config-tracker');
 const {
+  LEGACY_PROFILE,
+  isProfile,
+} = require('./profiles');
+const {
   fetchContent,
   assembleContent,
   assembleCodeReviewAgentContent,
@@ -33,14 +37,20 @@ function expectedMode(tool) {
   return null;
 }
 
-function expectedHash(toolKey, tool, assembled, codeReviewAgentContent) {
+function expectedHash(
+  toolKey,
+  tool,
+  assembled,
+  codeReviewAgentContent,
+  content
+) {
   if (tool.codeReviewAgent) return computeHash(codeReviewAgentContent);
-  if (tool.multiOutput) return computeClaudeHash(assembled);
-  if (tool.augmentMultiOutput) return computeAugmentHash(assembled);
-  if (tool.cursorMultiOutput) return computeCursorHash(assembled);
-  if (tool.copilotMultiOutput) return computeCopilotHash(assembled);
+  if (tool.multiOutput) return computeClaudeHash(assembled, content);
+  if (tool.augmentMultiOutput) return computeAugmentHash(assembled, content);
+  if (tool.cursorMultiOutput) return computeCursorHash(assembled, content);
+  if (tool.copilotMultiOutput) return computeCopilotHash(assembled, content);
   if (tool.reviewCommand) {
-    return computeReviewCommandHash(assembled, toolKey);
+    return computeReviewCommandHash(assembled, toolKey, content);
   }
   return computeHash(assembled);
 }
@@ -240,9 +250,16 @@ function hasUntrackedArtifacts(projectRoot, toolKey, tool) {
 async function inspectInstallation(options = {}) {
   const projectRoot = options.projectRoot || process.cwd();
   const config = readConfig(projectRoot);
-  const content = await fetchContent();
+  const profile = config?.profile && isProfile(config.profile)
+    ? config.profile
+    : LEGACY_PROFILE;
+  const appliesTo = config?.appliesTo || [];
+  const content = await fetchContent({ profile, appliesTo });
   const assembled = assembleContent(content);
-  const codeReviewAgentContent = assembleCodeReviewAgentContent(assembled);
+  const codeReviewAgentContent = assembleCodeReviewAgentContent(
+    assembled,
+    content
+  );
   const tools = [];
   const globalFindings = [];
 
@@ -251,6 +268,19 @@ async function inspectInstallation(options = {}) {
       'error',
       'missing_config',
       'No readable .tenets.json configuration was found.'
+    ));
+  }
+  if (config && !config.profile) {
+    globalFindings.push(finding(
+      'warning',
+      'missing_profile',
+      `No profile is configured; strict is assumed until \`tenets update\` migrates the configuration.`
+    ));
+  } else if (config && !isProfile(config.profile)) {
+    globalFindings.push(finding(
+      'error',
+      'invalid_profile',
+      `Configuration contains an unsupported profile: ${config.profile}.`
     ));
   }
 
@@ -278,7 +308,13 @@ async function inspectInstallation(options = {}) {
         toolKey,
         entry,
         tool,
-        expectedHash(toolKey, tool, assembled, codeReviewAgentContent)
+        expectedHash(
+          toolKey,
+          tool,
+          assembled,
+          codeReviewAgentContent,
+          content
+        )
       ));
     } else if (hasUntrackedArtifacts(projectRoot, toolKey, tool)) {
       tools.push({
@@ -349,6 +385,8 @@ async function inspectInstallation(options = {}) {
   const result = {
     healthy: !findings.some((item) => item.severity === 'error'),
     packageVersion: require('../../package.json').version,
+    profile,
+    appliesTo,
     tools,
     presets,
     findings: globalFindings,

@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: architecture-decisions
 severity: warning
-profiles: ["core"]
+minimum_profile: strict
+applies_to: ["all"]
 related: ["TENETS-ADR-001", "TENETS-ADR-003"]
 aliases: []
 ---

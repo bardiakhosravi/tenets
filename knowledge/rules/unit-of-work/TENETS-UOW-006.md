@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: unit-of-work
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-APP-001", "TENETS-UOW-001"]
 aliases: []
 ---

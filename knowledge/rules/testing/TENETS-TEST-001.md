@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: testing
 severity: warning
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-DEPEND-001", "TENETS-LIFECYCLE-002", "TENETS-EVENT-002"]
 aliases: []
 ---

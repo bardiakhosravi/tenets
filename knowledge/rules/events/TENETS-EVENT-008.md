@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: events
 severity: error
-profiles: ["core"]
+minimum_profile: strict
+applies_to: ["all"]
 related: ["TENETS-UOW-004", "TENETS-AGGREGATE-008", "TENETS-PATTERN-008"]
 aliases: []
 ---

@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: adapters
 severity: error
-profiles: ["core", "python"]
+minimum_profile: core
+applies_to: ["python"]
 related: ["TENETS-REPO-007", "TENETS-LIFECYCLE-005", "TENETS-ADAPTER-004"]
 aliases: []
 ---

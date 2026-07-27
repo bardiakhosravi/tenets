@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: lifecycle
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-LIFECYCLE-004", "TENETS-LIFECYCLE-006"]
 aliases: []
 ---

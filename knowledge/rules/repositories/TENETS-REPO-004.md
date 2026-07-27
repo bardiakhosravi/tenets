@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: repositories
 severity: warning
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-REPO-003", "TENETS-REPO-005"]
 aliases: []
 ---

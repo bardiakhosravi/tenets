@@ -60,7 +60,8 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     '--agents',
   ]);
   const config = readConfig(directory);
-  assert.equal(config.schemaVersion, 3);
+  assert.equal(config.schemaVersion, 4);
+  assert.equal(config.profile, 'pragmatic');
   assert.equal(config.tools.claude.mode, 'multi');
   assert.equal(config.tools.augment.mode, 'augment-multi');
   assert.equal(config.tools.cursor.mode, 'cursor-multi');
@@ -94,6 +95,13 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
       path.join(directory, '.augment/rules/tenets-global.md'),
       'utf-8'
     ),
+    /Profile: `pragmatic`/
+  );
+  assert.doesNotMatch(
+    fs.readFileSync(
+      path.join(directory, '.augment/rules/tenets-global.md'),
+      'utf-8'
+    ),
     /TENETS-ASYNC-008/
   );
   assert.match(
@@ -104,6 +112,13 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     /TENETS-ERROR-008/
   );
   assert.match(
+    fs.readFileSync(
+      path.join(directory, '.cursor/rules/tenets-global.mdc'),
+      'utf-8'
+    ),
+    /TENETS-ERROR-008/
+  );
+  assert.doesNotMatch(
     fs.readFileSync(
       path.join(directory, '.cursor/rules/tenets-global.mdc'),
       'utf-8'
@@ -264,6 +279,34 @@ test('update repairs a missing generated integration file', (t) => {
   assert.ok(fs.existsSync(rulePath));
 });
 
+test('update changes the active profile and regenerates review enforcement', (t) => {
+  const directory = temporaryDirectory(t);
+  runCli(directory, ['init', '--augment', '--profile', 'strict']);
+
+  const rulesPath = path.join(
+    directory,
+    '.augment/rules/tenets-global.md'
+  );
+  const commandPath = path.join(
+    directory,
+    '.augment/commands/tenets-review-architecture.md'
+  );
+  assert.match(fs.readFileSync(rulesPath, 'utf-8'), /TENETS-ADR-001/);
+
+  runCli(directory, ['update', '--profile', 'core']);
+
+  const config = readConfig(directory);
+  assert.equal(config.profile, 'core');
+  assert.doesNotMatch(fs.readFileSync(rulesPath, 'utf-8'), /TENETS-ADR-001/);
+  const command = fs.readFileSync(commandPath, 'utf-8');
+  const allowlist = command.match(
+    /The following rule IDs[\s\S]*?Do not report/
+  )?.[0];
+  assert.ok(allowlist);
+  assert.match(allowlist, /TENETS-PORT-005/);
+  assert.doesNotMatch(allowlist, /TENETS-ADR-001/);
+});
+
 test('update migrates legacy Cursor and Copilot outputs safely', (t) => {
   const directory = temporaryDirectory(t);
   const githubDirectory = path.join(directory, '.github');
@@ -311,7 +354,9 @@ test('update migrates legacy Cursor and Copilot outputs safely', (t) => {
   );
 
   const config = readConfig(directory);
-  assert.equal(config.schemaVersion, 3);
+  assert.equal(config.schemaVersion, 4);
+  assert.equal(config.profile, 'strict');
+  assert.deepEqual(config.appliesTo, []);
   assert.equal(config.tools.cursor.mode, 'cursor-multi');
   assert.equal(config.tools.copilot.mode, 'copilot-multi');
 });

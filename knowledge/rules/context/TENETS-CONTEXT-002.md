@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: context
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-CONTEXT-003", "TENETS-CONTEXT-004"]
 aliases: []
 ---

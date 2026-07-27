@@ -67,7 +67,10 @@ function writeCursorIntegration(projectRoot, content, options = {}) {
     writtenFiles.push(`.cursor/rules/${definition.fileName}`);
   }
 
-  writtenFiles.push(writeReviewCommand(projectRoot, 'cursor', options));
+  writtenFiles.push(writeReviewCommand(projectRoot, 'cursor', {
+    ...options,
+    content,
+  }));
 
   const legacyPath = path.join(projectRoot, '.cursorrules');
   const removedLegacyRules = removeMarkedContent(legacyPath);

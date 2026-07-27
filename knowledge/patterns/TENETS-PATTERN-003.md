@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: lifecycle
 severity: guidance
-profiles: ["python"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-002", "TENETS-LIFECYCLE-003", "TENETS-LIFECYCLE-005"]
 aliases: []
 ---

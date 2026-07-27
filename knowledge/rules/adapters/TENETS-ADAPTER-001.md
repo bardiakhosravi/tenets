@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: adapters
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-PORT-001", "TENETS-ADAPTER-002", "TENETS-ADAPTER-003"]
 aliases: []
 ---

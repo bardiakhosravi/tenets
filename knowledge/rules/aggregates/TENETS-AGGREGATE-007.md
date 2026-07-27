@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: aggregates
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-AGGREGATE-002", "TENETS-APP-006"]
 aliases: []
 ---

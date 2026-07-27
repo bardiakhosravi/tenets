@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: async-reliability
 severity: error
-profiles: ["core"]
+minimum_profile: strict
+applies_to: ["all"]
 related: ["TENETS-ASYNC-002", "TENETS-ASYNC-006"]
 aliases: []
 ---

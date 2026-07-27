@@ -64,15 +64,46 @@ function readTemplate() {
   return fs.readFileSync(path.join(CLI_ROOT, REVIEW_COMMAND_TEMPLATE), 'utf-8');
 }
 
-function buildReviewCommand(toolKey) {
+function defaultReviewContext() {
+  const catalogPath = path.join(
+    CLI_ROOT,
+    'bundled',
+    'catalog',
+    'rules.json'
+  );
+  const catalog = JSON.parse(fs.readFileSync(catalogPath, 'utf-8'));
+  return {
+    profile: 'strict',
+    activeRuleIds: catalog.entries
+      .filter((entry) => entry.kind === 'rule')
+      .map((entry) => entry.id),
+  };
+}
+
+function formatRuleIds(ruleIds) {
+  return ruleIds
+    .map((id) => `- \`${id}\``)
+    .join('\n');
+}
+
+function buildReviewCommand(toolKey, context = {}) {
   const definition = REVIEW_COMMAND_DEFINITIONS[toolKey];
   if (!definition) {
     throw new Error(`No architecture review command definition for tool: ${toolKey}`);
   }
+  const reviewContext = {
+    ...defaultReviewContext(),
+    ...context,
+  };
 
   const body = readTemplate()
     .replace('{{RULES_INSTRUCTION}}', definition.rulesInstruction)
     .replace('{{SCOPE_INSTRUCTION}}', definition.scopeInstruction)
+    .replace('{{ACTIVE_PROFILE}}', reviewContext.profile)
+    .replace(
+      '{{ACTIVE_RULE_IDS}}',
+      formatRuleIds(reviewContext.activeRuleIds)
+    )
     .trim();
 
   const parts = [];
@@ -103,7 +134,12 @@ function writeReviewCommand(projectRoot, toolKey, options = {}) {
   if (!definition) return null;
 
   const targetPath = reviewCommandPath(projectRoot, toolKey);
-  writeOwnedFile(targetPath, buildReviewCommand(toolKey), options);
+  const { content, ...writeOptions } = options;
+  writeOwnedFile(
+    targetPath,
+    buildReviewCommand(toolKey, content),
+    writeOptions
+  );
   return definition.targetFile;
 }
 

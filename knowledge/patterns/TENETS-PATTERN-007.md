@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: events
 severity: guidance
-profiles: ["core", "python"]
+minimum_profile: strict
+applies_to: ["python"]
 related: ["TENETS-EVENT-001", "TENETS-EVENT-003", "TENETS-EVENT-004", "TENETS-EVENT-005", "TENETS-EVENT-006", "TENETS-NAME-004", "TENETS-NAME-005"]
 aliases: []
 ---

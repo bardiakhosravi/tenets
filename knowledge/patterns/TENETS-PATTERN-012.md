@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: errors
 severity: guidance
-profiles: ["core", "python", "flask"]
+minimum_profile: pragmatic
+applies_to: ["python", "flask"]
 related: ["TENETS-ERROR-001", "TENETS-ERROR-002", "TENETS-ERROR-003", "TENETS-ERROR-004", "TENETS-ERROR-005", "TENETS-ERROR-006", "TENETS-ERROR-007", "TENETS-ERROR-008"]
 aliases: []
 ---

@@ -64,6 +64,9 @@ if (fs.existsSync(catalogSrc)) {
   throw new Error('catalog/rules.json is missing. Run the knowledge build first.');
 }
 
+const viewsSrc = path.join(REPO_ROOT, 'knowledge', 'views.json');
+copyFile(viewsSrc, path.join(BUNDLED_DIR, 'knowledge', 'views.json'));
+
 // Copy speckit-preset for --speckit offline installs
 const speckitSrc = path.join(REPO_ROOT, 'speckit-preset');
 const speckitDest = path.join(BUNDLED_DIR, 'speckit-preset');

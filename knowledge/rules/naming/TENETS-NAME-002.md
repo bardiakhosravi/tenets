@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: naming
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-NAME-001", "TENETS-DEPEND-001", "TENETS-ADAPTER-005"]
 aliases: []
 ---

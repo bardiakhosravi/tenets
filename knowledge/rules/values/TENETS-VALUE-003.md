@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: values
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-VALUE-001", "TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-005"]
 aliases: []
 ---

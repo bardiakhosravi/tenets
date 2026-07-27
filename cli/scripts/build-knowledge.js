@@ -148,7 +148,16 @@ function validateEntry(entry) {
       errors.push(`${entry.source}: ${field} must be a non-empty string`);
     }
   }
-  for (const field of ['profiles', 'related', 'aliases', 'requires', 'supersedes']) {
+  if (
+    !KNOWLEDGE_SCHEMA.properties.minimum_profile.enum.includes(
+      entry.minimum_profile
+    )
+  ) {
+    errors.push(
+      `${entry.source}: invalid minimum_profile ${entry.minimum_profile}`
+    );
+  }
+  for (const field of ['applies_to', 'related', 'aliases', 'requires', 'supersedes']) {
     if (!Object.hasOwn(entry, field) && ['requires', 'supersedes'].includes(field)) {
       continue;
     }
@@ -156,8 +165,8 @@ function validateEntry(entry) {
       errors.push(`${entry.source}: ${field} must be a JSON array`);
       continue;
     }
-    if (field === 'profiles' && entry[field].length === 0) {
-      errors.push(`${entry.source}: profiles must contain at least one profile`);
+    if (field === 'applies_to' && entry[field].length === 0) {
+      errors.push(`${entry.source}: applies_to must contain at least one target`);
     }
     if (entry[field].some((value) => typeof value !== 'string')) {
       errors.push(`${entry.source}: ${field} values must be strings`);
@@ -243,7 +252,7 @@ function renderCatalog(entries) {
   }
 
   return `${JSON.stringify({
-    schema_version: 1,
+    schema_version: 2,
     generated_from: 'knowledge/',
     entries,
     aliases,

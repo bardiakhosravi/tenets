@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: services
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-SERVICE-002", "TENETS-ENTITY-002", "TENETS-APP-002"]
 aliases: []
 ---

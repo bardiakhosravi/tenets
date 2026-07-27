@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: errors
 severity: error
-profiles: ["core"]
+minimum_profile: pragmatic
+applies_to: ["all"]
 related: ["TENETS-ERROR-001", "TENETS-CONTEXT-001", "TENETS-PATTERN-012"]
 aliases: []
 ---

@@ -5,7 +5,8 @@ kind: rule
 status: stable
 category: dependencies
 severity: error
-profiles: ["core"]
+minimum_profile: core
+applies_to: ["all"]
 related: ["TENETS-DEPEND-001", "TENETS-DEPEND-003", "TENETS-PORT-002"]
 aliases: []
 ---

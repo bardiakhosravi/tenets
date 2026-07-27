@@ -5,7 +5,8 @@ kind: pattern
 status: stable
 category: testing
 severity: guidance
-profiles: ["core", "python"]
+minimum_profile: pragmatic
+applies_to: ["python"]
 related: ["TENETS-TEST-003", "TENETS-TEST-005", "TENETS-TEST-006", "TENETS-REPO-005"]
 aliases: []
 ---
