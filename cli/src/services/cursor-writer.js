@@ -12,6 +12,11 @@ const {
   reviewCommandPath,
   reviewCommandExists,
 } = require('./review-command-writer');
+const {
+  writeScaffoldCommand,
+  scaffoldCommandPath,
+  scaffoldCommandExists,
+} = require('./scaffold-command-writer');
 
 function buildCursorRuleFile(definition, content) {
   const section = content.sections.find(
@@ -48,6 +53,7 @@ function cursorOwnedPaths(projectRoot) {
       path.join(projectRoot, '.cursor', 'rules', definition.fileName)
     ),
     reviewCommandPath(projectRoot, 'cursor'),
+    scaffoldCommandPath(projectRoot, 'cursor'),
   ];
 }
 
@@ -71,6 +77,7 @@ function writeCursorIntegration(projectRoot, content, options = {}) {
     ...options,
     content,
   }));
+  writtenFiles.push(writeScaffoldCommand(projectRoot, 'cursor', options));
 
   const legacyPath = path.join(projectRoot, '.cursorrules');
   const removedLegacyRules = removeMarkedContent(legacyPath);
@@ -90,7 +97,9 @@ function cursorIntegrationComplete(projectRoot) {
       isTenetsOwnedFile(
         path.join(projectRoot, '.cursor', 'rules', definition.fileName)
       )
-    ) && reviewCommandExists(projectRoot, 'cursor')
+    ) &&
+    reviewCommandExists(projectRoot, 'cursor') &&
+    scaffoldCommandExists(projectRoot, 'cursor')
   );
 }
 

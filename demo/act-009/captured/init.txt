@@ -23,9 +23,10 @@ info Using versioned rules bundled with tenets v0.14.0...
   Tool: AGENTS.md
   Mode: replace
   Review command: .tenets/prompts/tenets-review-architecture.md
+  Scaffold command: .tenets/prompts/tenets-scaffold.md
   Run `npx tenets update` to update later.
 info Using versioned rules bundled with tenets v0.14.0...
 
 info Post-install verification:
-✔ AGENTS.md: rules and review command found
+✔ AGENTS.md: rules and agent commands found
 ✔ Installation verified.

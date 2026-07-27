@@ -28,6 +28,9 @@ const {
 const {
   reviewCommandPath,
 } = require('./review-command-writer');
+const {
+  scaffoldCommandPath,
+} = require('./scaffold-command-writer');
 
 function expectedMode(tool) {
   if (tool.multiOutput) return 'multi';
@@ -105,6 +108,9 @@ function toolPaths(projectRoot, toolKey, tool) {
       ...(tool.reviewCommand
         ? [reviewCommandPath(projectRoot, toolKey)]
         : []),
+      ...(tool.scaffoldCommand
+        ? [scaffoldCommandPath(projectRoot, toolKey)]
+        : []),
     ],
     shared: tool.codeReviewAgent ? [] : [targetPath],
   };
@@ -146,6 +152,9 @@ function inspectConfiguredTool(
   const paths = toolPaths(projectRoot, toolKey, tool);
   const reviewPath = tool.reviewCommand
     ? reviewCommandPath(projectRoot, toolKey)
+    : null;
+  const scaffoldPath = tool.scaffoldCommand
+    ? scaffoldCommandPath(projectRoot, toolKey)
     : null;
   if (toolKey === 'claude') {
     const settingsPath = path.join(projectRoot, '.claude', 'settings.json');
@@ -225,12 +234,17 @@ function inspectConfiguredTool(
     findings,
     artifacts: {
       rules: [...paths.owned, ...paths.shared]
-        .filter((filePath) => filePath !== reviewPath)
+        .filter((filePath) =>
+          filePath !== reviewPath && filePath !== scaffoldPath
+        )
         .map((filePath) => path.relative(projectRoot, filePath)
           .split(path.sep)
           .join('/')),
       reviewCommand: reviewPath
         ? path.relative(projectRoot, reviewPath).split(path.sep).join('/')
+        : null,
+      scaffoldCommand: scaffoldPath
+        ? path.relative(projectRoot, scaffoldPath).split(path.sep).join('/')
         : null,
     },
   };
@@ -337,7 +351,11 @@ async function inspectInstallation(options = {}) {
           'integration_not_configured',
           'The requested integration was not recorded in .tenets.json.'
         )],
-        artifacts: { rules: [], reviewCommand: null },
+        artifacts: {
+          rules: [],
+          reviewCommand: null,
+          scaffoldCommand: null,
+        },
       });
     }
   }

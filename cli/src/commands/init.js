@@ -40,6 +40,10 @@ const {
   writeReviewCommand,
 } = require('../services/review-command-writer');
 const {
+  scaffoldCommandPath,
+  writeScaffoldCommand,
+} = require('../services/scaffold-command-writer');
+const {
   findOwnershipConflicts,
   isTenetsOwnedFile,
 } = require('../services/file-writer');
@@ -81,7 +85,7 @@ async function verifyInstalledSetup(toolKeys, speckitRequested) {
   for (const tool of result.tools) {
     if (tool.status === 'healthy') {
       const artifactDescription = tool.artifacts.reviewCommand
-        ? 'rules and review command found'
+        ? 'rules and agent commands found'
         : 'generated files found';
       logger.success(`${tool.name}: ${artifactDescription}`);
       continue;
@@ -466,6 +470,7 @@ async function initCursorMultiOutput(toolKey, tool, content, hash, options = {})
   }
   logger.dim('  Global rules always apply; layer rules load by path.');
   logger.dim('  Run /tenets-review-architecture for a compliance review.');
+  logger.dim('  Run /tenets-scaffold to initialize a Flask service.');
   logger.dim('  Run `npx tenets update` to update rules later.');
 }
 
@@ -501,6 +506,7 @@ async function initCopilotMultiOutput(toolKey, tool, content, hash, options = {}
   logger.dim(`  Global instructions: ${globalAction}.`);
   logger.dim('  Layer rules load only for matching paths.');
   logger.dim('  Run the Tenets architecture review prompt for a compliance review.');
+  logger.dim('  Run the Tenets scaffold prompt to initialize a Flask service.');
   logger.dim('  Run `npx tenets update` to update instructions later.');
 }
 
@@ -533,6 +539,7 @@ async function initAugmentMultiOutput(toolKey, tool, content, hash, options = {}
   }
   logger.dim('  Global rules always apply; layer rules load when relevant.');
   logger.dim('  Run /tenets-review-architecture for a compliance review.');
+  logger.dim('  Run /tenets-scaffold to initialize a Flask service.');
   logger.dim('  Run `npx tenets update` to update rules later.');
 }
 
@@ -610,7 +617,8 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
   logger.info('What was installed:');
   logger.dim('  .claude/rules/tenets-*.md    Context-aware rules (auto-load by file path)');
   logger.dim('  CLAUDE.md                    Top-level principles (always loaded)');
-  logger.dim('  .claude/skills/...           /tenets-review-architecture command');
+  logger.dim('  .claude/skills/tenets-review-architecture/...  Architecture review command');
+  logger.dim('  .claude/skills/tenets-scaffold/...             Service scaffold command');
   if (installHook) {
     logger.dim('  .claude/hooks/...            Continuous monitoring hook');
     logger.dim('  .claude/settings.json        Hook configuration');
@@ -623,6 +631,7 @@ async function initClaudeMultiOutput(args, toolKey, tool, content, hash, options
   logger.info('Usage:');
   logger.dim('  Edit any file — rules auto-load based on the layer you\'re working in');
   logger.dim('  Run /tenets-review-architecture for a full compliance review');
+  logger.dim('  Run /tenets-scaffold to initialize a Flask service');
   logger.dim('  Run `npx tenets update` to update rules later');
 }
 
@@ -634,7 +643,11 @@ async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
   const commandPath = tool.reviewCommand
     ? reviewCommandPath(process.cwd(), toolKey)
     : null;
+  const scaffoldPath = tool.scaffoldCommand
+    ? scaffoldCommandPath(process.cwd(), toolKey)
+    : null;
   let overwriteCommandConflict = false;
+  let overwriteScaffoldConflict = false;
 
   if (
     commandPath &&
@@ -645,6 +658,20 @@ async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
         `Review command file already exists at ${commandPath}. Replace it?`
       );
     if (!overwriteCommandConflict) {
+      logger.info('Cancelled.');
+      return;
+    }
+  }
+
+  if (
+    scaffoldPath &&
+    fs.existsSync(scaffoldPath) &&
+    !isTenetsOwnedFile(scaffoldPath)
+  ) {
+    overwriteScaffoldConflict = options.yes || await promptYesNo(
+        `Scaffold command file already exists at ${scaffoldPath}. Replace it?`
+      );
+    if (!overwriteScaffoldConflict) {
       logger.info('Cancelled.');
       return;
     }
@@ -666,6 +693,11 @@ async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
       content: options.content,
     })
     : null;
+  const scaffoldFile = tool.scaffoldCommand
+    ? writeScaffoldCommand(process.cwd(), toolKey, {
+      overwriteConflicts: overwriteScaffoldConflict,
+    })
+    : null;
   updateToolEntry(toolKey, tool.targetFile, hash, mode);
 
   logger.blank();
@@ -674,6 +706,9 @@ async function initSingleFile(toolKey, tool, assembled, hash, options = {}) {
   logger.dim(`  Mode: ${mode}`);
   if (commandFile) {
     logger.dim(`  Review command: ${commandFile}`);
+  }
+  if (scaffoldFile) {
+    logger.dim(`  Scaffold command: ${scaffoldFile}`);
   }
   logger.dim(`  Run \`npx tenets update\` to update later.`);
 }

@@ -55,7 +55,33 @@ For CI or other noninteractive environments:
 npx tenets init --yes --json
 ```
 
-### Build With The Rules
+### Initialize The Service
+
+For an empty repository or an enterprise Flask starter:
+
+```text
+/tenets-scaffold
+```
+
+Use the installed `.tenets/prompts/tenets-scaffold.md` directly with generic
+agents that do not expose repository slash commands.
+
+The agent inspects the repository and classifies it as `greenfield`,
+`enterprise_starter`, or `active_service`. It presents the evidence and a
+complete file-and-edit plan before writing anything:
+
+- Greenfield repositories receive the canonical runnable Flask foundation.
+- Enterprise starters preserve existing platform conventions and receive an
+  adapted, additive architecture plan.
+- Active services are not reorganized; the command stops and recommends a
+  scoped assessment.
+
+The command never moves, renames, or deletes existing files. Every edit to an
+enterprise-owned file requires explicit approval. Scaffolded application code
+is user-owned: `tenets update` refreshes the agent workflow, and
+`tenets uninstall` does not remove the service it created.
+
+### Build The First Workflow
 
 For a new workflow, ask the agent to establish the domain boundary before
 generating implementation details:
@@ -131,11 +157,11 @@ npx tenets init --claude --speckit
 
 | Tool | Explicit flag | Installed workflow |
 | --- | --- | --- |
-| Claude Code | `--claude` | Context-aware rules, `CLAUDE.md` guidance, review skill, optional monitoring hook |
-| Cursor | `--cursor` | Always-on and path-scoped rules plus architecture-review command |
-| Augment | `--augment` | Repository rules plus architecture-review command |
-| GitHub Copilot | `--copilot` | Global and path-scoped instructions plus review prompt |
-| Generic agents | `--agents` | Portable `AGENTS.md` guidance plus review prompt |
+| Claude Code | `--claude` | Context-aware rules, `CLAUDE.md` guidance, review and scaffold skills, optional monitoring hook |
+| Cursor | `--cursor` | Always-on and path-scoped rules plus review and scaffold commands |
+| Augment | `--augment` | Repository rules plus review and scaffold commands |
+| GitHub Copilot | `--copilot` | Global and path-scoped instructions plus review and scaffold prompts |
+| Generic agents | `--agents` | Portable `AGENTS.md` guidance plus review and scaffold prompts |
 | Code review agent | `--code-review-agent` | Standalone structured reviewer contract |
 | Spec-Kit | `--speckit` | DDD and Hexagonal Architecture planning preset |
 

@@ -13,6 +13,10 @@ All notable changes to Tenets are documented here.
   reproducible proof, quick start, and repository-appropriate next actions,
   with detailed agent and Spec-Kit setup moved into a dedicated integration
   guide.
+- Unified `/tenets-scaffold` agent workflow for greenfield Flask repositories
+  and enterprise service starters, installed for Claude Code, Cursor, Augment,
+  GitHub Copilot, and generic agents with plan approval and non-destructive
+  enterprise safeguards.
 
 ## [0.14.0] - 2026-07-27
 

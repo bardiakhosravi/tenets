@@ -7,6 +7,11 @@ const {
   reviewCommandExists,
 } = require('./review-command-writer');
 const {
+  writeScaffoldCommand,
+  scaffoldCommandPath,
+  scaffoldCommandExists,
+} = require('./scaffold-command-writer');
+const {
   assertCanWriteOwnedFiles,
   isTenetsOwnedFile,
   writeOwnedFile,
@@ -45,6 +50,7 @@ function augmentOwnedPaths(projectRoot) {
       path.join(projectRoot, '.augment', 'rules', definition.fileName)
     ),
     reviewCommandPath(projectRoot, 'augment'),
+    scaffoldCommandPath(projectRoot, 'augment'),
   ];
 }
 
@@ -68,6 +74,7 @@ function writeAugmentIntegration(projectRoot, content, options = {}) {
     ...options,
     content,
   }));
+  writtenFiles.push(writeScaffoldCommand(projectRoot, 'augment', options));
 
   return writtenFiles;
 }
@@ -84,7 +91,9 @@ function augmentIntegrationComplete(projectRoot) {
       isTenetsOwnedFile(
         path.join(projectRoot, '.augment', 'rules', definition.fileName)
       )
-    ) && reviewCommandExists(projectRoot, 'augment')
+    ) &&
+    reviewCommandExists(projectRoot, 'augment') &&
+    scaffoldCommandExists(projectRoot, 'augment')
   );
 }
 
