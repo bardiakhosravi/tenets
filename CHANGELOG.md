@@ -4,6 +4,8 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.15.0] - 2026-08-06
+
 ### Added
 
 - Reproducible 60-second installation and architecture-review demo backed by a

@@ -17,7 +17,7 @@ Recommended setup:
 
 Press Enter to accept the checked items, or enter numbers separated by commas.
 Selection: info Using the pragmatic architecture profile.
-info Using versioned rules bundled with tenets v0.14.0...
+info Using versioned rules bundled with tenets v0.15.0...
 
 ✔ Rules installed to AGENTS.md
   Tool: AGENTS.md
@@ -25,7 +25,7 @@ info Using versioned rules bundled with tenets v0.14.0...
   Review command: .tenets/prompts/tenets-review-architecture.md
   Scaffold command: .tenets/prompts/tenets-scaffold.md
   Run `npx tenets update` to update later.
-info Using versioned rules bundled with tenets v0.14.0...
+info Using versioned rules bundled with tenets v0.15.0...
 
 info Post-install verification:
 ✔ AGENTS.md: rules and agent commands found
