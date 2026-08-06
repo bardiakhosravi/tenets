@@ -1,6 +1,6 @@
 {
   "name": "tenets",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Architecture guardrails for AI coding agents building backend services with DDD and Hexagonal Architecture",
   "bin": {
     "tenets": "bin/tenets.js"
