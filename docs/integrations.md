@@ -210,6 +210,11 @@ Tenets can extend an initialized
 npx tenets init --speckit
 ```
 
+This command installs only the Tenets preset. It requires `.specify/` to exist
+and does not initialize Spec-Kit, change its active integration, or install
+agent-specific files. It works the same way for Cursor, Claude Code, and every
+other Spec-Kit integration.
+
 The preset participates in Spec-Kit's template priority stack:
 
 ```text

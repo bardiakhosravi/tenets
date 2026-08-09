@@ -439,6 +439,28 @@ test('Spec-Kit installs the bundled preset without network tooling', (t) => {
   );
 });
 
+test('Spec-Kit preset requires an initialized project without choosing an agent', (t) => {
+  const directory = temporaryDirectory(t);
+
+  const result = spawnCli(
+    directory,
+    ['init', '--speckit'],
+    '',
+    { PATH: '' }
+  );
+
+  assert.equal(result.status, 1);
+  assert.match(
+    result.stdout + result.stderr,
+    /Spec-Kit is not initialized in this repository/
+  );
+  assert.match(
+    result.stdout + result.stderr,
+    /preferred coding-agent integration/
+  );
+  assert.deepEqual(fs.readdirSync(directory), []);
+});
+
 test('update refuses an unowned target and init can replace it explicitly', (t) => {
   const directory = temporaryDirectory(t);
   runCli(directory, ['init', '--augment']);

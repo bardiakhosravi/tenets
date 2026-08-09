@@ -165,6 +165,15 @@ npx tenets init --claude --speckit
 | Code review agent | `--code-review-agent` | Standalone structured reviewer contract |
 | Spec-Kit | `--speckit` | DDD and Hexagonal Architecture planning preset |
 
+If Spec-Kit is already initialized in the repository, add only the Tenets
+preset with one command:
+
+```bash
+npx tenets init --speckit
+```
+
+Tenets does not initialize Spec-Kit or select its coding-agent integration.
+
 See [Agent and Spec-Kit Integrations](docs/integrations.md) for installed paths,
 tool-specific behavior, review invocation, Claude hooks, and Spec-Kit setup.
 
