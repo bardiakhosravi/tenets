@@ -200,67 +200,20 @@ function updatePresetRegistry(presetsDir) {
   fs.writeFileSync(registryPath, JSON.stringify(registry, null, 2) + '\n', 'utf-8');
 }
 
+function assertSpeckitInitialized(projectRoot = process.cwd()) {
+  if (!fs.existsSync(path.resolve(projectRoot, '.specify'))) {
+    throw new Error(
+      'Spec-Kit is not initialized in this repository. Initialize Spec-Kit ' +
+      'with your preferred coding-agent integration, then rerun ' +
+      '`npx tenets init --speckit`.'
+    );
+  }
+}
+
 async function initSpeckit(options = {}) {
   const projectRoot = process.cwd();
   const specifyDir = path.resolve(projectRoot, '.specify');
-
-  if (options.dryRun && !fs.existsSync(specifyDir)) {
-    throw new Error(
-      'Cannot preview Spec-Kit bootstrap because `.specify` does not exist. ' +
-      'Initialize Spec-Kit first, then rerun with `--dry-run`.'
-    );
-  }
-
-  if (!fs.existsSync(specifyDir)) {
-    logger.blank();
-
-    if (isCommandAvailable('specify')) {
-      logger.info('Initializing Spec-Kit in this project...');
-      logger.blank();
-      try {
-        execSync('specify init --here --ai claude', { stdio: 'inherit', env: process.env });
-      } catch {
-        logger.error('`specify init --here --ai claude` failed. Fix the error above and re-run `npx tenets init --speckit`.');
-        process.exitCode = 1;
-        return;
-      }
-    } else if (isCommandAvailable('uvx')) {
-      logger.info('Initializing Spec-Kit via uvx (no install required)...');
-      logger.blank();
-      try {
-        execSync('uvx --from git+https://github.com/github/spec-kit.git specify init --here --ai claude', { stdio: 'inherit', env: process.env });
-      } catch {
-        logger.error('Spec-Kit init via uvx failed. Fix the error above and re-run `npx tenets init --speckit`.');
-        process.exitCode = 1;
-        return;
-      }
-    } else if (isCommandAvailable('uv')) {
-      logger.info('Installing Spec-Kit and initializing...');
-      logger.blank();
-      try {
-        execSync('uv tool install specify-cli --from git+https://github.com/github/spec-kit.git', { stdio: 'inherit', env: process.env });
-        execSync('specify init --here --ai claude', { stdio: 'inherit', env: process.env });
-      } catch {
-        logger.error('Spec-Kit install failed. Fix the error above and re-run `npx tenets init --speckit`.');
-        process.exitCode = 1;
-        return;
-      }
-    } else {
-      logger.warn('Spec-Kit is not installed. Install it first:');
-      logger.blank();
-      logger.dim('  # Install uv (https://docs.astral.sh/uv/getting-started/installation/)');
-      logger.dim('  curl -LsSf https://astral.sh/uv/install.sh | sh');
-      logger.blank();
-      logger.dim('  # Then install Spec-Kit');
-      logger.dim('  uv tool install specify-cli --from git+https://github.com/github/spec-kit.git');
-      logger.dim('  specify init --here --ai claude');
-      logger.blank();
-      logger.dim('  # Then re-run');
-      logger.dim('  npx tenets init --speckit');
-      logger.blank();
-      return;
-    }
-  }
+  assertSpeckitInitialized(projectRoot);
 
   const presetDir = path.resolve(specifyDir, 'presets', SPECKIT_PRESET_ID);
   const alreadyInstalled = fs.existsSync(presetDir);
@@ -356,6 +309,7 @@ async function initCommand(args, options = {}) {
   }
 
   if (!detection) detection = detectRepository();
+  if (speckitRequested) assertSpeckitInitialized();
   const profile = resolveProfile(existingConfig, explicitProfile);
   const appliesTo = existingConfig?.appliesTo ??
     (existingConfig ? [] : deriveApplicability(detection));

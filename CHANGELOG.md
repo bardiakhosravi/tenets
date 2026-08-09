@@ -4,6 +4,22 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.15.1] - 2026-08-09
+
+### Fixed
+
+- `tenets init --speckit` now installs only the Tenets preset into an already
+  initialized Spec-Kit project and never silently selects or bootstraps a
+  coding-agent integration.
+- Spec-Kit preset initialization now fails before writing Tenets configuration
+  when `.specify/` is absent.
+
+### Changed
+
+- Documented the single command for adding the Tenets preset to an existing
+  Spec-Kit project and clarified that it works independently of Cursor, Claude
+  Code, or any other Spec-Kit integration.
+
 ## [0.15.0] - 2026-08-06
 
 ### Added
