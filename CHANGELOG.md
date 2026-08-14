@@ -4,6 +4,24 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.16.0] - 2026-08-14
+
+### Changed
+
+- Strengthened `TENETS-NAME-001` so ubiquitous language now explicitly governs
+  internal helper functions, private methods, local variables, and parameters —
+  not only types and classes — and prohibits introducing a term that is not part
+  of the bounded context's ubiquitous language.
+- Extended the `/tenets-review-architecture` naming check to cover private
+  helpers, local variables, and invented off-glossary terms.
+
+### Added
+
+- Agent-communication guidance in the Claude Code and GitHub Copilot project
+  snippets: explain code in the domain's ubiquitous language and flag an
+  off-glossary name as a naming smell instead of adopting it, so an invented
+  term does not silently become the vocabulary the agent uses with the developer.
+
 ## [0.15.1] - 2026-08-09
 
 ### Fixed
