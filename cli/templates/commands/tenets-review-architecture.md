@@ -43,6 +43,7 @@ For each file, verify:
 - Domain services contain only ownerless domain behavior and remain pure and stateless (`TENETS-SERVICE-001`, `TENETS-SERVICE-002`)
 - Each bounded context owns its model and language (`TENETS-CONTEXT-001`)
 - Domain names follow ubiquitous language and exclude technology terminology (`TENETS-NAME-001`, `TENETS-NAME-002`)
+- Ubiquitous language extends to private helpers, local variables, and parameters — no identifier introduces a term absent from the bounded context's glossary (e.g. a generic `inventory` helper used only to persist an aggregate) (`TENETS-NAME-001`)
 - Repository interfaces represent aggregate persistence in domain language (`TENETS-REPO-001`)
 - Repository writes accept aggregate roots (`TENETS-REPO-002`); queries use domain IDs, value objects, or named criteria (`TENETS-REPO-003`)
 - Repository methods use result-semantic names; `find_*` is not used (`TENETS-REPO-004`)
