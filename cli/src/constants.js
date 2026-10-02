@@ -250,6 +250,7 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Primary adapters translate** external requests to domain commands; they contain NO business logic.
 - **Secondary adapters implement ports** — they handle all external system complexity.
 - **Domain events use ubiquitous language only** — no vendor or technology names.
+- **Explain code in the domain's ubiquitous language** — when describing the system, use the bounded context's agreed terms; if an existing name is not in the domain glossary, flag it as a naming smell instead of adopting it in your description.
 
 ### Context-aware rules
 Rules auto-load based on what you're editing:
@@ -283,6 +284,7 @@ Tenets installs scoped instructions in \`.github/instructions/tenets-*.instructi
 - One Unit of Work owns one transaction; writes commit explicitly and incomplete work rolls back.
 - Reliable publication uses an outbox, and asynchronous consumers acknowledge only after durable idempotent completion.
 - Adapters translate and perform I/O without owning business rules.
+- Explain code in the domain's ubiquitous language; flag off-glossary names as smells instead of adopting them.
 
 Run the Tenets architecture review prompt after changes that cross architecture boundaries.
 ${MARKERS.end}`;
