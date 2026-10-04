@@ -67,3 +67,32 @@ test('skills are discoverable as SKILL.md with name and description', (t) => {
     assert.ok(keys.includes('description'), skillName);
   }
 });
+
+test('PostToolUse hook reaches Claude through additionalContext', (t) => {
+  const directory = installClaude(t);
+  const hookPath = path.join(directory, '.claude/hooks/check-architecture.js');
+  const runHook = (filePath) =>
+    spawnSync(process.execPath, [hookPath], {
+      input: JSON.stringify({
+        hook_event_name: 'PostToolUse',
+        tool_name: 'Edit',
+        tool_input: { file_path: filePath },
+      }),
+      encoding: 'utf-8',
+    });
+
+  for (const filePath of [
+    '/repo/src/orders/domain/order.py',
+    'C:\\repo\\src\\orders\\domain\\order.py',
+  ]) {
+    const result = runHook(filePath);
+    assert.equal(result.status, 0);
+    const output = JSON.parse(result.stdout);
+    assert.equal(output.hookSpecificOutput.hookEventName, 'PostToolUse');
+    assert.match(output.hookSpecificOutput.additionalContext, /domain layer/);
+  }
+
+  const unrelated = runHook('/repo/README.md');
+  assert.equal(unrelated.status, 0);
+  assert.equal(unrelated.stdout, '');
+});

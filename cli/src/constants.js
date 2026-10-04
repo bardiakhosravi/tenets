@@ -322,11 +322,19 @@ process.stdin.on('data', (chunk) => { input += chunk; });
 process.stdin.on('end', () => {
   try {
     const data = JSON.parse(input);
-    const filePath = data.tool_input?.file_path || data.tool_input?.path || '';
+    const filePath = (data.tool_input?.file_path || data.tool_input?.path || '')
+      .replace(/\\\\/g, '/');
 
     for (const [layer, reminder] of Object.entries(LAYER_RULES)) {
       if (filePath.includes(\`/\${layer}/\`) || filePath.includes(\`/\${layer}s/\`)) {
-        process.stdout.write(\`[tenets] Editing \${layer} layer. \${reminder}\`);
+        // Claude Code only shows PostToolUse output to Claude as JSON
+        // additionalContext; plain stdout goes to the debug log.
+        process.stdout.write(JSON.stringify({
+          hookSpecificOutput: {
+            hookEventName: 'PostToolUse',
+            additionalContext: \`[tenets] Editing \${layer} layer. \${reminder}\`,
+          },
+        }));
         process.exit(0);
         return;
       }
