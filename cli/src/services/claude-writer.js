@@ -50,9 +50,11 @@ function buildRuleFile(definition, sections) {
     : `<!-- No content found for section: ${definition.contentSection} -->`;
 
   return [
+    // Claude Code reads only `paths` from rule frontmatter; a rule without it
+    // loads into every session.
     '---',
-    `description: "${definition.description}"`,
-    `globs: "${definition.globs}"`,
+    'paths:',
+    ...definition.paths.map((pattern) => `  - "${pattern}"`),
     '---',
     '',
     GENERATED_MARKER,

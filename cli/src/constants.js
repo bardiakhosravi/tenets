@@ -115,32 +115,40 @@ const MARKERS = {
 const GENERATED_MARKER = '<!-- tenets:generated -->';
 
 /**
- * Claude Code rule files with glob-based auto-loading.
+ * Claude Code rule files, path-scoped through `paths` frontmatter.
  * Each rule maps to a content section directory.
  */
 const CLAUDE_RULE_DEFINITIONS = [
   {
     fileName: 'tenets-domain.md',
-    description: 'DDD domain layer rules: entities, value objects, aggregates, creation and hydration, domain services, repositories, domain events, bounded contexts',
-    globs: '**/domain/**',
+    paths: ['**/domain/**'],
     contentSection: 'Domain',
   },
   {
     fileName: 'tenets-application.md',
-    description: 'Application layer rules: use cases, event integration, Unit of Work, cross-context communication, secondary port data flow',
-    globs: '**/application/**,**/use_cases/**,**/handlers/**',
+    paths: ['**/application/**', '**/use_cases/**', '**/handlers/**'],
     contentSection: 'Application',
   },
   {
     fileName: 'tenets-architecture.md',
-    description: 'Hexagonal architecture rules: ports, semantic boundary types, primary adapters, secondary adapters, adapter configuration, integration flow',
-    globs: '**/adapters/**,**/infrastructure/**,**/ports/**',
+    paths: ['**/adapters/**', '**/infrastructure/**', '**/ports/**'],
     contentSection: 'Architecture',
   },
   {
     fileName: 'tenets-global.md',
-    description: 'Cross-cutting rules: project structure, dependency direction, testing, naming, validation, error handling',
-    globs: '**/src/**',
+    // Cross-cutting rules apply to every layer and to tests, including
+    // repositories that do not use a src/ layout.
+    paths: [
+      '**/src/**',
+      '**/tests/**',
+      '**/domain/**',
+      '**/application/**',
+      '**/use_cases/**',
+      '**/handlers/**',
+      '**/adapters/**',
+      '**/infrastructure/**',
+      '**/ports/**',
+    ],
     contentSection: 'Global',
   },
 ];
