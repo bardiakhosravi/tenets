@@ -302,14 +302,18 @@ function writeCodeReviewAgentHookSettings(projectRoot) {
 
   const settings = readSettings(settingsPath);
   const postToolUseHooks = getPostToolUseHooks(settings, settingsPath);
-  const tenetsCodeReviewHookExists = postToolUseHooks.some((entry) =>
-    entry?.hooks?.some((hook) =>
+  const tenetsCodeReviewHooks = postToolUseHooks.flatMap((entry) =>
+    (entry?.hooks || []).filter((hook) =>
       hook?.type === 'agent' &&
       hook?.prompt?.includes('Tenets code review agent')
     )
   );
+  // Agent hooks have no continueOnBlock field; drop it from 0.16.x installs.
+  for (const hook of tenetsCodeReviewHooks) {
+    delete hook.continueOnBlock;
+  }
 
-  if (!tenetsCodeReviewHookExists) {
+  if (tenetsCodeReviewHooks.length === 0) {
     postToolUseHooks.push({
       matcher: 'Edit|MultiEdit|Write',
       hooks: [
@@ -317,7 +321,6 @@ function writeCodeReviewAgentHookSettings(projectRoot) {
           type: 'agent',
           prompt: readCliFile(CODE_REVIEW_AGENT_HOOK_PROMPT_TEMPLATE).trim(),
           timeout: 120,
-          continueOnBlock: true,
         },
       ],
     });

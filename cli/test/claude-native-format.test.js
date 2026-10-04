@@ -96,3 +96,50 @@ test('PostToolUse hook reaches Claude through additionalContext', (t) => {
   assert.equal(unrelated.status, 0);
   assert.equal(unrelated.stdout, '');
 });
+
+const DOCUMENTED_AGENT_HOOK_FIELDS = new Set([
+  'type',
+  'prompt',
+  'model',
+  'timeout',
+  'if',
+  'statusMessage',
+]);
+
+test('code review agent hook uses only documented agent hook fields', (t) => {
+  const directory = installClaude(t, ['--code-review-agent']);
+  const settings = JSON.parse(
+    fs.readFileSync(path.join(directory, '.claude/settings.json'), 'utf-8')
+  );
+  const agentHooks = settings.hooks.PostToolUse
+    .flatMap((entry) => entry.hooks)
+    .filter((hook) => hook.type === 'agent');
+
+  assert.equal(agentHooks.length, 1);
+  for (const field of Object.keys(agentHooks[0])) {
+    assert.ok(DOCUMENTED_AGENT_HOOK_FIELDS.has(field), `undocumented field: ${field}`);
+  }
+});
+
+test('rewriting hook settings removes continueOnBlock from 0.16.x installs', (t) => {
+  const {
+    writeCodeReviewAgentHookSettings,
+  } = require('../src/services/claude-writer');
+  const directory = installClaude(t, ['--code-review-agent']);
+  const settingsPath = path.join(directory, '.claude/settings.json');
+  const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  const agentHook = settings.hooks.PostToolUse
+    .flatMap((entry) => entry.hooks)
+    .find((hook) => hook.type === 'agent');
+  agentHook.continueOnBlock = true;
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+
+  writeCodeReviewAgentHookSettings(directory);
+
+  const rewritten = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+  const agentHooks = rewritten.hooks.PostToolUse
+    .flatMap((entry) => entry.hooks)
+    .filter((hook) => hook.type === 'agent');
+  assert.equal(agentHooks.length, 1);
+  assert.equal('continueOnBlock' in agentHooks[0], false);
+});
