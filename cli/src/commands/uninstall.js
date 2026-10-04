@@ -5,7 +5,10 @@ const {
   readConfig,
   writeConfig,
 } = require('../services/config-tracker');
-const { claudeOwnedPaths } = require('../services/claude-writer');
+const {
+  claudeOwnedPaths,
+  legacyClaudeSkillPaths,
+} = require('../services/claude-writer');
 const { augmentOwnedPaths } = require('../services/augment-writer');
 const { cursorOwnedPaths } = require('../services/cursor-writer');
 const { copilotOwnedPaths } = require('../services/copilot-writer');
@@ -102,6 +105,9 @@ function removeTool(projectRoot, toolKey, result) {
 
   if (tool.multiOutput) {
     for (const filePath of claudeOwnedPaths(projectRoot)) {
+      removeOwnedFile(filePath, result);
+    }
+    for (const filePath of legacyClaudeSkillPaths(projectRoot)) {
       removeOwnedFile(filePath, result);
     }
     removeSharedBlock(path.join(projectRoot, 'CLAUDE.md'), result);

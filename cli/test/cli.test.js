@@ -77,7 +77,7 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
   );
   assert.ok(fs.existsSync(path.join(directory, 'AGENTS.md')));
   for (const scaffoldPath of [
-    '.claude/skills/tenets-scaffold/TENETS-SKILL.md',
+    '.claude/skills/tenets-scaffold/SKILL.md',
     '.augment/commands/tenets-scaffold.md',
     '.cursor/commands/tenets-scaffold.md',
     '.github/prompts/tenets-scaffold.prompt.md',
@@ -833,4 +833,37 @@ test('interactive commands reject ambiguous JSON mode', (t) => {
     JSON.parse(uninstallResult.stdout).error,
     /requires `--yes`/
   );
+});
+
+test('claude skills install as SKILL.md and update removes legacy TENETS-SKILL.md', (t) => {
+  const directory = temporaryDirectory(t);
+
+  runCli(directory, ['init', '--claude', '--with-hook']);
+  const skillNames = ['tenets-review-architecture', 'tenets-scaffold'];
+  for (const skillName of skillNames) {
+    const skillDirectory = path.join(directory, '.claude/skills', skillName);
+    assert.ok(fs.existsSync(path.join(skillDirectory, 'SKILL.md')));
+    assert.match(
+      fs.readFileSync(path.join(skillDirectory, 'SKILL.md'), 'utf-8'),
+      new RegExp(`^---\\nname: ${skillName}\\n`)
+    );
+    fs.copyFileSync(
+      path.join(skillDirectory, 'SKILL.md'),
+      path.join(skillDirectory, 'TENETS-SKILL.md')
+    );
+  }
+
+  runCli(directory, ['update']);
+  for (const skillName of skillNames) {
+    const skillDirectory = path.join(directory, '.claude/skills', skillName);
+    assert.ok(fs.existsSync(path.join(skillDirectory, 'SKILL.md')));
+    assert.ok(!fs.existsSync(path.join(skillDirectory, 'TENETS-SKILL.md')));
+    fs.copyFileSync(
+      path.join(skillDirectory, 'SKILL.md'),
+      path.join(skillDirectory, 'TENETS-SKILL.md')
+    );
+  }
+
+  runCli(directory, ['uninstall', '--yes']);
+  assert.ok(!fs.existsSync(path.join(directory, '.claude/skills')));
 });
