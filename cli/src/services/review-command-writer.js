@@ -11,7 +11,7 @@ const REVIEW_COMMAND_TEMPLATE = 'templates/commands/tenets-review-architecture.m
 
 const REVIEW_COMMAND_DEFINITIONS = {
   claude: {
-    targetFile: '.claude/skills/tenets-review-architecture/TENETS-SKILL.md',
+    targetFile: '.claude/skills/tenets-review-architecture/SKILL.md',
     frontmatter: [
       'name: tenets-review-architecture',
       'description: Review code for Hexagonal Architecture and DDD compliance.',

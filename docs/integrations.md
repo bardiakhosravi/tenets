@@ -49,7 +49,7 @@ target. Noninteractive initialization exposes the recommendation as
 
 | Tool | Rules and instructions | Architecture review | Service scaffold |
 | --- | --- | --- | --- |
-| Claude Code | `.claude/rules/tenets-*.md`, marked `CLAUDE.md` guidance | `.claude/skills/tenets-review-architecture/TENETS-SKILL.md` | `.claude/skills/tenets-scaffold/TENETS-SKILL.md` |
+| Claude Code | `.claude/rules/tenets-*.md`, marked `CLAUDE.md` guidance | `.claude/skills/tenets-review-architecture/SKILL.md` | `.claude/skills/tenets-scaffold/SKILL.md` |
 | Cursor | `.cursor/rules/tenets-*.mdc` | `.cursor/commands/tenets-review-architecture.md` | `.cursor/commands/tenets-scaffold.md` |
 | Augment | `.augment/rules/tenets-*.md` | `.augment/commands/tenets-review-architecture.md` | `.augment/commands/tenets-scaffold.md` |
 | GitHub Copilot | `.github/copilot-instructions.md`, `.github/instructions/tenets-*.instructions.md` | `.github/prompts/tenets-review-architecture.prompt.md` | `.github/prompts/tenets-scaffold.prompt.md` |

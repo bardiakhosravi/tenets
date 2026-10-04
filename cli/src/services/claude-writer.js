@@ -98,6 +98,16 @@ function claudeOwnedPaths(projectRoot, options = {}) {
   return paths;
 }
 
+/**
+ * Skill files written by 0.6.0–0.16.0. Claude Code only discovers skills
+ * named SKILL.md, so these were never invocable and are removed on update.
+ */
+function legacyClaudeSkillPaths(projectRoot) {
+  return ['tenets-review-architecture', 'tenets-scaffold'].map((skillName) =>
+    path.join(projectRoot, '.claude', 'skills', skillName, 'TENETS-SKILL.md')
+  );
+}
+
 function removeOwnedFile(filePath) {
   if (isTenetsOwnedFile(filePath)) {
     fs.unlinkSync(filePath);
@@ -159,11 +169,10 @@ function writeClaudeIntegration(projectRoot, content, options = {}) {
   writtenFiles.push(writeScaffoldCommand(projectRoot, 'claude', {
     overwriteConflicts,
   }));
-  const skillDir = path.join(projectRoot, '.claude', 'skills', 'tenets-review-architecture');
-
-  // Clean up old skill files from pre-0.6.0 installs (renamed from SKILL.md to TENETS-SKILL.md)
-  const oldSkillPath = path.join(skillDir, 'SKILL.md');
-  removeOwnedFile(oldSkillPath);
+  // Clean up TENETS-SKILL.md files from 0.6.0–0.16.0 installs
+  for (const legacySkillPath of legacyClaudeSkillPaths(projectRoot)) {
+    removeOwnedFile(legacySkillPath);
+  }
 
   // Clean up old skill directory from pre-0.4.2 installs
   const oldSkillDir = path.join(projectRoot, '.claude', 'skills', 'review-architecture');
@@ -337,12 +346,14 @@ function claudeIntegrationComplete(projectRoot) {
     hasRules &&
     hasHookScript &&
     reviewCommandExists(projectRoot, 'claude') &&
-    scaffoldCommandExists(projectRoot, 'claude')
+    scaffoldCommandExists(projectRoot, 'claude') &&
+    !legacyClaudeSkillPaths(projectRoot).some(isTenetsOwnedFile)
   );
 }
 
 module.exports = {
   claudeOwnedPaths,
+  legacyClaudeSkillPaths,
   writeClaudeIntegration,
   writeHookSettings,
   writeCodeReviewAgentHookSettings,

@@ -11,7 +11,7 @@ const SCAFFOLD_COMMAND_TEMPLATE = 'templates/commands/tenets-scaffold.md';
 
 const SCAFFOLD_COMMAND_DEFINITIONS = {
   claude: {
-    targetFile: '.claude/skills/tenets-scaffold/TENETS-SKILL.md',
+    targetFile: '.claude/skills/tenets-scaffold/SKILL.md',
     frontmatter: [
       'name: tenets-scaffold',
       'description: Initialize a Flask service with Tenets architecture guardrails.',

@@ -4,6 +4,16 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.16.1] - 2026-10-04
+
+### Fixed
+
+- Claude Code skills are now installed as `SKILL.md` instead of
+  `TENETS-SKILL.md`, so `/tenets-review-architecture` and `/tenets-scaffold`
+  are discovered and invocable in Claude Code.
+- `tenets update` and `tenets uninstall` remove Tenets-owned `TENETS-SKILL.md`
+  files left behind by 0.6.0–0.16.0 installs.
+
 ## [0.16.0] - 2026-08-14
 
 ### Changed
