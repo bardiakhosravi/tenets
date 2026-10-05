@@ -4,6 +4,27 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.16.2] - 2026-10-05
+
+### Fixed
+
+- Claude Code rules now use `paths` frontmatter instead of `globs`. Claude Code
+  ignores `globs`, so every Tenets rule file (about 200 KB) loaded into every
+  session; each layer's rules now load only when Claude works on a matching
+  file. Cross-cutting rules also load for repositories without a `src/` layout.
+- The Claude Code `PostToolUse` monitoring hook now returns its layer reminder
+  as `additionalContext`. Claude Code sends plain hook output to the debug log
+  only, so the reminder previously never reached Claude. Windows paths are
+  now recognized too.
+- The Claude Code review agent hook no longer sets the undocumented
+  `continueOnBlock` field, and `tenets update` removes it from existing
+  installs.
+
+### Migration
+
+- Run `npx tenets update` to rewrite `.claude/rules/`, the hook script, and
+  the review agent hook settings.
+
 ## [0.16.1] - 2026-10-04
 
 ### Fixed

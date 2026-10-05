@@ -124,8 +124,10 @@ or replaces the scaffolded service.
 
 Claude Code receives multiple integration layers:
 
-1. **Context-aware rules:** `.claude/rules/tenets-*.md` files load based on the
-   files being edited.
+1. **Context-aware rules:** `.claude/rules/tenets-*.md` files use `paths`
+   frontmatter, so each layer's rules load only when Claude reads or edits a
+   file in that layer (for example `**/domain/**`). Cross-cutting rules load
+   for any layer, `src/`, or `tests/` file.
 2. **Persistent project guidance:** A concise generated block is added to
    `CLAUDE.md`.
 3. **Agent workflows:** `/tenets-review-architecture` runs the shared review
@@ -189,6 +191,13 @@ The `--agents` integration writes concise guidance into `AGENTS.md`, using
 ownership markers when the file already exists. The complete architecture
 review prompt remains under `.tenets/prompts/` so any compatible agent can load
 it explicitly.
+
+Claude Code also reads `AGENTS.md`, but by default only when the repository
+has no `CLAUDE.md`. Because `--claude` writes a `CLAUDE.md` block, installing
+both `--claude` and `--agents` does not give Claude Code the guidance twice.
+If you set Claude Code's **Project instructions** to load `CLAUDE.md` and
+`AGENTS.md` together, Claude receives both Tenets blocks; use only `--claude`
+for Claude Code in that case.
 
 ## Standalone Code Review Agent
 
