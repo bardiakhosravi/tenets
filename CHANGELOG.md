@@ -4,6 +4,8 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.16.2] - 2026-10-05
+
 ### Fixed
 
 - Claude Code rules now use `paths` frontmatter instead of `globs`. Claude Code
