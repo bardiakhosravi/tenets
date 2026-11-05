@@ -179,7 +179,7 @@ payment_gateway.capture(order.id)  # Adapter must load amount and account.
 ## Correct
 
 ```python
-payment_gateway.capture(create_payment_capture(order, billing_account))
+payment_gateway.capture(PaymentCapture(order.total, billing_account.id))
 ```
 
 ## Remediation
@@ -210,7 +210,7 @@ gateway.authorize(1299, "USD", "acct-7")
 ## Correct
 
 ```python
-orders.get(create_order_id("ord-123"))
+orders.get(OrderId("ord-123"))
 gateway.authorize(PaymentAuthorization(amount, billing_account_id))
 ```
 
@@ -226,7 +226,7 @@ Inspect public port signatures and challenge each primitive parameter that repre
 
 ## Rule
 
-Choose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract.
+Choose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract. Callers instantiate these contracts directly, with no creation function or class factory.
 
 ## Rationale
 
@@ -250,7 +250,7 @@ Model the capability input around what the operation needs, preserving domain ob
 
 ## Review check
 
-Verify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept.
+Verify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept, and that it has no `create_<contract>()` function or class factory.
 
 ## TENETS-PORT-009: Port contracts exclude external representations
 
@@ -333,7 +333,7 @@ fulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.
 ## Correct
 
 ```python
-reservation = inventory.reserve(create_inventory_reservation(order))
+reservation = inventory.reserve(InventoryReservationRequest(order.id, order.lines))
 ```
 
 ## Remediation
@@ -343,6 +343,43 @@ Move the workflow into an application use case and split infrastructure interact
 ## Review check
 
 Inspect adapters for multi-step business workflows, repository calls, or calls to unrelated adapters.
+
+## TENETS-PORT-012: Secondary port contracts exclude infrastructure concepts
+
+## Rule
+
+Secondary port and repository contracts never contain infrastructure concepts. Their names, methods, parameters, capability contracts, and results do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`. These terms belong inside the implementing adapter.
+
+## Rationale
+
+A port exists so its implementation can be replaced. If callers pass or receive an infrastructure address, every adapter must understand that technology and the use case must know how data is stored.
+
+## Incorrect
+
+```python
+class S3InvoiceArchive(Protocol):
+    def upload(self, bucket: str, s3_prefix: str, document: InvoiceDocument) -> str: ...
+```
+
+Renaming the parameter to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+class InvoiceArchive(Protocol):
+    def store(self, document: InvoiceDocument) -> ArchivedInvoiceDocument: ...
+
+class S3InvoiceArchive(InvoiceArchive):
+    def __init__(self, client: S3Client, bucket: str, prefix: str) -> None: ...
+```
+
+## Remediation
+
+Name the port for the capability, pass domain values, and return a semantic result. Move infrastructure addresses into the adapter's constructor configuration or private mapping.
+
+## Review check
+
+Search port and repository contracts for names, parameters, and result fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
 
 ## TENETS-PATTERN-002: Semantic port contract selection
 

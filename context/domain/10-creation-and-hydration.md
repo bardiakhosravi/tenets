@@ -7,7 +7,7 @@
 
 ## Rule
 
-Creation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.
+Creation establishes a new entity or aggregate from the business perspective. Hydration reconstructs an existing one from persisted state. They use semantically distinct entry points. Value objects have one entry point instead (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -32,13 +32,13 @@ Separate new-object creation from persistence mapping and identify every creatio
 
 ## Review check
 
-Verify that repositories do not invoke creation entry points and workflows do not directly construct new objects.
+Verify that repositories do not invoke creation entry points and workflows do not directly construct new entities or aggregates.
 
 ## TENETS-LIFECYCLE-002: Python creation uses module functions
 
 ## Rule
 
-In Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.
+In Python, create every new entity and aggregate through a standalone `create_<domain_object>()` function in that object's module. Value objects are instantiated directly (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -63,7 +63,7 @@ Add a colocated creation function and replace direct workflow construction and c
 
 ## Review check
 
-Search application and domain workflow code for direct constructors or class factory methods used for new domain objects.
+Search application and domain workflow code for direct constructors or class factory methods used for new entities or aggregates.
 
 ## TENETS-LIFECYCLE-003: Creation receives complete initial state
 
@@ -192,6 +192,67 @@ Move initial data into the creation entry point while retaining the mutation met
 
 Review the first operations after creation and compare their inputs with the creation command.
 
+## TENETS-VALUE-004: Value objects are instantiated directly
+
+## Rule
+
+A value object has one entry point: its constructor. Callers instantiate it directly, and it has no separate creation function or class factory. In Python, all validation and normalization live in `__post_init__`.
+
+## Rationale
+
+Creation functions separate creation-only behavior such as identity generation, defaults, and events from hydration. A value object has none of that behavior, so creating and hydrating it are the same operation. A second entry point adds indirection, and any validation placed in it is skipped when the constructor is used directly.
+
+## Incorrect
+
+```python
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+def create_quantity(value: int) -> Quantity:
+    if value <= 0:
+        raise InvalidQuantity()
+    return Quantity(value)
+
+quantity = create_quantity(command.quantity)
+```
+
+## Correct
+
+```python
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+    def __post_init__(self) -> None:
+        if self.value <= 0:
+            raise InvalidQuantity()
+
+quantity = Quantity(command.quantity)
+```
+
+Normalization also belongs in `__post_init__`. It must be idempotent because hydration runs it too:
+
+```python
+@dataclass(frozen=True)
+class CustomerEmail:
+    value: str
+
+    def __post_init__(self) -> None:
+        normalized = self.value.strip().lower()
+        if "@" not in normalized:
+            raise InvalidCustomerEmail()
+        object.__setattr__(self, "value", normalized)
+```
+
+## Remediation
+
+Move validation and normalization from the creation function into `__post_init__`, replace its calls with the constructor, and delete the function.
+
+## Review check
+
+Search value-object modules for `create_<value_object>()` functions and class factories, and verify that validation does not live outside the constructor path.
+
 ## TENETS-PATTERN-003: Python creation and hydration entry points
 
 ## Purpose
@@ -234,4 +295,4 @@ This creates two explicit entry paths, but removes ambiguity about identity, def
 
 ## Related rules
 
-See `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`.
+See `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`. Value objects have no creation function; see `TENETS-VALUE-004`.

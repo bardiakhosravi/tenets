@@ -61,7 +61,7 @@ description: "Task list template for feature implementation"
 
 Examples of foundational tasks (adjust based on your project):
 
-- [ ] T004 [P] Define domain value objects, entities, and their module-level creation functions in `src/[bounded_context]/domain/`
+- [ ] T004 [P] Define domain value objects (validated in `__post_init__`, no creation functions) and entities with their module-level creation functions in `src/[bounded_context]/domain/`
 - [ ] T005 [P] Define repository port interfaces using domain IDs, value objects, aggregate roots, and named query criteria in `src/[bounded_context]/domain/ports/`
 - [ ] T006 [P] Define external capability ports using cohesive domain types or immutable capability contracts in `src/[bounded_context]/application/ports/`
 - [ ] T007 Setup database schema and migrations

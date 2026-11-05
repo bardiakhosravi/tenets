@@ -16,6 +16,37 @@ function expectedIds(prefix, count) {
   );
 }
 
+function citedRuleIds(prompt) {
+  const cited = new Set(prompt.match(/TENETS-[A-Z]+-\d{3}/g) || []);
+  const ranges = prompt.matchAll(
+    /(TENETS-[A-Z]+)-(\d{3})(?:\.\.|` through `\1-)(\d{3})/g
+  );
+  for (const [, prefix, start, end] of ranges) {
+    for (let index = Number(start); index <= Number(end); index += 1) {
+      cited.add(`${prefix}-${String(index).padStart(3, '0')}`);
+    }
+  }
+  return cited;
+}
+
+for (const reviewPrompt of [
+  'cli/templates/commands/tenets-review-architecture.md',
+  'cli/templates/agents/code-review-agent.md',
+  'cli/templates/claude/agents/code-review-agent.md',
+]) {
+  test(`${reviewPrompt} cites every active catalog rule`, () => {
+    const catalog = JSON.parse(read('catalog/rules.json'));
+    const cited = citedRuleIds(read(reviewPrompt));
+
+    const uncited = catalog.entries
+      .filter((entry) => entry.kind === 'rule' && entry.status !== 'deprecated')
+      .map((entry) => entry.id)
+      .filter((id) => !cited.has(id));
+
+    assert.deepEqual(uncited, []);
+  });
+}
+
 test('catalog contains every approved quality and governance entry', () => {
   const catalog = JSON.parse(read('catalog/rules.json'));
   const entriesById = new Map(

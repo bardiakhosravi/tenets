@@ -6,10 +6,10 @@ coding agents must enforce. Profiles are cumulative:
 | Profile | Intended use | Includes |
 |---|---|---|
 | `core` | Minimum viable architecture boundaries | Essential dependency direction, domain boundaries, ports, and adapter isolation |
-| `pragmatic` | Recommended default for production services | `core` plus production-oriented modeling, testing, transactions, and maintainability guidance |
-| `strict` | Teams adopting the complete Tenets standard | The entire applicable catalog, including advanced reliability and governance requirements |
+| `pragmatic` | Production services that do not need the advanced reliability and governance rules | `core` plus production-oriented modeling, testing, transactions, and maintainability guidance |
+| `strict` | Default. Teams adopting the complete Tenets standard | The entire applicable catalog, including advanced reliability and governance requirements |
 
-Fresh installations use `pragmatic` unless a profile is selected explicitly:
+Fresh installations use `strict` unless a profile is selected explicitly:
 
 ```bash
 npx tenets init --claude --profile core

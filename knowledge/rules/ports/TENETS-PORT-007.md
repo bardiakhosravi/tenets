@@ -28,7 +28,7 @@ gateway.authorize(1299, "USD", "acct-7")
 ## Correct
 
 ```python
-orders.get(create_order_id("ord-123"))
+orders.get(OrderId("ord-123"))
 gateway.authorize(PaymentAuthorization(amount, billing_account_id))
 ```
 

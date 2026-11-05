@@ -1,8 +1,18 @@
 # Tenets Migration Notes
 
+## Upgrading to the Strict Default
+
+Fresh installations now use the `strict` profile instead of `pragmatic`.
+Repositories with an existing `.tenets.json` keep the profile they already have.
+To adopt the complete catalog in one of those repositories, run:
+
+```bash
+npx tenets@latest update --profile strict
+```
+
 ## Upgrading to the Profile-Aware Release
 
-Fresh installations now use the `pragmatic` architecture profile. Repositories
+Fresh installations then used the `pragmatic` architecture profile. Repositories
 with an existing `.tenets.json` that predates profiles migrate to `strict` with
 unrestricted technology applicability. This preserves the complete rule set
 they previously received.

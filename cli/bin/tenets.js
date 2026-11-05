@@ -88,7 +88,7 @@ Init options:
                     Write a code review agent prompt
   --agents          Write AGENTS.md and a generic review prompt
   --speckit         Install DDD preset into an existing Spec-Kit project
-  --profile <name>  Select core, pragmatic (default), or strict
+  --profile <name>  Select core, pragmatic, or strict (default)
   --dry-run         Preview exact filesystem changes without writing
   --json            Return machine-readable JSON
   --yes             Confirm uninstall or migration choices noninteractively

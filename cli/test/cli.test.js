@@ -61,7 +61,7 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
   ]);
   const config = readConfig(directory);
   assert.equal(config.schemaVersion, 4);
-  assert.equal(config.profile, 'pragmatic');
+  assert.equal(config.profile, 'strict');
   assert.equal(config.tools.claude.mode, 'multi');
   assert.equal(config.tools.augment.mode, 'augment-multi');
   assert.equal(config.tools.cursor.mode, 'cursor-multi');
@@ -107,9 +107,9 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
       path.join(directory, '.augment/rules/tenets-global.md'),
       'utf-8'
     ),
-    /Profile: `pragmatic`/
+    /Profile: `strict`/
   );
-  assert.doesNotMatch(
+  assert.match(
     fs.readFileSync(
       path.join(directory, '.augment/rules/tenets-global.md'),
       'utf-8'
@@ -130,7 +130,7 @@ test('fresh install covers every supported agent and updates idempotently', (t) 
     ),
     /TENETS-ERROR-008/
   );
-  assert.doesNotMatch(
+  assert.match(
     fs.readFileSync(
       path.join(directory, '.cursor/rules/tenets-global.mdc'),
       'utf-8'

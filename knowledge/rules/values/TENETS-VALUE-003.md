@@ -7,7 +7,7 @@ category: values
 severity: error
 minimum_profile: core
 applies_to: ["all"]
-related: ["TENETS-VALUE-001", "TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-005"]
+related: ["TENETS-VALUE-001", "TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-005", "TENETS-VALUE-004"]
 aliases: []
 ---
 ## Rule

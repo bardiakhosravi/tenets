@@ -27,7 +27,7 @@ fulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.
 ## Correct
 
 ```python
-reservation = inventory.reserve(create_inventory_reservation(order))
+reservation = inventory.reserve(InventoryReservationRequest(order.id, order.lines))
 ```
 
 ## Remediation

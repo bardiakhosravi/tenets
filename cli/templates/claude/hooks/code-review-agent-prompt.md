@@ -8,7 +8,7 @@ Task:
 2. If the path is not source, test, application, domain, adapter, infrastructure, configuration, or architecture-relevant code, return {"ok": true}.
 3. Read .claude/rules/tenets-*.md.
 4. Inspect the edited file and nearby files needed to understand its layer and dependency boundary.
-5. Review only for Tenets Hexagonal Architecture and DDD compliance.
+5. Review only for Tenets Hexagonal Architecture and DDD compliance, including coding and naming conventions such as field names, signatures, and how objects are constructed, not only structure.
 
 Return JSON only:
 - {"ok": true, "reason": "pass: <brief scope reviewed>"} when there are no blocking architecture concerns.

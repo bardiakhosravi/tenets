@@ -14,7 +14,8 @@
 - Handle cross-cutting concerns like transactions and event publishing
 - Serve as the application's use case boundary
 - Each use case should represent exactly one business workflow
-- Use module-level domain creation functions for new objects and pass complete initial creation data
+- Use module-level domain creation functions for new entities and aggregates and pass complete initial creation data
+- Instantiate value objects directly; they validate in `__post_init__` and have no creation functions
 - Treat objects loaded from repositories as hydrated existing objects; never recreate them through creation functions
 - Convert domain-semantic command values into domain types or capability contracts before invoking repositories and secondary ports
 
@@ -34,7 +35,7 @@ class CreateUserUseCase(CreateUserPort):
 
     def execute(self, command: CreateUserCommand) -> CreateUserResponse:
         with self._unit_of_work:
-            email = create_email(command.email)
+            email = Email(command.email)
             user = create_user(email=email, name=command.name)
             self._user_repository.save(user)  # Domain port
             message = WelcomeEmail(recipient=email, display_name=command.name)

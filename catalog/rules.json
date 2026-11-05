@@ -370,7 +370,8 @@
       "related": [
         "TENETS-ADAPTER-005",
         "TENETS-API-002",
-        "TENETS-API-003"
+        "TENETS-API-003",
+        "TENETS-API-004"
       ],
       "aliases": [],
       "body": "## Rule\n\nExternal API requests and responses never use ORM entities, database rows, persistence schemas, or serialized database records as their public contract.\n\n## Rationale\n\nDatabase structure is an implementation detail with different compatibility, security, and evolution requirements from an external API.\n\n## Incorrect\n\n```python\nreturn OrderRow.query.get(order_id).to_dict()\n```\n\n## Correct\n\n```python\norder = get_order.execute(OrderId(order_id))\nreturn map_order_to_response(order)\n```\n\n## Remediation\n\nDefine an adapter-owned API schema and map from an inward-owned result.\n\n## Review check\n\nInspect endpoint annotations, serializers, and returned values for persistence representations.",
@@ -415,6 +416,29 @@
       "aliases": [],
       "body": "## Rule\n\nPrimary adapters map domain objects and application-owned results into explicit external response representations before they cross the protocol boundary.\n\n## Rationale\n\nExplicit response mapping prevents accidental data exposure and decouples public compatibility from inward model evolution.\n\n## Incorrect\n\n```python\nreturn jsonify(order.__dict__)\n```\n\n## Correct\n\n```python\nreturn jsonify(map_order_to_response(order).model_dump())\n```\n\n## Remediation\n\nDefine the intended external response fields and add an explicit directional mapper in the primary adapter.\n\n## Review check\n\nVerify endpoints do not serialize inward objects generically or return them directly through framework auto-serialization.",
       "source": "knowledge/rules/api/TENETS-API-003.md"
+    },
+    {
+      "id": "TENETS-API-004",
+      "title": "Primary port contracts exclude infrastructure concepts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "api",
+      "severity": "error",
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
+      ],
+      "related": [
+        "TENETS-API-001",
+        "TENETS-API-002",
+        "TENETS-ADAPTER-005",
+        "TENETS-APP-007",
+        "TENETS-VALUE-005",
+        "TENETS-PORT-012"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nThe inputs and outputs of a primary port never contain infrastructure concepts. This covers primary adapter request and response models, whatever library defines them, and application commands, queries, and results. Their fields do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.\n\n## Rationale\n\nCallers should describe what they want in business terms. An infrastructure field makes a storage choice part of the public contract, so replacing the technology breaks clients, and it lets callers steer where data is stored. Checks on types and imports miss this because the field is a plain string.\n\n## Incorrect\n\n```python\nclass ExportInvoicesRequest(BaseModel):\n    s3_prefix: str\n\nclass InvoiceExportResponse(BaseModel):\n    s3_bucket: str\n    s3_key: str\n\n@dataclass(frozen=True)\nclass ExportInvoicesCommand:\n    s3_prefix: str\n```\n\nRenaming the field to `storage_prefix` hides the word but keeps the same concept.\n\n## Correct\n\n```python\nclass ExportInvoicesRequest(BaseModel):\n    billing_period: str\n\nclass InvoiceExportResponse(BaseModel):\n    export_id: str\n    download_url: str\n\n@dataclass(frozen=True)\nclass ExportInvoicesCommand:\n    billing_period: BillingPeriod\n```\n\nFields the protocol itself needs, such as a pagination cursor or `download_url`, are not infrastructure concepts.\n\n## Remediation\n\nReplace the field with the business concept the caller actually means. Let the secondary adapter choose the infrastructure location from domain values and its own configuration.\n\n## Review check\n\nSearch request and response models, commands, queries, and results for fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.",
+      "source": "knowledge/rules/api/TENETS-API-004.md"
     },
     {
       "id": "TENETS-APP-001",
@@ -490,7 +514,7 @@
         "TENETS-LIFECYCLE-005"
       ],
       "aliases": [],
-      "body": "## Rule\n\nUse cases call the domain creation entry point for new objects and treat repository results as already hydrated existing objects.\n\n## Rationale\n\nRecreating a loaded object can generate a new identity, reset persisted state, and emit false creation events.\n\n## Incorrect\n\n```python\nloaded = orders.get(command.order_id)\norder = create_order(loaded.customer_id)\n```\n\n## Correct\n\n```python\norder = orders.get(command.order_id)\norder.submit()\n```\n\n## Remediation\n\nRemove recreation of repository results and invoke behavior directly on the hydrated aggregate.\n\n## Review check\n\nFind creation-function calls whose inputs come from objects just returned by repositories.",
+      "body": "## Rule\n\nUse cases call the domain creation entry point for new entities and aggregates and treat repository results as already hydrated existing objects.\n\n## Rationale\n\nRecreating a loaded object can generate a new identity, reset persisted state, and emit false creation events.\n\n## Incorrect\n\n```python\nloaded = orders.get(command.order_id)\norder = create_order(loaded.customer_id)\n```\n\n## Correct\n\n```python\norder = orders.get(command.order_id)\norder.submit()\n```\n\n## Remediation\n\nRemove recreation of repository results and invoke behavior directly on the hydrated aggregate.\n\n## Review check\n\nFind creation-function calls whose inputs come from objects just returned by repositories.",
       "source": "knowledge/rules/application/TENETS-APP-004.md"
     },
     {
@@ -510,7 +534,7 @@
         "TENETS-REPO-003"
       ],
       "aliases": [],
-      "body": "## Rule\n\nBefore calling a repository or secondary port, a use case converts command primitives into domain IDs, value objects, named criteria, specifications, or cohesive capability contracts.\n\n## Rationale\n\nExternal primitives are acceptable at transport boundaries but not at semantic inward-facing contracts.\n\n## Incorrect\n\n```python\norder = orders.get(command.order_id)  # raw string\n```\n\n## Correct\n\n```python\norder_id = create_order_id(command.order_id)\norder = orders.get(order_id)\n```\n\n## Remediation\n\nPerform semantic conversion at the application boundary before the first repository or secondary-port call.\n\n## Review check\n\nFollow command fields into outbound calls and flag raw domain-semantic primitives.",
+      "body": "## Rule\n\nBefore calling a repository or secondary port, a use case converts command primitives into domain IDs, value objects, named criteria, specifications, or cohesive capability contracts.\n\n## Rationale\n\nExternal primitives are acceptable at transport boundaries but not at semantic inward-facing contracts.\n\n## Incorrect\n\n```python\norder = orders.get(command.order_id)  # raw string\n```\n\n## Correct\n\n```python\norder_id = OrderId(command.order_id)\norder = orders.get(order_id)\n```\n\n## Remediation\n\nPerform semantic conversion at the application boundary before the first repository or secondary-port call.\n\n## Review check\n\nFollow command fields into outbound calls and flag raw domain-semantic primitives.",
       "source": "knowledge/rules/application/TENETS-APP-005.md"
     },
     {
@@ -962,6 +986,28 @@
       "source": "knowledge/rules/entities/TENETS-ENTITY-002.md"
     },
     {
+      "id": "TENETS-ENTITY-003",
+      "title": "Entities and aggregates exclude infrastructure concepts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "entities",
+      "severity": "error",
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
+      ],
+      "related": [
+        "TENETS-ENTITY-002",
+        "TENETS-AGGREGATE-001",
+        "TENETS-NAME-002",
+        "TENETS-DEPEND-001",
+        "TENETS-VALUE-005"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nAn entity or aggregate never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.\n\n## Rationale\n\nThese terms pass import checks because they are plain strings, yet they tie the business model to a replaceable technology. Changing storage should not change an entity or require migrating its state.\n\n## Incorrect\n\n```python\n@dataclass(eq=False)\nclass Invoice:\n    id: InvoiceId\n    customer_account_id: CustomerAccountId\n    s3_prefix: str\n```\n\nRenaming the attribute to `storage_prefix` hides the word but keeps the same concept.\n\n## Correct\n\n```python\n# billing/domain/invoice.py\n@dataclass(eq=False)\nclass Invoice:\n    id: InvoiceId\n    customer_account_id: CustomerAccountId\n    document: InvoiceDocument\n\n# billing/adapters/secondary/s3_invoice_archive.py\ndef _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:\n    return f\"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}\"\n```\n\n## Remediation\n\nRemove the attribute and let the secondary adapter derive the location from domain values and its configuration. If the location cannot be derived, the adapter stores its own record of it, keyed by domain identity.\n\n## Review check\n\nSearch entities and aggregates for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.",
+      "source": "knowledge/rules/entities/TENETS-ENTITY-003.md"
+    },
+    {
       "id": "TENETS-ERROR-001",
       "title": "Failure ownership follows architectural meaning",
       "kind": "rule",
@@ -1313,10 +1359,11 @@
       "related": [
         "TENETS-APP-004",
         "TENETS-LIFECYCLE-002",
-        "TENETS-LIFECYCLE-005"
+        "TENETS-LIFECYCLE-005",
+        "TENETS-VALUE-004"
       ],
       "aliases": [],
-      "body": "## Rule\n\nCreation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.\n\n## Rationale\n\nCreation may generate identity, defaults, and events that must never run while reconstructing existing state.\n\n## Incorrect\n\n```python\nreturn create_order(customer_id=row.customer_id)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_id)\nexisting_order = Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nSeparate new-object creation from persistence mapping and identify every creation-only side effect.\n\n## Review check\n\nVerify that repositories do not invoke creation entry points and workflows do not directly construct new objects.",
+      "body": "## Rule\n\nCreation establishes a new entity or aggregate from the business perspective. Hydration reconstructs an existing one from persisted state. They use semantically distinct entry points. Value objects have one entry point instead (`TENETS-VALUE-004`).\n\n## Rationale\n\nCreation may generate identity, defaults, and events that must never run while reconstructing existing state.\n\n## Incorrect\n\n```python\nreturn create_order(customer_id=row.customer_id)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_id)\nexisting_order = Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))\n```\n\n## Remediation\n\nSeparate new-object creation from persistence mapping and identify every creation-only side effect.\n\n## Review check\n\nVerify that repositories do not invoke creation entry points and workflows do not directly construct new entities or aggregates.",
       "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-001.md"
     },
     {
@@ -1332,10 +1379,11 @@
       ],
       "related": [
         "TENETS-LIFECYCLE-001",
-        "TENETS-LIFECYCLE-004"
+        "TENETS-LIFECYCLE-004",
+        "TENETS-VALUE-004"
       ],
       "aliases": [],
-      "body": "## Rule\n\nIn Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.\n\n## Rationale\n\nA named module function makes creation semantics explicit while leaving the constructor available for controlled reconstruction.\n\n## Incorrect\n\n```python\norder = Order(customer_id=customer_id)\norder = Order.create(customer_id)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id)\n```\n\n## Remediation\n\nAdd a colocated creation function and replace direct workflow construction and class factory calls.\n\n## Review check\n\nSearch application and domain workflow code for direct constructors or class factory methods used for new domain objects.",
+      "body": "## Rule\n\nIn Python, create every new entity and aggregate through a standalone `create_<domain_object>()` function in that object's module. Value objects are instantiated directly (`TENETS-VALUE-004`).\n\n## Rationale\n\nA named module function makes creation semantics explicit while leaving the constructor available for controlled reconstruction.\n\n## Incorrect\n\n```python\norder = Order(customer_id=customer_id)\norder = Order.create(customer_id)\n```\n\n## Correct\n\n```python\norder = create_order(customer_id)\n```\n\n## Remediation\n\nAdd a colocated creation function and replace direct workflow construction and class factory calls.\n\n## Review check\n\nSearch application and domain workflow code for direct constructors or class factory methods used for new entities or aggregates.",
       "source": "knowledge/rules/lifecycle/TENETS-LIFECYCLE-002.md"
     },
     {
@@ -1449,10 +1497,11 @@
       "related": [
         "TENETS-NAME-001",
         "TENETS-DEPEND-001",
-        "TENETS-ADAPTER-005"
+        "TENETS-ADAPTER-005",
+        "TENETS-VALUE-005"
       ],
       "aliases": [],
-      "body": "## Rule\n\nDomain types, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.\n\n## Rationale\n\nTechnology names in the domain make replaceable implementation choices part of the business model.\n\n## Incorrect\n\n```python\nclass StripePaymentCompleted: ...\nclass SqlOrder: ...\n```\n\n## Correct\n\n```python\nclass PaymentAuthorized: ...\nclass Order: ...\n```\n\n## Remediation\n\nMove implementation-specific names to adapters and rename inward concepts around their business meaning.\n\n## Review check\n\nSearch domain names for vendor, protocol, framework, database, queue, and serialization terminology.",
+      "body": "## Rule\n\nDomain types, attributes, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.\n\n## Rationale\n\nTechnology names in the domain make replaceable implementation choices part of the business model.\n\n## Incorrect\n\n```python\nclass StripePaymentCompleted: ...\nclass SqlOrder: ...\n```\n\n## Correct\n\n```python\nclass PaymentAuthorized: ...\nclass Order: ...\n```\n\n## Remediation\n\nMove implementation-specific names to adapters and rename inward concepts around their business meaning.\n\n## Review check\n\nSearch domain type and attribute names for vendor, protocol, framework, database, queue, and serialization terminology.",
       "source": "knowledge/rules/naming/TENETS-NAME-002.md"
     },
     {
@@ -1571,7 +1620,7 @@
         "TENETS-LIFECYCLE-005"
       ],
       "aliases": [],
-      "body": "## Purpose\n\nMake first-time creation and persistence hydration visibly different operations.\n\n## Implementation\n\n```python\n# ordering/domain/order.py\ndef create_order(\n    order_id: OrderId,\n    customer_id: CustomerId,\n    shipping_address: ShippingAddress,\n) -> Order:\n    order = Order(\n        id=order_id,\n        customer_id=customer_id,\n        shipping_address=shipping_address,\n        status=OrderStatus.DRAFT,\n    )\n    order.record(OrderCreated(order_id))\n    return order\n\n# ordering/adapters/repositories/sql_order_repository.py\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(\n        id=OrderId(row.id),\n        customer_id=CustomerId(row.customer_id),\n        shipping_address=_map_json_to_shipping_address(row.shipping_address),\n        status=OrderStatus(row.status),\n    )\n```\n\nCreation functions receive all available required initial data. Directional mapper helpers reconstruct persisted state through constructors without creation events or defaults.\n\n## Trade-offs\n\nThis creates two explicit entry paths, but removes ambiguity about identity, defaults, validation, and side effects. Other languages may use named constructors or factories instead.\n\n## Related rules\n\nSee `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`.",
+      "body": "## Purpose\n\nMake first-time creation and persistence hydration visibly different operations.\n\n## Implementation\n\n```python\n# ordering/domain/order.py\ndef create_order(\n    order_id: OrderId,\n    customer_id: CustomerId,\n    shipping_address: ShippingAddress,\n) -> Order:\n    order = Order(\n        id=order_id,\n        customer_id=customer_id,\n        shipping_address=shipping_address,\n        status=OrderStatus.DRAFT,\n    )\n    order.record(OrderCreated(order_id))\n    return order\n\n# ordering/adapters/repositories/sql_order_repository.py\ndef _map_order_row_to_order(row: OrderRow) -> Order:\n    return Order(\n        id=OrderId(row.id),\n        customer_id=CustomerId(row.customer_id),\n        shipping_address=_map_json_to_shipping_address(row.shipping_address),\n        status=OrderStatus(row.status),\n    )\n```\n\nCreation functions receive all available required initial data. Directional mapper helpers reconstruct persisted state through constructors without creation events or defaults.\n\n## Trade-offs\n\nThis creates two explicit entry paths, but removes ambiguity about identity, defaults, validation, and side effects. Other languages may use named constructors or factories instead.\n\n## Related rules\n\nSee `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`. Value objects have no creation function; see `TENETS-VALUE-004`.",
       "source": "knowledge/patterns/TENETS-PATTERN-003.md"
     },
     {
@@ -1915,7 +1964,7 @@
         "TENETS-PORT-008"
       ],
       "aliases": [],
-      "body": "## Rule\n\nA use case supplies all domain information an outbound capability needs. The secondary port does not load, discover, or derive missing domain state from persistence.\n\n## Rationale\n\nComplete input keeps orchestration visible and makes the port independently testable.\n\n## Incorrect\n\n```python\npayment_gateway.capture(order.id)  # Adapter must load amount and account.\n```\n\n## Correct\n\n```python\npayment_gateway.capture(create_payment_capture(order, billing_account))\n```\n\n## Remediation\n\nIdentify missing state, load it in the use case, and add an appropriate semantic input to the port contract.\n\n## Review check\n\nTrace each port call and verify that its implementation can complete without querying application persistence.",
+      "body": "## Rule\n\nA use case supplies all domain information an outbound capability needs. The secondary port does not load, discover, or derive missing domain state from persistence.\n\n## Rationale\n\nComplete input keeps orchestration visible and makes the port independently testable.\n\n## Incorrect\n\n```python\npayment_gateway.capture(order.id)  # Adapter must load amount and account.\n```\n\n## Correct\n\n```python\npayment_gateway.capture(PaymentCapture(order.total, billing_account.id))\n```\n\n## Remediation\n\nIdentify missing state, load it in the use case, and add an appropriate semantic input to the port contract.\n\n## Review check\n\nTrace each port call and verify that its implementation can complete without querying application persistence.",
       "source": "knowledge/rules/ports/TENETS-PORT-006.md"
     },
     {
@@ -1935,7 +1984,7 @@
         "TENETS-PORT-010"
       ],
       "aliases": [],
-      "body": "## Rule\n\nPublic repository and secondary-port methods do not accept primitive strings, numbers, booleans, dictionaries, or callables when those values carry domain meaning.\n\n## Rationale\n\nSemantic types preserve validation, units, identity, and intent at boundaries where primitive confusion is expensive.\n\n## Incorrect\n\n```python\norders.get(\"ord-123\")\ngateway.authorize(1299, \"USD\", \"acct-7\")\n```\n\n## Correct\n\n```python\norders.get(create_order_id(\"ord-123\"))\ngateway.authorize(PaymentAuthorization(amount, billing_account_id))\n```\n\n## Remediation\n\nIntroduce or reuse a domain value object, named criteria, specification, or immutable capability contract.\n\n## Review check\n\nInspect public port signatures and challenge each primitive parameter that represents identity, money, quantity, status, date, or business criteria.",
+      "body": "## Rule\n\nPublic repository and secondary-port methods do not accept primitive strings, numbers, booleans, dictionaries, or callables when those values carry domain meaning.\n\n## Rationale\n\nSemantic types preserve validation, units, identity, and intent at boundaries where primitive confusion is expensive.\n\n## Incorrect\n\n```python\norders.get(\"ord-123\")\ngateway.authorize(1299, \"USD\", \"acct-7\")\n```\n\n## Correct\n\n```python\norders.get(OrderId(\"ord-123\"))\ngateway.authorize(PaymentAuthorization(amount, billing_account_id))\n```\n\n## Remediation\n\nIntroduce or reuse a domain value object, named criteria, specification, or immutable capability contract.\n\n## Review check\n\nInspect public port signatures and challenge each primitive parameter that represents identity, money, quantity, status, date, or business criteria.",
       "source": "knowledge/rules/ports/TENETS-PORT-007.md"
     },
     {
@@ -1952,10 +2001,11 @@
       "related": [
         "TENETS-PORT-006",
         "TENETS-PORT-007",
-        "TENETS-PORT-009"
+        "TENETS-PORT-009",
+        "TENETS-VALUE-004"
       ],
       "aliases": [],
-      "body": "## Rule\n\nChoose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract.\n\n## Rationale\n\nPassing an entire aggregate unnecessarily increases coupling, while exploding it into primitives loses semantics.\n\n## Incorrect\n\n```python\nsend_receipt(order_id, email, first_name, total_cents, currency)\n```\n\n## Correct\n\n```python\nsend_receipt(ReceiptDelivery(order, customer, payment_confirmation))\n```\n\n## Remediation\n\nModel the capability input around what the operation needs, preserving domain objects where their full meaning is required.\n\n## Review check\n\nVerify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept.",
+      "body": "## Rule\n\nChoose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract. Callers instantiate these contracts directly, with no creation function or class factory.\n\n## Rationale\n\nPassing an entire aggregate unnecessarily increases coupling, while exploding it into primitives loses semantics.\n\n## Incorrect\n\n```python\nsend_receipt(order_id, email, first_name, total_cents, currency)\n```\n\n## Correct\n\n```python\nsend_receipt(ReceiptDelivery(order, customer, payment_confirmation))\n```\n\n## Remediation\n\nModel the capability input around what the operation needs, preserving domain objects where their full meaning is required.\n\n## Review check\n\nVerify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept, and that it has no `create_<contract>()` function or class factory.",
       "source": "knowledge/rules/ports/TENETS-PORT-008.md"
     },
     {
@@ -2014,8 +2064,30 @@
         "TENETS-PORT-005"
       ],
       "aliases": [],
-      "body": "## Rule\n\nA secondary port executes one outbound capability. It does not coordinate repositories, multiple business steps, domain transitions, or other secondary ports.\n\n## Rationale\n\nWorkflow orchestration belongs in use cases where dependencies and transaction boundaries remain visible.\n\n## Incorrect\n\n```python\nfulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.\n```\n\n## Correct\n\n```python\nreservation = inventory.reserve(create_inventory_reservation(order))\n```\n\n## Remediation\n\nMove the workflow into an application use case and split infrastructure interactions into focused capability ports.\n\n## Review check\n\nInspect adapters for multi-step business workflows, repository calls, or calls to unrelated adapters.",
+      "body": "## Rule\n\nA secondary port executes one outbound capability. It does not coordinate repositories, multiple business steps, domain transitions, or other secondary ports.\n\n## Rationale\n\nWorkflow orchestration belongs in use cases where dependencies and transaction boundaries remain visible.\n\n## Incorrect\n\n```python\nfulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.\n```\n\n## Correct\n\n```python\nreservation = inventory.reserve(InventoryReservationRequest(order.id, order.lines))\n```\n\n## Remediation\n\nMove the workflow into an application use case and split infrastructure interactions into focused capability ports.\n\n## Review check\n\nInspect adapters for multi-step business workflows, repository calls, or calls to unrelated adapters.",
       "source": "knowledge/rules/ports/TENETS-PORT-011.md"
+    },
+    {
+      "id": "TENETS-PORT-012",
+      "title": "Secondary port contracts exclude infrastructure concepts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "ports",
+      "severity": "error",
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
+      ],
+      "related": [
+        "TENETS-PORT-003",
+        "TENETS-PORT-009",
+        "TENETS-REPO-003",
+        "TENETS-ADAPTER-005",
+        "TENETS-API-004"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nSecondary port and repository contracts never contain infrastructure concepts. Their names, methods, parameters, capability contracts, and results do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`. These terms belong inside the implementing adapter.\n\n## Rationale\n\nA port exists so its implementation can be replaced. If callers pass or receive an infrastructure address, every adapter must understand that technology and the use case must know how data is stored.\n\n## Incorrect\n\n```python\nclass S3InvoiceArchive(Protocol):\n    def upload(self, bucket: str, s3_prefix: str, document: InvoiceDocument) -> str: ...\n```\n\nRenaming the parameter to `storage_prefix` hides the word but keeps the same concept.\n\n## Correct\n\n```python\nclass InvoiceArchive(Protocol):\n    def store(self, document: InvoiceDocument) -> ArchivedInvoiceDocument: ...\n\nclass S3InvoiceArchive(InvoiceArchive):\n    def __init__(self, client: S3Client, bucket: str, prefix: str) -> None: ...\n```\n\n## Remediation\n\nName the port for the capability, pass domain values, and return a semantic result. Move infrastructure addresses into the adapter's constructor configuration or private mapping.\n\n## Review check\n\nSearch port and repository contracts for names, parameters, and result fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.",
+      "source": "knowledge/rules/ports/TENETS-PORT-012.md"
     },
     {
       "id": "TENETS-REPO-001",
@@ -2292,7 +2364,7 @@
         "TENETS-ADAPTER-007"
       ],
       "aliases": [],
-      "body": "## Rule\n\nUse production `create_<domain_object>()` functions when tests need new domain objects and explicit constructors or directional repository mappers when tests need persisted state.\n\n## Rationale\n\nTests that bypass creation or recreate persisted objects through creation functions can hide lifecycle defects and produce events, defaults, or identities at the wrong time.\n\n## Incorrect\n\n```python\nloaded_order = create_order(order_id=persisted_id, status=persisted_status)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_account_id=account_id, lines=lines)\nloaded_order = map_order_row_to_order_domain_object(row)\n```\n\n## Remediation\n\nChoose the entry point from the object's lifecycle meaning and make fixtures explicit about whether they create or reconstruct state.\n\n## Review check\n\nInspect domain and repository tests for creation functions used as hydration shortcuts or constructors used to bypass creation policy.",
+      "body": "## Rule\n\nUse production `create_<domain_object>()` functions when tests need new entities or aggregates and explicit constructors or directional repository mappers when tests need persisted state.\n\n## Rationale\n\nTests that bypass creation or recreate persisted objects through creation functions can hide lifecycle defects and produce events, defaults, or identities at the wrong time.\n\n## Incorrect\n\n```python\nloaded_order = create_order(order_id=persisted_id, status=persisted_status)\n```\n\n## Correct\n\n```python\nnew_order = create_order(customer_account_id=account_id, lines=lines)\nloaded_order = map_order_row_to_order_domain_object(row)\n```\n\n## Remediation\n\nChoose the entry point from the object's lifecycle meaning and make fixtures explicit about whether they create or reconstruct state.\n\n## Review check\n\nInspect domain and repository tests for creation functions used as hydration shortcuts or constructors used to bypass creation policy.",
       "source": "knowledge/rules/testing/TENETS-TEST-005.md"
     },
     {
@@ -2620,11 +2692,56 @@
       "related": [
         "TENETS-VALUE-001",
         "TENETS-LIFECYCLE-001",
-        "TENETS-LIFECYCLE-005"
+        "TENETS-LIFECYCLE-005",
+        "TENETS-VALUE-004"
       ],
       "aliases": [],
       "body": "## Rule\n\nInvariants intrinsic to a value object are enforced whenever it is instantiated, including both new creation and persistence hydration.\n\n## Rationale\n\nPersisted data does not become valid merely because it already exists; invalid values must not enter the domain model.\n\n## Incorrect\n\n```python\npostal_code = object.__new__(PostalCode)\npostal_code.value = row.postal_code\n```\n\n## Correct\n\n```python\npostal_code = PostalCode(row.postal_code)\n```\n\n## Remediation\n\nPut intrinsic validation in the value object's construction path and map corrupted persistence data to an explicit adapter failure.\n\n## Review check\n\nVerify repository mappers cannot bypass value-object invariants.",
       "source": "knowledge/rules/values/TENETS-VALUE-003.md"
+    },
+    {
+      "id": "TENETS-VALUE-004",
+      "title": "Value objects are instantiated directly",
+      "kind": "rule",
+      "status": "stable",
+      "category": "values",
+      "severity": "error",
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
+      ],
+      "related": [
+        "TENETS-VALUE-003",
+        "TENETS-VALIDATE-001",
+        "TENETS-LIFECYCLE-001",
+        "TENETS-LIFECYCLE-002"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA value object has one entry point: its constructor. Callers instantiate it directly, and it has no separate creation function or class factory. In Python, all validation and normalization live in `__post_init__`.\n\n## Rationale\n\nCreation functions separate creation-only behavior such as identity generation, defaults, and events from hydration. A value object has none of that behavior, so creating and hydrating it are the same operation. A second entry point adds indirection, and any validation placed in it is skipped when the constructor is used directly.\n\n## Incorrect\n\n```python\n@dataclass(frozen=True)\nclass Quantity:\n    value: int\n\ndef create_quantity(value: int) -> Quantity:\n    if value <= 0:\n        raise InvalidQuantity()\n    return Quantity(value)\n\nquantity = create_quantity(command.quantity)\n```\n\n## Correct\n\n```python\n@dataclass(frozen=True)\nclass Quantity:\n    value: int\n\n    def __post_init__(self) -> None:\n        if self.value <= 0:\n            raise InvalidQuantity()\n\nquantity = Quantity(command.quantity)\n```\n\nNormalization also belongs in `__post_init__`. It must be idempotent because hydration runs it too:\n\n```python\n@dataclass(frozen=True)\nclass CustomerEmail:\n    value: str\n\n    def __post_init__(self) -> None:\n        normalized = self.value.strip().lower()\n        if \"@\" not in normalized:\n            raise InvalidCustomerEmail()\n        object.__setattr__(self, \"value\", normalized)\n```\n\n## Remediation\n\nMove validation and normalization from the creation function into `__post_init__`, replace its calls with the constructor, and delete the function.\n\n## Review check\n\nSearch value-object modules for `create_<value_object>()` functions and class factories, and verify that validation does not live outside the constructor path.",
+      "source": "knowledge/rules/values/TENETS-VALUE-004.md"
+    },
+    {
+      "id": "TENETS-VALUE-005",
+      "title": "Value objects exclude infrastructure concepts",
+      "kind": "rule",
+      "status": "stable",
+      "category": "values",
+      "severity": "error",
+      "minimum_profile": "core",
+      "applies_to": [
+        "all"
+      ],
+      "related": [
+        "TENETS-VALUE-002",
+        "TENETS-NAME-002",
+        "TENETS-DEPEND-001",
+        "TENETS-API-004",
+        "TENETS-ENTITY-003",
+        "TENETS-PORT-012"
+      ],
+      "aliases": [],
+      "body": "## Rule\n\nA value object never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.\n\n## Rationale\n\nThese terms pass import checks because they are plain strings, yet they make a replaceable technology part of the domain model. Changing storage should not change a value object, and a reader should not need to know the storage system to understand one.\n\n## Incorrect\n\n```python\n@dataclass(frozen=True)\nclass InvoiceDocument:\n    s3_prefix: str\n    file_name: str\n```\n\nRenaming the attribute to `storage_prefix` hides the word but keeps the same concept.\n\n## Correct\n\n```python\n# billing/domain/invoice_document.py\n@dataclass(frozen=True)\nclass InvoiceDocument:\n    invoice_id: InvoiceId\n    file_name: FileName\n\n# billing/adapters/secondary/s3_invoice_archive.py\ndef _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:\n    return f\"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}\"\n```\n\n## Remediation\n\nIdentify the business concept the value represents and model that instead. Derive the infrastructure address inside the secondary adapter from domain values and adapter configuration.\n\n## Review check\n\nSearch value objects for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.",
+      "source": "knowledge/rules/values/TENETS-VALUE-005.md"
     }
   ],
   "aliases": {}

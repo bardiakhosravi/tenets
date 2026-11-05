@@ -72,11 +72,56 @@ Make state private or controlled and move transition rules into a domain method.
 
 Search callers for direct state assignment and duplicated conditionals governing entity transitions.
 
+## TENETS-ENTITY-003: Entities and aggregates exclude infrastructure concepts
+
+## Rule
+
+An entity or aggregate never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.
+
+## Rationale
+
+These terms pass import checks because they are plain strings, yet they tie the business model to a replaceable technology. Changing storage should not change an entity or require migrating its state.
+
+## Incorrect
+
+```python
+@dataclass(eq=False)
+class Invoice:
+    id: InvoiceId
+    customer_account_id: CustomerAccountId
+    s3_prefix: str
+```
+
+Renaming the attribute to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+# billing/domain/invoice.py
+@dataclass(eq=False)
+class Invoice:
+    id: InvoiceId
+    customer_account_id: CustomerAccountId
+    document: InvoiceDocument
+
+# billing/adapters/secondary/s3_invoice_archive.py
+def _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:
+    return f"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}"
+```
+
+## Remediation
+
+Remove the attribute and let the secondary adapter derive the location from domain values and its configuration. If the location cannot be derived, the adapter stores its own record of it, keyed by domain identity.
+
+## Review check
+
+Search entities and aggregates for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
+
 ## TENETS-LIFECYCLE-001: Creation and hydration are distinct
 
 ## Rule
 
-Creation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.
+Creation establishes a new entity or aggregate from the business perspective. Hydration reconstructs an existing one from persisted state. They use semantically distinct entry points. Value objects have one entry point instead (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -101,13 +146,13 @@ Separate new-object creation from persistence mapping and identify every creatio
 
 ## Review check
 
-Verify that repositories do not invoke creation entry points and workflows do not directly construct new objects.
+Verify that repositories do not invoke creation entry points and workflows do not directly construct new entities or aggregates.
 
 ## TENETS-LIFECYCLE-002: Python creation uses module functions
 
 ## Rule
 
-In Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.
+In Python, create every new entity and aggregate through a standalone `create_<domain_object>()` function in that object's module. Value objects are instantiated directly (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -132,7 +177,7 @@ Add a colocated creation function and replace direct workflow construction and c
 
 ## Review check
 
-Search application and domain workflow code for direct constructors or class factory methods used for new domain objects.
+Search application and domain workflow code for direct constructors or class factory methods used for new entities or aggregates.
 
 ## TENETS-LIFECYCLE-003: Creation receives complete initial state
 

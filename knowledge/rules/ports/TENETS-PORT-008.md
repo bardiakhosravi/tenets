@@ -7,12 +7,12 @@ category: ports
 severity: error
 minimum_profile: core
 applies_to: ["all"]
-related: ["TENETS-PORT-006", "TENETS-PORT-007", "TENETS-PORT-009"]
+related: ["TENETS-PORT-006", "TENETS-PORT-007", "TENETS-PORT-009", "TENETS-VALUE-004"]
 aliases: []
 ---
 ## Rule
 
-Choose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract.
+Choose the smallest cohesive type that completely expresses a capability: an aggregate, entity, value object, named criteria, specification, or immutable application-owned contract. Callers instantiate these contracts directly, with no creation function or class factory.
 
 ## Rationale
 
@@ -36,4 +36,4 @@ Model the capability input around what the operation needs, preserving domain ob
 
 ## Review check
 
-Verify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept.
+Verify that the contract is neither an oversized aggregate dependency nor a parameter list that reconstructs a domain concept, and that it has no `create_<contract>()` function or class factory.

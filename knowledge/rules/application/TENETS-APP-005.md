@@ -27,7 +27,7 @@ order = orders.get(command.order_id)  # raw string
 ## Correct
 
 ```python
-order_id = create_order_id(command.order_id)
+order_id = OrderId(command.order_id)
 order = orders.get(order_id)
 ```
 

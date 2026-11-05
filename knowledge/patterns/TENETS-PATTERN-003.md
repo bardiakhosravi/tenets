@@ -50,4 +50,4 @@ This creates two explicit entry paths, but removes ambiguity about identity, def
 
 ## Related rules
 
-See `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`.
+See `TENETS-LIFECYCLE-001` through `TENETS-LIFECYCLE-006`. Value objects have no creation function; see `TENETS-VALUE-004`.

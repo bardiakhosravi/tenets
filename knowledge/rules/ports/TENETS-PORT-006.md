@@ -27,7 +27,7 @@ payment_gateway.capture(order.id)  # Adapter must load amount and account.
 ## Correct
 
 ```python
-payment_gateway.capture(create_payment_capture(order, billing_account))
+payment_gateway.capture(PaymentCapture(order.total, billing_account.id))
 ```
 
 ## Remediation

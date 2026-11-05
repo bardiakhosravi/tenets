@@ -7,12 +7,12 @@ category: naming
 severity: error
 minimum_profile: pragmatic
 applies_to: ["all"]
-related: ["TENETS-NAME-001", "TENETS-DEPEND-001", "TENETS-ADAPTER-005"]
+related: ["TENETS-NAME-001", "TENETS-DEPEND-001", "TENETS-ADAPTER-005", "TENETS-VALUE-005"]
 aliases: []
 ---
 ## Rule
 
-Domain types, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
+Domain types, attributes, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
 
 ## Rationale
 
@@ -38,4 +38,4 @@ Move implementation-specific names to adapters and rename inward concepts around
 
 ## Review check
 
-Search domain names for vendor, protocol, framework, database, queue, and serialization terminology.
+Search domain type and attribute names for vendor, protocol, framework, database, queue, and serialization terminology.

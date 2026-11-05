@@ -7,7 +7,7 @@ category: api
 severity: error
 minimum_profile: core
 applies_to: ["all"]
-related: ["TENETS-ADAPTER-005", "TENETS-API-002", "TENETS-API-003"]
+related: ["TENETS-ADAPTER-005", "TENETS-API-002", "TENETS-API-003", "TENETS-API-004"]
 aliases: []
 ---
 ## Rule

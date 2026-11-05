@@ -7,12 +7,12 @@ category: lifecycle
 severity: error
 minimum_profile: pragmatic
 applies_to: ["all"]
-related: ["TENETS-APP-004", "TENETS-LIFECYCLE-002", "TENETS-LIFECYCLE-005"]
+related: ["TENETS-APP-004", "TENETS-LIFECYCLE-002", "TENETS-LIFECYCLE-005", "TENETS-VALUE-004"]
 aliases: []
 ---
 ## Rule
 
-Creation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.
+Creation establishes a new entity or aggregate from the business perspective. Hydration reconstructs an existing one from persisted state. They use semantically distinct entry points. Value objects have one entry point instead (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -37,4 +37,4 @@ Separate new-object creation from persistence mapping and identify every creatio
 
 ## Review check
 
-Verify that repositories do not invoke creation entry points and workflows do not directly construct new objects.
+Verify that repositories do not invoke creation entry points and workflows do not directly construct new entities or aggregates.
