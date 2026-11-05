@@ -4,6 +4,8 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.17.0] - 2026-11-05
+
 ### Changed
 
 - Value objects are now instantiated directly and no longer use
