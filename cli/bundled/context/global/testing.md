@@ -147,7 +147,7 @@ Distinguish primary-adapter unit tests from workflow integration tests and verif
 
 ## Rule
 
-Use production `create_<domain_object>()` functions when tests need new domain objects and explicit constructors or directional repository mappers when tests need persisted state.
+Use production `create_<domain_object>()` functions when tests need new entities or aggregates and explicit constructors or directional repository mappers when tests need persisted state.
 
 ## Rationale
 

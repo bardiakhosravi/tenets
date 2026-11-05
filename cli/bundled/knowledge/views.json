@@ -18,6 +18,7 @@
         "TENETS-PORT-008",
         "TENETS-PORT-009",
         "TENETS-PORT-010",
+        "TENETS-PORT-012",
         "TENETS-PATTERN-002"
       ]
     },
@@ -31,7 +32,8 @@
         "TENETS-REPO-004",
         "TENETS-REPO-005",
         "TENETS-REPO-006",
-        "TENETS-REPO-007"
+        "TENETS-REPO-007",
+        "TENETS-PORT-012"
       ]
     },
     {
@@ -46,6 +48,7 @@
         "TENETS-APP-005",
         "TENETS-APP-006",
         "TENETS-APP-007",
+        "TENETS-API-004",
         "TENETS-NAME-003",
         "TENETS-TEST-002",
         "TENETS-ERROR-003",
@@ -97,6 +100,7 @@
         "TENETS-LIFECYCLE-004",
         "TENETS-LIFECYCLE-005",
         "TENETS-LIFECYCLE-006",
+        "TENETS-VALUE-004",
         "TENETS-PATTERN-003"
       ]
     },
@@ -142,6 +146,7 @@
         "TENETS-PORT-009",
         "TENETS-PORT-010",
         "TENETS-PORT-011",
+        "TENETS-PORT-012",
         "TENETS-PATTERN-002"
       ]
     },
@@ -154,6 +159,7 @@
         "TENETS-ADAPTER-003",
         "TENETS-API-002",
         "TENETS-API-003",
+        "TENETS-API-004",
         "TENETS-VALIDATE-002",
         "TENETS-ERROR-006",
         "TENETS-ERROR-007"
@@ -169,6 +175,7 @@
         "TENETS-ADAPTER-007",
         "TENETS-PORT-005",
         "TENETS-PORT-006",
+        "TENETS-PORT-012",
         "TENETS-TEST-003",
         "TENETS-ERROR-004",
         "TENETS-ERROR-005",
@@ -214,6 +221,7 @@
         "TENETS-API-001",
         "TENETS-API-002",
         "TENETS-API-003",
+        "TENETS-API-004",
         "TENETS-APP-007"
       ]
     },
@@ -234,6 +242,7 @@
       "entries": [
         "TENETS-ENTITY-001",
         "TENETS-ENTITY-002",
+        "TENETS-ENTITY-003",
         "TENETS-LIFECYCLE-001",
         "TENETS-LIFECYCLE-002",
         "TENETS-LIFECYCLE-003",
@@ -249,8 +258,8 @@
         "TENETS-VALUE-001",
         "TENETS-VALUE-002",
         "TENETS-VALUE-003",
-        "TENETS-LIFECYCLE-001",
-        "TENETS-LIFECYCLE-002",
+        "TENETS-VALUE-004",
+        "TENETS-VALUE-005",
         "TENETS-VALIDATE-001"
       ]
     },
@@ -265,7 +274,8 @@
         "TENETS-AGGREGATE-005",
         "TENETS-AGGREGATE-006",
         "TENETS-AGGREGATE-007",
-        "TENETS-AGGREGATE-008"
+        "TENETS-AGGREGATE-008",
+        "TENETS-ENTITY-003"
       ]
     },
     {
@@ -304,6 +314,10 @@
       "entries": [
         "TENETS-NAME-001",
         "TENETS-NAME-002",
+        "TENETS-VALUE-005",
+        "TENETS-API-004",
+        "TENETS-ENTITY-003",
+        "TENETS-PORT-012",
         "TENETS-CONTEXT-001",
         "TENETS-PORT-003"
       ]

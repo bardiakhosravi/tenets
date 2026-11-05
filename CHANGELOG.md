@@ -4,6 +4,37 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.17.0] - 2026-11-05
+
+### Changed
+
+- Value objects are now instantiated directly and no longer use
+  `create_<value_object>()` functions. New rule `TENETS-VALUE-004` requires
+  validation and normalization in the constructor path (`__post_init__` in
+  Python). `TENETS-LIFECYCLE-001` and `TENETS-LIFECYCLE-002` now cover entities
+  and aggregates only, and the guides, review prompts, and Spec Kit templates
+  follow the same policy.
+- Immutable capability contracts passed to ports are also instantiated directly
+  (`TENETS-PORT-008`).
+- New rules `TENETS-VALUE-005`, `TENETS-ENTITY-003`, `TENETS-API-004`, and
+  `TENETS-PORT-012` keep infrastructure concepts such as `s3_prefix` out of value
+  objects, entities, aggregates, primary port inputs and outputs (request and
+  response models, commands, queries, and results), and secondary port and
+  repository contracts.
+  `TENETS-NAME-002` now covers domain attributes as well as type names.
+- Fresh installations now default to the `strict` profile instead of `pragmatic`.
+  Existing installations keep their selected profile.
+- The architecture review and both code review agents now cite every catalog
+  rule and explicitly check coding and naming conventions, not only structure.
+  A test keeps all three in step with the catalog.
+
+### Migration
+
+- Run `npx tenets update`, then move validation and normalization from any
+  `create_<value_object>()` function into `__post_init__`, replace its calls
+  with the constructor, and delete the function. Do the same for
+  `create_<contract>()` functions on port capability contracts.
+
 ## [0.16.2] - 2026-10-05
 
 ### Fixed

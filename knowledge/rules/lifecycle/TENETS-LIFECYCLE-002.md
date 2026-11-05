@@ -7,12 +7,12 @@ category: lifecycle
 severity: error
 minimum_profile: pragmatic
 applies_to: ["python"]
-related: ["TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-004"]
+related: ["TENETS-LIFECYCLE-001", "TENETS-LIFECYCLE-004", "TENETS-VALUE-004"]
 aliases: []
 ---
 ## Rule
 
-In Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.
+In Python, create every new entity and aggregate through a standalone `create_<domain_object>()` function in that object's module. Value objects are instantiated directly (`TENETS-VALUE-004`).
 
 ## Rationale
 
@@ -37,4 +37,4 @@ Add a colocated creation function and replace direct workflow construction and c
 
 ## Review check
 
-Search application and domain workflow code for direct constructors or class factory methods used for new domain objects.
+Search application and domain workflow code for direct constructors or class factory methods used for new entities or aggregates.

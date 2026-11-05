@@ -55,7 +55,7 @@ Compare code names with requirements, examples, and neighbouring domain concepts
 
 ## Rule
 
-Domain types, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
+Domain types, attributes, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
 
 ## Rationale
 
@@ -81,7 +81,7 @@ Move implementation-specific names to adapters and rename inward concepts around
 
 ## Review check
 
-Search domain names for vendor, protocol, framework, database, queue, and serialization terminology.
+Search domain type and attribute names for vendor, protocol, framework, database, queue, and serialization terminology.
 
 ## TENETS-NAME-003: Use-case class names end with UseCase
 

@@ -53,7 +53,7 @@ payment_gateway.capture(order.id)  # Adapter must load amount and account.
 ## Correct
 
 ```python
-payment_gateway.capture(create_payment_capture(order, billing_account))
+payment_gateway.capture(PaymentCapture(order.total, billing_account.id))
 ```
 
 ## Remediation
@@ -83,7 +83,7 @@ fulfillment.process_order(order_id)  # Loads, charges, reserves, and publishes.
 ## Correct
 
 ```python
-reservation = inventory.reserve(create_inventory_reservation(order))
+reservation = inventory.reserve(InventoryReservationRequest(order.id, order.lines))
 ```
 
 ## Remediation

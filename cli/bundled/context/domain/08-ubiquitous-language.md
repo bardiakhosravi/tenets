@@ -55,7 +55,7 @@ Compare code names with requirements, examples, and neighbouring domain concepts
 
 ## Rule
 
-Domain types, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
+Domain types, attributes, behavior, and events are named for business meaning, never databases, transports, frameworks, vendors, or implementation mechanisms.
 
 ## Rationale
 
@@ -81,7 +81,184 @@ Move implementation-specific names to adapters and rename inward concepts around
 
 ## Review check
 
-Search domain names for vendor, protocol, framework, database, queue, and serialization terminology.
+Search domain type and attribute names for vendor, protocol, framework, database, queue, and serialization terminology.
+
+## TENETS-VALUE-005: Value objects exclude infrastructure concepts
+
+## Rule
+
+A value object never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.
+
+## Rationale
+
+These terms pass import checks because they are plain strings, yet they make a replaceable technology part of the domain model. Changing storage should not change a value object, and a reader should not need to know the storage system to understand one.
+
+## Incorrect
+
+```python
+@dataclass(frozen=True)
+class InvoiceDocument:
+    s3_prefix: str
+    file_name: str
+```
+
+Renaming the attribute to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+# billing/domain/invoice_document.py
+@dataclass(frozen=True)
+class InvoiceDocument:
+    invoice_id: InvoiceId
+    file_name: FileName
+
+# billing/adapters/secondary/s3_invoice_archive.py
+def _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:
+    return f"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}"
+```
+
+## Remediation
+
+Identify the business concept the value represents and model that instead. Derive the infrastructure address inside the secondary adapter from domain values and adapter configuration.
+
+## Review check
+
+Search value objects for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
+
+## TENETS-API-004: Primary port contracts exclude infrastructure concepts
+
+## Rule
+
+The inputs and outputs of a primary port never contain infrastructure concepts. This covers primary adapter request and response models, whatever library defines them, and application commands, queries, and results. Their fields do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.
+
+## Rationale
+
+Callers should describe what they want in business terms. An infrastructure field makes a storage choice part of the public contract, so replacing the technology breaks clients, and it lets callers steer where data is stored. Checks on types and imports miss this because the field is a plain string.
+
+## Incorrect
+
+```python
+class ExportInvoicesRequest(BaseModel):
+    s3_prefix: str
+
+class InvoiceExportResponse(BaseModel):
+    s3_bucket: str
+    s3_key: str
+
+@dataclass(frozen=True)
+class ExportInvoicesCommand:
+    s3_prefix: str
+```
+
+Renaming the field to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+class ExportInvoicesRequest(BaseModel):
+    billing_period: str
+
+class InvoiceExportResponse(BaseModel):
+    export_id: str
+    download_url: str
+
+@dataclass(frozen=True)
+class ExportInvoicesCommand:
+    billing_period: BillingPeriod
+```
+
+Fields the protocol itself needs, such as a pagination cursor or `download_url`, are not infrastructure concepts.
+
+## Remediation
+
+Replace the field with the business concept the caller actually means. Let the secondary adapter choose the infrastructure location from domain values and its own configuration.
+
+## Review check
+
+Search request and response models, commands, queries, and results for fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
+
+## TENETS-ENTITY-003: Entities and aggregates exclude infrastructure concepts
+
+## Rule
+
+An entity or aggregate never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.
+
+## Rationale
+
+These terms pass import checks because they are plain strings, yet they tie the business model to a replaceable technology. Changing storage should not change an entity or require migrating its state.
+
+## Incorrect
+
+```python
+@dataclass(eq=False)
+class Invoice:
+    id: InvoiceId
+    customer_account_id: CustomerAccountId
+    s3_prefix: str
+```
+
+Renaming the attribute to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+# billing/domain/invoice.py
+@dataclass(eq=False)
+class Invoice:
+    id: InvoiceId
+    customer_account_id: CustomerAccountId
+    document: InvoiceDocument
+
+# billing/adapters/secondary/s3_invoice_archive.py
+def _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:
+    return f"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}"
+```
+
+## Remediation
+
+Remove the attribute and let the secondary adapter derive the location from domain values and its configuration. If the location cannot be derived, the adapter stores its own record of it, keyed by domain identity.
+
+## Review check
+
+Search entities and aggregates for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
+
+## TENETS-PORT-012: Secondary port contracts exclude infrastructure concepts
+
+## Rule
+
+Secondary port and repository contracts never contain infrastructure concepts. Their names, methods, parameters, capability contracts, and results do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`. These terms belong inside the implementing adapter.
+
+## Rationale
+
+A port exists so its implementation can be replaced. If callers pass or receive an infrastructure address, every adapter must understand that technology and the use case must know how data is stored.
+
+## Incorrect
+
+```python
+class S3InvoiceArchive(Protocol):
+    def upload(self, bucket: str, s3_prefix: str, document: InvoiceDocument) -> str: ...
+```
+
+Renaming the parameter to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+class InvoiceArchive(Protocol):
+    def store(self, document: InvoiceDocument) -> ArchivedInvoiceDocument: ...
+
+class S3InvoiceArchive(InvoiceArchive):
+    def __init__(self, client: S3Client, bucket: str, prefix: str) -> None: ...
+```
+
+## Remediation
+
+Name the port for the capability, pass domain values, and return a semantic result. Move infrastructure addresses into the adapter's constructor configuration or private mapping.
+
+## Review check
+
+Search port and repository contracts for names, parameters, and result fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
 
 ## TENETS-CONTEXT-001: Each bounded context owns its model and language
 

@@ -37,8 +37,11 @@
   - All cross-context communication goes through ports
   - No business logic leaks into adapters or use cases
   - Aggregates are the only mutation entry points within their boundary
-  - New domain objects use module-level creation functions with complete initial
-    creation data
+  - New entities and aggregates use module-level creation functions with complete
+    initial creation data
+  - Value objects are instantiated directly and validate in `__post_init__`
+  - Domain models and primary and secondary port contracts contain no
+    infrastructure concepts such as `s3_prefix`
   - Repository adapters hydrate persisted objects through constructors without
     creation-specific side effects
   - Repository and secondary-port contracts use semantic domain types or

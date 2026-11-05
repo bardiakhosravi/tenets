@@ -129,13 +129,13 @@ planned architecture-quality loop.
 
 ## Choose Your Commitment
 
-Fresh installations use the `pragmatic` profile.
+Fresh installations use the `strict` profile.
 
 | Profile | Intended use |
 | --- | --- |
 | `core` | Essential dependency direction and domain-boundary rules |
-| `pragmatic` | Recommended production baseline with practical implementation guidance |
-| `strict` | Complete applicable catalog for teams standardizing deeply on the architecture |
+| `pragmatic` | Production baseline with practical implementation guidance, without the advanced reliability and governance rules |
+| `strict` | Default. Complete applicable catalog for teams standardizing deeply on the architecture |
 
 ```bash
 npx tenets init --profile core

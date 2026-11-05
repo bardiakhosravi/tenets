@@ -16,7 +16,8 @@ are the complete compliance allowlist for this review:
 
 Do not report an ID outside this allowlist as a Tenets violation. A concern
 governed only by an inactive rule may appear under optional recommendations,
-clearly labeled as outside the active profile.
+clearly labeled as outside the active profile. `TENETS-PATTERN-*` entries are
+implementation guidance for remediation, not violations to report.
 
 ## Step 2: Analyze the codebase
 
@@ -26,13 +27,17 @@ Trace relevant workflows end to end through use cases, ports, adapters, dependen
 
 ## Step 3: Check for violations
 
+Review coding and naming conventions as well as structure. Code with correct layering and dependency direction can still violate the rules below, so read class names, attribute and field names, function signatures, parameters, return types, and how objects are constructed, not only imports and folder layout. Every rule in the allowlist is in scope, and a clean structural result does not establish compliance.
+
 For each file, verify:
 
 ### Domain layer (`**/domain/**`)
 - No imports from application, infrastructure, or adapter layers
 - No imports from another bounded context's internals (`TENETS-CONTEXT-002`)
 - Entities use stable identity equality (`TENETS-ENTITY-001`) and own invariant-protecting behavior (`TENETS-ENTITY-002`)
-- Value objects are immutable with value equality (`TENETS-VALUE-001`), represent semantic concepts (`TENETS-VALUE-002`), and enforce intrinsic invariants during creation and hydration (`TENETS-VALUE-003`)
+- Entities and aggregates contain no infrastructure concepts such as `s3_prefix`, `bucket`, or `table_name`, including renamed equivalents like `storage_path`; check field names, not only types and imports (`TENETS-ENTITY-003`)
+- Value objects are immutable with value equality (`TENETS-VALUE-001`), represent semantic concepts (`TENETS-VALUE-002`), enforce intrinsic invariants during creation and hydration (`TENETS-VALUE-003`), and are instantiated directly with no creation function (`TENETS-VALUE-004`)
+- Value objects contain no infrastructure concepts such as `s3_prefix`, `bucket`, or `table_name`, including renamed equivalents like `storage_path`; check field names, not only types and imports (`TENETS-VALUE-005`)
 - Cross-context relationships and port contracts use local reference ID value objects, not primitives or reused owner-context types; primitives appear only in serialized events, persistence, or external transport
 - Aggregates have one root and protect internal invariants (`TENETS-AGGREGATE-001`, `TENETS-AGGREGATE-003`)
 - Aggregate boundaries follow transactional invariants rather than navigation convenience (`TENETS-AGGREGATE-002`)
@@ -47,8 +52,14 @@ For each file, verify:
 - Repository interfaces represent aggregate persistence in domain language (`TENETS-REPO-001`)
 - Repository writes accept aggregate roots (`TENETS-REPO-002`); queries use domain IDs, value objects, or named criteria (`TENETS-REPO-003`)
 - Repository methods use result-semantic names; `find_*` is not used (`TENETS-REPO-004`)
+- Single-result lookups return the aggregate or `None`, leaving the use case to decide whether absence is an error (`TENETS-REPO-005`)
+- Repositories return fully hydrated aggregate roots, explicitly contracted domain read models, or absence, never ORM models, rows, serialized records, or untyped dictionaries (`TENETS-REPO-006`)
+- Ports represent one cohesive capability in ubiquitous language and are not generic clients, utility surfaces, or multi-step workflows (`TENETS-PORT-003`)
+- Ports live in the domain when the domain requires the capability and in the application when they support orchestration, reporting, or enrichment (`TENETS-PORT-002`)
 - Domain events are immutable internal records (`TENETS-EVENT-001`), are recorded by successful domain behavior (`TENETS-EVENT-002`), and are never published directly as external contracts (`TENETS-EVENT-003`)
-- New Python entities, aggregates, and value objects use module-level `create_<domain_object>()` functions (`TENETS-LIFECYCLE-002`)
+- Creation and hydration use distinct entry points (`TENETS-LIFECYCLE-001`)
+- New Python entities and aggregates use module-level `create_<domain_object>()` functions, never direct workflow construction or class factories (`TENETS-LIFECYCLE-002`)
+- Creation entry points own creation-time normalization, identity generation, valid defaults, initial state, and creation events (`TENETS-LIFECYCLE-004`)
 - Constructors used by repositories hydrate explicit persisted state without generating identities, defaults, or creation events (`TENETS-LIFECYCLE-005`)
 - Domain objects enforce invariants on every applicable lifecycle path (`TENETS-VALIDATE-001`)
 - Domain failures use business language and remain technology-agnostic (`TENETS-ERROR-002`)
@@ -56,6 +67,10 @@ For each file, verify:
 ### Application layer (`**/application/**`)
 - Use cases orchestrate supplied domain behavior rather than implementing domain rules (`TENETS-APP-002`)
 - Each use case handles one business workflow (`TENETS-APP-001`)
+- Use cases embody the primary port, and primary adapters invoke them rather than implementing the capability (`TENETS-PORT-001`)
+- Use cases convert command primitives into domain IDs, value objects, named criteria, or capability contracts before the first repository or secondary-port call (`TENETS-APP-005`)
+- Use cases own transaction scope and the timing of domain-event handling, outbox writes, and outbound capabilities (`TENETS-APP-006`)
+- Use cases return `None`, a domain object, or an immutable application result, never persistence models, adapter DTOs, framework types, or unstructured dictionaries, and do not wrap a single domain object without adding meaning (`TENETS-APP-007`)
 - Use cases depend on port interfaces, never concrete adapters
 - Primary ports define the application boundary
 - Use cases load required aggregates and entities before invoking secondary ports (`TENETS-APP-003`, `TENETS-PORT-006`)
@@ -63,13 +78,18 @@ For each file, verify:
 - Use cases do not pass hydrated objects back through creation functions (`TENETS-APP-004`)
 - Secondary ports never receive repositories (`TENETS-PORT-005`) or external representations (`TENETS-PORT-009`)
 - Secondary-port methods use no naked primitives for domain-semantic values (`TENETS-PORT-007`)
-- Secondary ports use the smallest cohesive semantic type (`TENETS-PORT-008`)
+- Secondary ports use the smallest cohesive semantic type, and immutable capability contracts are instantiated directly with no creation function (`TENETS-PORT-008`)
+- Secondary ports execute one outbound capability and do not coordinate repositories, business steps, or other ports (`TENETS-PORT-011`)
 - Identity-only port methods receive domain or local reference ID value objects (`TENETS-PORT-010`)
+- Secondary port and repository contracts contain no infrastructure concepts such as `s3_prefix`, `bucket`, or `table_name`, including renamed equivalents like `storage_path`; check names and parameters, not only types and imports (`TENETS-PORT-012`)
 - Cross-context reference IDs are validated through public contracts before persistence (`TENETS-CONTEXT-006`)
+- Consuming contexts define the capabilities they need in their own language and semantic types (`TENETS-CONTEXT-003`)
+- Cross-context consuming ports live in the domain only for domain-required capabilities and otherwise in the application (`TENETS-CONTEXT-005`)
 - Use-case classes end with `UseCase`, event handlers identify their event boundary, and dependencies use capability-specific names (`TENETS-NAME-003`, `TENETS-NAME-004`, `TENETS-NAME-005`)
 - The application owns the Unit of Work contract, explicitly commits successful writes, and keeps repositories explicit (`TENETS-UOW-001`, `TENETS-UOW-003`, `TENETS-UOW-004`)
 - One Unit of Work instance is used for one transaction; multi-transaction workflows create fresh scoped transactions (`TENETS-UOW-002`, `TENETS-UOW-007`)
 - Units of Work do not orchestrate or retry business workflows, and nested Units of Work are prohibited (`TENETS-UOW-006`, `TENETS-UOW-008`, `TENETS-UOW-009`)
+- Reads needing a consistent multi-query snapshot use an explicit Unit of Work; a single-operation query adapter may own and release its own short-lived resource (`TENETS-UOW-011`)
 - Application domain-event handlers select publishable occurrences and event-specific factories create complete versioned integration events (`TENETS-EVENT-004`, `TENETS-EVENT-005`, `TENETS-EVENT-006`)
 - Publisher ports receive complete integration events and reliable state-change publication uses the transactional outbox (`TENETS-EVENT-007`, `TENETS-EVENT-008`)
 - Consumer handlers atomically persist inbox receipts, local effects, and resulting outbox records (`TENETS-ASYNC-004`)
@@ -84,12 +104,15 @@ For each file, verify:
 - Secondary adapters do not receive or call repositories (`TENETS-PORT-005`)
 - Secondary adapters do not perform additional domain-object loading (`TENETS-PORT-006`)
 - No domain logic exists in adapters
-- Repository adapters hydrate through constructors and directional mappers (`TENETS-ADAPTER-007`)
+- Repository adapters hydrate through constructors and directional mappers named `_map_<source>_to_<target>` (`TENETS-ADAPTER-007`, `TENETS-LIFECYCLE-005`)
+- Repository implementations contain persistence operations and explicit mapping only, with no business decisions, creation entry points, or workflow orchestration (`TENETS-REPO-007`)
+- Cross-context adapters call a published provider contract and translate its representations into the consuming port's semantic types (`TENETS-CONTEXT-004`)
 - Technology-specific models stay within their owning adapters (`TENETS-ADAPTER-005`)
 - Primary adapters translate, delegate, and map protocol outcomes (`TENETS-ADAPTER-001`, `TENETS-ADAPTER-002`, `TENETS-ADAPTER-003`)
 - Primary adapters validate external shape without duplicating domain invariants (`TENETS-VALIDATE-002`)
 - Primary adapters map known failures, while one outer safety boundary handles unexpected failures without exposing internals (`TENETS-ERROR-006`, `TENETS-ERROR-007`)
 - External request and response schemas remain in primary adapters (`TENETS-API-002`)
+- Request and response models, commands, queries, and results contain no infrastructure concepts such as `s3_prefix`, `bucket`, or `table_name`, including renamed equivalents like `storage_path`; check field names, not only types and imports (`TENETS-API-004`)
 - Primary adapters never expose persistence models and explicitly map returned values (`TENETS-API-001`, `TENETS-API-003`)
 - Unit of Work adapters roll back incomplete work, release resources on every path, preserve primary failures when rollback also fails, and do not leak driver types inward (`TENETS-UOW-001`, `TENETS-UOW-005`, `TENETS-UOW-010`)
 - Transaction participants receive the same resource from the composition root without becoming hidden behind the Unit of Work (`TENETS-UOW-004`)
@@ -144,9 +167,9 @@ than presenting them as Tenets violations.
 
 Use these severity levels:
 
-- **Critical**: Dependency-direction violations or domain-layer impurity
-- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, hidden repository loading, conflated creation and hydration, incomplete creation workflows, unsafe transaction ownership, non-atomic outbox or inbox work, premature acknowledgement, missing idempotency protection, invalid validation ownership, or failure leakage across boundaries
-- **Minor**: Naming conventions, missing test or ADR evidence, or file organization
+- **Critical**: Dependency-direction violations or domain-layer impurity, including infrastructure or vendor concepts in domain names and attributes
+- **Major**: Business logic in the wrong layer, naked domain primitives or implementation-oriented repository contracts, invalid port contracts, infrastructure concepts in primary or secondary port contracts, value object creation functions or class factories, hidden repository loading, conflated creation and hydration, incomplete creation workflows, unsafe transaction ownership, non-atomic outbox or inbox work, premature acknowledgement, missing idempotency protection, invalid validation ownership, or failure leakage across boundaries
+- **Minor**: Naming drift from the ubiquitous language and naming-pattern conventions, missing test or ADR evidence, or file organization
 
 Then report:
 

@@ -5,7 +5,7 @@ Status: stable
 Severity: error
 Minimum profile: core
 Applies to: all
-Repository profile: pragmatic
+Repository profile: strict
 Active: yes
 
 ## Rule

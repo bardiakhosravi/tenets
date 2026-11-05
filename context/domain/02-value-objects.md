@@ -98,67 +98,109 @@ Put intrinsic validation in the value object's construction path and map corrupt
 
 Verify repository mappers cannot bypass value-object invariants.
 
-## TENETS-LIFECYCLE-001: Creation and hydration are distinct
+## TENETS-VALUE-004: Value objects are instantiated directly
 
 ## Rule
 
-Creation establishes a new domain object from the business perspective. Hydration reconstructs an existing object from persisted state. They use semantically distinct entry points.
+A value object has one entry point: its constructor. Callers instantiate it directly, and it has no separate creation function or class factory. In Python, all validation and normalization live in `__post_init__`.
 
 ## Rationale
 
-Creation may generate identity, defaults, and events that must never run while reconstructing existing state.
+Creation functions separate creation-only behavior such as identity generation, defaults, and events from hydration. A value object has none of that behavior, so creating and hydrating it are the same operation. A second entry point adds indirection, and any validation placed in it is skipped when the constructor is used directly.
 
 ## Incorrect
 
 ```python
-return create_order(customer_id=row.customer_id)
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+def create_quantity(value: int) -> Quantity:
+    if value <= 0:
+        raise InvalidQuantity()
+    return Quantity(value)
+
+quantity = create_quantity(command.quantity)
 ```
 
 ## Correct
 
 ```python
-new_order = create_order(customer_id)
-existing_order = Order(id=OrderId(row.id), customer_id=CustomerId(row.customer_id), status=OrderStatus(row.status))
+@dataclass(frozen=True)
+class Quantity:
+    value: int
+
+    def __post_init__(self) -> None:
+        if self.value <= 0:
+            raise InvalidQuantity()
+
+quantity = Quantity(command.quantity)
+```
+
+Normalization also belongs in `__post_init__`. It must be idempotent because hydration runs it too:
+
+```python
+@dataclass(frozen=True)
+class CustomerEmail:
+    value: str
+
+    def __post_init__(self) -> None:
+        normalized = self.value.strip().lower()
+        if "@" not in normalized:
+            raise InvalidCustomerEmail()
+        object.__setattr__(self, "value", normalized)
 ```
 
 ## Remediation
 
-Separate new-object creation from persistence mapping and identify every creation-only side effect.
+Move validation and normalization from the creation function into `__post_init__`, replace its calls with the constructor, and delete the function.
 
 ## Review check
 
-Verify that repositories do not invoke creation entry points and workflows do not directly construct new objects.
+Search value-object modules for `create_<value_object>()` functions and class factories, and verify that validation does not live outside the constructor path.
 
-## TENETS-LIFECYCLE-002: Python creation uses module functions
+## TENETS-VALUE-005: Value objects exclude infrastructure concepts
 
 ## Rule
 
-In Python, create every new entity, aggregate, and value object through a standalone `create_<domain_object>()` function in that object's module.
+A value object never contains an infrastructure concept. Its name, attributes, properties, and methods do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`.
 
 ## Rationale
 
-A named module function makes creation semantics explicit while leaving the constructor available for controlled reconstruction.
+These terms pass import checks because they are plain strings, yet they make a replaceable technology part of the domain model. Changing storage should not change a value object, and a reader should not need to know the storage system to understand one.
 
 ## Incorrect
 
 ```python
-order = Order(customer_id=customer_id)
-order = Order.create(customer_id)
+@dataclass(frozen=True)
+class InvoiceDocument:
+    s3_prefix: str
+    file_name: str
 ```
+
+Renaming the attribute to `storage_prefix` hides the word but keeps the same concept.
 
 ## Correct
 
 ```python
-order = create_order(customer_id)
+# billing/domain/invoice_document.py
+@dataclass(frozen=True)
+class InvoiceDocument:
+    invoice_id: InvoiceId
+    file_name: FileName
+
+# billing/adapters/secondary/s3_invoice_archive.py
+def _map_invoice_document_to_s3_key(self, document: InvoiceDocument) -> str:
+    return f"{self._prefix}/{document.invoice_id.value}/{document.file_name.value}"
 ```
 
 ## Remediation
 
-Add a colocated creation function and replace direct workflow construction and class factory calls.
+Identify the business concept the value represents and model that instead. Derive the infrastructure address inside the secondary adapter from domain values and adapter configuration.
 
 ## Review check
 
-Search application and domain workflow code for direct constructors or class factory methods used for new domain objects.
+Search value objects for attributes and methods containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
 
 ## TENETS-VALIDATE-001: Domain objects enforce domain invariants
 

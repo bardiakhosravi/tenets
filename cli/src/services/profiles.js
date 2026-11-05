@@ -1,5 +1,5 @@
 const PROFILE_ORDER = ['core', 'pragmatic', 'strict'];
-const DEFAULT_PROFILE = 'pragmatic';
+const DEFAULT_PROFILE = 'strict';
 const LEGACY_PROFILE = 'strict';
 
 function isProfile(value) {

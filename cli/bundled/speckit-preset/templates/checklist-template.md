@@ -22,12 +22,12 @@
 
 ## Domain Model
 
-- [ ] CHK001 All new entities have identity-based equality (`@dataclass(eq=False)`)
-- [ ] CHK002 All new value objects are immutable (`@dataclass(frozen=True)`)
+- [ ] CHK001 All new entities have identity-based equality (`@dataclass(eq=False)`) and contain no infrastructure concepts such as `s3_prefix`
+- [ ] CHK002 All new value objects are immutable (`@dataclass(frozen=True)`) and contain no infrastructure concepts such as `s3_prefix`
 - [ ] CHK003 Aggregate roots enforce all invariants for their child entities
 - [ ] CHK004 Domain events use past tense and ubiquitous language (no vendor terms)
-- [ ] CHK005 Repository interfaces declared in domain layer (not infrastructure)
-- [ ] CHK006 New entities, aggregates, and value objects use module-level creation functions
+- [ ] CHK005 Repository interfaces declared in domain layer (not infrastructure); repository and secondary port contracts contain no infrastructure concepts such as `s3_prefix`
+- [ ] CHK006 New entities and aggregates use module-level creation functions; value objects are instantiated directly and validate in `__post_init__`
 - [ ] CHK007 Creation functions receive all available data belonging to valid initial state
 - [ ] CHK008 Repository adapters hydrate through constructors without creation side effects
 - [ ] CHK009 Repository contracts use aggregate roots, domain IDs, value objects, or named query criteria instead of raw primitives, dictionaries, callables, or ORM expressions, and use `get`, `get_by_*`, `list_*`, `search`, or `exists_by_*` rather than `find_*`
@@ -52,7 +52,7 @@
 ## Adapters
 
 - [ ] CHK021 Primary adapters (controllers) contain no business logic
-- [ ] CHK022 API responses use DTOs, not domain entities or persistence models
+- [ ] CHK022 API responses use DTOs, not domain entities or persistence models, and primary port inputs and outputs contain no infrastructure concepts such as `s3_prefix`
 - [ ] CHK023 Secondary adapters translate specific expected vendor failures into port-declared failures and preserve each cause
 - [ ] CHK024 Public secondary-adapter methods preserve semantic port types and unwrap them only during external mapping
 - [ ] CHK025 The composition root wires concrete adapters without leaking them into business code

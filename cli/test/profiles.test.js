@@ -7,6 +7,7 @@ const {
 } = require('../src/services/content-fetcher');
 const {
   isEntryActive,
+  resolveProfile,
 } = require('../src/services/profiles');
 const {
   buildReviewCommand,
@@ -40,14 +41,21 @@ test('technology applicability is independent from profile commitment', () => {
   assert.equal(isEntryActive(flaskEntry, 'strict', []), true);
 });
 
+test('fresh installs default to strict and existing installs keep their profile', () => {
+  assert.equal(resolveProfile(null), 'strict');
+  assert.equal(resolveProfile({ profile: 'pragmatic' }), 'pragmatic');
+  assert.equal(resolveProfile({ profile: 'core' }), 'core');
+  assert.equal(resolveProfile({ profile: 'pragmatic' }, 'core'), 'core');
+});
+
 test('bundled profile delivery grows from core to pragmatic to strict', async () => {
   const core = await fetchContent({ profile: 'core' });
   const pragmatic = await fetchContent({ profile: 'pragmatic' });
   const strict = await fetchContent({ profile: 'strict' });
 
-  assert.equal(core.activeEntryIds.length, 68);
-  assert.equal(pragmatic.activeEntryIds.length, 110);
-  assert.equal(strict.activeEntryIds.length, 132);
+  assert.equal(core.activeEntryIds.length, 73);
+  assert.equal(pragmatic.activeEntryIds.length, 115);
+  assert.equal(strict.activeEntryIds.length, 137);
 
   const coreRules = assembleContent(core);
   const pragmaticRules = assembleContent(pragmatic);

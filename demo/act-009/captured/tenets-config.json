@@ -3,11 +3,11 @@
   "tools": {
     "agents": {
       "targetFile": "AGENTS.md",
-      "contentHash": "f9bc6dec2cbf785c2d8a6bf74cf4852c3256ee1809a0d8a800d26ef53802f515",
+      "contentHash": "7b50809f4f9ca411064cd0120cbd0ce010d9ceff7ff5e6daf497ea5ca7f24c9f",
       "mode": "replace"
     }
   },
-  "profile": "pragmatic",
+  "profile": "strict",
   "appliesTo": [
     "fastapi",
     "python"

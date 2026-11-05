@@ -182,7 +182,7 @@ payment_gateway.capture(order.id)  # Adapter must load amount and account.
 ## Correct
 
 ```python
-payment_gateway.capture(create_payment_capture(order, billing_account))
+payment_gateway.capture(PaymentCapture(order.total, billing_account.id))
 ```
 
 ## Remediation
@@ -192,6 +192,43 @@ Identify missing state, load it in the use case, and add an appropriate semantic
 ## Review check
 
 Trace each port call and verify that its implementation can complete without querying application persistence.
+
+## TENETS-PORT-012: Secondary port contracts exclude infrastructure concepts
+
+## Rule
+
+Secondary port and repository contracts never contain infrastructure concepts. Their names, methods, parameters, capability contracts, and results do not refer to storage systems, databases, queues, cloud services, vendors, or how they address data, such as `s3_prefix`, `bucket`, `table_name`, `topic_arn`, or `redis_key`. These terms belong inside the implementing adapter.
+
+## Rationale
+
+A port exists so its implementation can be replaced. If callers pass or receive an infrastructure address, every adapter must understand that technology and the use case must know how data is stored.
+
+## Incorrect
+
+```python
+class S3InvoiceArchive(Protocol):
+    def upload(self, bucket: str, s3_prefix: str, document: InvoiceDocument) -> str: ...
+```
+
+Renaming the parameter to `storage_prefix` hides the word but keeps the same concept.
+
+## Correct
+
+```python
+class InvoiceArchive(Protocol):
+    def store(self, document: InvoiceDocument) -> ArchivedInvoiceDocument: ...
+
+class S3InvoiceArchive(InvoiceArchive):
+    def __init__(self, client: S3Client, bucket: str, prefix: str) -> None: ...
+```
+
+## Remediation
+
+Name the port for the capability, pass domain values, and return a semantic result. Move infrastructure addresses into the adapter's constructor configuration or private mapping.
+
+## Review check
+
+Search port and repository contracts for names, parameters, and result fields containing terms such as `s3`, `bucket`, `prefix`, `object_key`, `blob`, `table`, `topic`, `queue`, `arn`, `sql`, `redis`, or a vendor name, and challenge renamed equivalents such as `storage_path`.
 
 ## TENETS-TEST-003: Every secondary adapter proves its port contract
 

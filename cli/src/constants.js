@@ -246,10 +246,12 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Dependency direction is inward**: adapters -> application -> domain. NEVER domain -> infrastructure.
 - **Domain layer has ZERO external dependencies** — no frameworks, no ORMs, no HTTP libraries.
 - **All infrastructure access goes through ports** (abstract interfaces).
+- **No infrastructure concepts in domain models or port contracts** — entities, aggregates, value objects, request and response models, commands, queries, results, and secondary port and repository contracts never have fields like \`s3_prefix\`, \`bucket\`, or \`table_name\`, even as plain strings or under a renamed equivalent. Secondary adapters derive those from domain values and configuration.
 - **No naked domain primitives cross repository or secondary-port contracts** — use domain types or cohesive application capability contracts.
 - **Repository lookups use semantic verbs** — \`get\`, \`get_by_*\`, \`list_*\`, \`search\`, or \`exists_by_*\`; never \`find_*\`.
 - **Aggregates are the only entry point** for state mutations within their boundary.
-- **Creation and hydration are different** — create new domain objects with module-level creation functions; repository adapters hydrate existing objects with constructors.
+- **Creation and hydration are different** — create new entities and aggregates with module-level creation functions; repository adapters hydrate existing objects with constructors.
+- **Value objects are instantiated directly** — validate and normalize in \`__post_init__\`; never add a \`create_<value_object>()\` function.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
 - **Use cases load domain objects before calling secondary ports** — ports receive domain models, never repositories.
 - **One Unit of Work owns one transaction** — use cases commit explicitly; incomplete work rolls back and transaction resources are released.
@@ -285,9 +287,11 @@ Tenets installs scoped instructions in \`.github/instructions/tenets-*.instructi
 - Dependencies point inward: adapters -> application -> domain.
 - The domain has no framework, ORM, transport, or infrastructure dependencies.
 - Infrastructure access goes through ports.
+- Domain models and primary and secondary port contracts never contain infrastructure concepts such as \`s3_prefix\`.
 - Repository and secondary-port contracts use semantic domain types.
 - Aggregates protect invariants and own state changes.
-- Creation functions create new domain objects; repository constructors hydrate existing ones.
+- Creation functions create new entities and aggregates; repository constructors hydrate existing ones.
+- Value objects are instantiated directly and validate in \`__post_init__\`; they have no creation functions.
 - Use cases orchestrate and secondary ports never load from repositories.
 - One Unit of Work owns one transaction; writes commit explicitly and incomplete work rolls back.
 - Reliable publication uses an outbox, and asynchronous consumers acknowledge only after durable idempotent completion.
@@ -310,9 +314,9 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
  */
 
 const LAYER_RULES = {
-  domain: 'Domain layer: no external deps, entities have identity equality, VOs are immutable, aggregates enforce invariants, and creation functions are distinct from hydration constructors.',
-  application: 'Application layer: use cases orchestrate only, load required domain objects before secondary ports, and pass semantic domain types or capability contracts instead of naked domain primitives.',
-  adapters: 'Adapter layer: implement semantic port contracts, unwrap values only during external mapping, handle external complexity, and perform no hidden repository loading.',
+  domain: 'Domain layer: no external deps, entities, aggregates, VOs, and repository contracts never contain infrastructure concepts such as s3_prefix, entities have identity equality, VOs are immutable, validate in __post_init__, and have no creation functions, aggregates enforce invariants, and entity and aggregate creation functions are distinct from hydration constructors.',
+  application: 'Application layer: use cases orchestrate only, keep infrastructure concepts such as s3_prefix out of commands, queries, results, and secondary port contracts, load required domain objects before secondary ports, and pass semantic domain types or capability contracts instead of naked domain primitives.',
+  adapters: 'Adapter layer: keep infrastructure concepts such as s3_prefix out of request and response models, implement semantic port contracts, unwrap values only during external mapping, handle external complexity, and perform no hidden repository loading.',
   infrastructure: 'Infrastructure layer: implement semantic port contracts, keep tech-specific models here, and confine primitives to persistence, serialization, configuration, and private mapping.',
 };
 

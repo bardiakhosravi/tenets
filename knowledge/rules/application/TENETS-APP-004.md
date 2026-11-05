@@ -12,7 +12,7 @@ aliases: []
 ---
 ## Rule
 
-Use cases call the domain creation entry point for new objects and treat repository results as already hydrated existing objects.
+Use cases call the domain creation entry point for new entities and aggregates and treat repository results as already hydrated existing objects.
 
 ## Rationale
 
