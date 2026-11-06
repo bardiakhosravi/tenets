@@ -221,6 +221,7 @@ class UserEmailChanged(DomainEvent):
 ### 9. Use Case Rules
 - Use cases represent single business operations that the application can perform
 - Each use case should handle exactly one business workflow
+- Use cases MUST NOT receive, construct, or invoke other use cases or primary ports. Share business logic through aggregates or domain services, chain follow-up work through domain events, and combine steps into one use case when they must commit together
 - Use cases orchestrate domain objects but contain no business logic
 - Use cases call module-level creation functions for new entities and aggregates and supply every available input that belongs to valid initial state
 - Use cases MUST NOT immediately mutate new objects to finish creation with already-available data

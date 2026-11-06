@@ -34,7 +34,7 @@ recommendations, not compliance findings.
   the evidence. Use `TENETS-ENTITY-001..003`, `TENETS-VALUE-001..005`,
   `TENETS-AGGREGATE-001..008`, `TENETS-SERVICE-001..002`,
   `TENETS-CONTEXT-001..006`, `TENETS-LIFECYCLE-001..006`, and
-  `TENETS-NAME-001..005` for domain-model findings. Use `TENETS-APP-001..007`,
+  `TENETS-NAME-001..005` for domain-model findings. Use `TENETS-APP-001..008`,
   `TENETS-PORT-001..012`, and `TENETS-REPO-001..007` for use case, port, and
   repository findings.
   Use `TENETS-UOW-001..011`, `TENETS-EVENT-001..009`, and
@@ -60,6 +60,7 @@ recommendations, not compliance findings.
 - Verify domain events are internal, integration events are explicit and versioned, and reliable state changes record outbox intent atomically.
 - Verify asynchronous consumers payload-bind consumer-scoped identity, commit inbox and local effects atomically, acknowledge after durability, and protect external effects separately.
 - Each use case handles one business workflow (`TENETS-APP-001`) and embodies the primary port, which primary adapters invoke rather than implement (`TENETS-PORT-001`).
+- Use cases never receive, construct, or invoke another use case or primary port; shared business logic moves to an aggregate or domain service, and follow-ups use domain events or one combined use case (`TENETS-APP-008`).
 - Use cases do not pass hydrated objects back through creation functions (`TENETS-APP-004`).
 - Use cases convert command primitives into domain IDs, value objects, named criteria, or capability contracts before the first repository or secondary-port call (`TENETS-APP-005`).
 - Use cases own transaction scope and the timing of domain-event handling, outbox writes, and outbound capabilities (`TENETS-APP-006`).

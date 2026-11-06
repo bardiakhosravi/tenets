@@ -7,7 +7,7 @@ category: application
 severity: error
 minimum_profile: core
 applies_to: ["all"]
-related: ["TENETS-APP-002", "TENETS-PORT-001"]
+related: ["TENETS-APP-008", "TENETS-APP-002", "TENETS-PORT-001"]
 aliases: []
 ---
 ## Rule

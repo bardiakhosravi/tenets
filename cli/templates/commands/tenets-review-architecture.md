@@ -67,6 +67,7 @@ For each file, verify:
 ### Application layer (`**/application/**`)
 - Use cases orchestrate supplied domain behavior rather than implementing domain rules (`TENETS-APP-002`)
 - Each use case handles one business workflow (`TENETS-APP-001`)
+- Use cases never receive, construct, or invoke another use case or primary port; shared business logic moves to an aggregate or domain service, and follow-ups use domain events or one combined use case (`TENETS-APP-008`)
 - Use cases embody the primary port, and primary adapters invoke them rather than implementing the capability (`TENETS-PORT-001`)
 - Use cases convert command primitives into domain IDs, value objects, named criteria, or capability contracts before the first repository or secondary-port call (`TENETS-APP-005`)
 - Use cases own transaction scope and the timing of domain-event handling, outbox writes, and outbound capabilities (`TENETS-APP-006`)

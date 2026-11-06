@@ -53,9 +53,9 @@ test('bundled profile delivery grows from core to pragmatic to strict', async ()
   const pragmatic = await fetchContent({ profile: 'pragmatic' });
   const strict = await fetchContent({ profile: 'strict' });
 
-  assert.equal(core.activeEntryIds.length, 73);
-  assert.equal(pragmatic.activeEntryIds.length, 115);
-  assert.equal(strict.activeEntryIds.length, 137);
+  assert.equal(core.activeEntryIds.length, 74);
+  assert.equal(pragmatic.activeEntryIds.length, 116);
+  assert.equal(strict.activeEntryIds.length, 138);
 
   const coreRules = assembleContent(core);
   const pragmaticRules = assembleContent(pragmatic);

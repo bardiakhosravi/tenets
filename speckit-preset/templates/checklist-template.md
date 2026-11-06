@@ -41,7 +41,7 @@
 
 ## Application Layer
 
-- [ ] CHK014 Each use case implements exactly one business workflow
+- [ ] CHK014 Each use case implements exactly one business workflow and never calls another use case
 - [ ] CHK015 Use cases contain no business logic (delegated to domain)
 - [ ] CHK016 Use cases do not create incomplete objects and immediately mutate them with already-available creation data
 - [ ] CHK017 All external dependencies injected through port interfaces

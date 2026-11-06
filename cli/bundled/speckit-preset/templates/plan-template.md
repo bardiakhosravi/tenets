@@ -36,6 +36,7 @@
   - Domain layer has zero external dependencies
   - All cross-context communication goes through ports
   - No business logic leaks into adapters or use cases
+  - Use cases never receive or invoke other use cases
   - Aggregates are the only mutation entry points within their boundary
   - New entities and aggregates use module-level creation functions with complete
     initial creation data
