@@ -125,6 +125,7 @@ Ask only questions that block a correct architectural decision.
 - Tests match the layer, distinguish creation from hydration, and assert semantic port values (`TENETS-TEST-001` through `TENETS-TEST-006`).
 - Material choices and qualifying exceptions have complete ADRs whose superseded history is preserved (`TENETS-ADR-001` through `TENETS-ADR-003`).
 - Each use case handles one business workflow (`TENETS-APP-001`) and embodies the primary port, which primary adapters invoke rather than implement (`TENETS-PORT-001`).
+- Use cases never receive, construct, or invoke another use case or primary port; shared business logic moves to an aggregate or domain service, and follow-ups use domain events or one combined use case (`TENETS-APP-008`).
 - Use cases do not pass hydrated objects back through creation functions (`TENETS-APP-004`).
 - Use cases convert command primitives into domain IDs, value objects, named criteria, or capability contracts before the first repository or secondary-port call (`TENETS-APP-005`).
 - Use cases own transaction scope and the timing of domain-event handling, outbox writes, and outbound capabilities (`TENETS-APP-006`).

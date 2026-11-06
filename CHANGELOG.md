@@ -4,6 +4,21 @@ All notable changes to Tenets are documented here.
 
 ## Unreleased
 
+## [0.18.0] - 2026-11-06
+
+### Added
+
+- New rule `TENETS-APP-008` prohibits a use case from receiving, constructing,
+  or invoking another use case or primary port. The architecture review, both
+  code review agents, the use case guide, the layer reminders, and the Spec Kit
+  templates check it.
+
+### Migration
+
+- Run `npx tenets update`. Replace use-case-to-use-case calls with an aggregate
+  method or domain service for shared logic, a domain event for follow-up work,
+  or one combined use case when the steps must commit together.
+
 ## [0.17.0] - 2026-11-05
 
 ### Changed

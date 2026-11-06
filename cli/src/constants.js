@@ -253,6 +253,7 @@ Rules are installed by \`tenets\`. Run \`npx tenets update\` to update.
 - **Creation and hydration are different** — create new entities and aggregates with module-level creation functions; repository adapters hydrate existing objects with constructors.
 - **Value objects are instantiated directly** — validate and normalize in \`__post_init__\`; never add a \`create_<value_object>()\` function.
 - **Use cases orchestrate domain logic** — they contain NO business rules themselves.
+- **Use cases never call other use cases** — they reach the domain and secondary ports directly; share logic through aggregates or domain services, and chain workflows through domain events.
 - **Use cases load domain objects before calling secondary ports** — ports receive domain models, never repositories.
 - **One Unit of Work owns one transaction** — use cases commit explicitly; incomplete work rolls back and transaction resources are released.
 - **Reliable state-change events use an outbox** — domain events remain internal and complete versioned integration events are recorded atomically.
@@ -293,6 +294,7 @@ Tenets installs scoped instructions in \`.github/instructions/tenets-*.instructi
 - Creation functions create new entities and aggregates; repository constructors hydrate existing ones.
 - Value objects are instantiated directly and validate in \`__post_init__\`; they have no creation functions.
 - Use cases orchestrate and secondary ports never load from repositories.
+- Use cases never receive or invoke other use cases.
 - One Unit of Work owns one transaction; writes commit explicitly and incomplete work rolls back.
 - Reliable publication uses an outbox, and asynchronous consumers acknowledge only after durable idempotent completion.
 - Adapters translate and perform I/O without owning business rules.
@@ -315,7 +317,7 @@ const CLAUDE_HOOK_SCRIPT = `#!/usr/bin/env node
 
 const LAYER_RULES = {
   domain: 'Domain layer: no external deps, entities, aggregates, VOs, and repository contracts never contain infrastructure concepts such as s3_prefix, entities have identity equality, VOs are immutable, validate in __post_init__, and have no creation functions, aggregates enforce invariants, and entity and aggregate creation functions are distinct from hydration constructors.',
-  application: 'Application layer: use cases orchestrate only, keep infrastructure concepts such as s3_prefix out of commands, queries, results, and secondary port contracts, load required domain objects before secondary ports, and pass semantic domain types or capability contracts instead of naked domain primitives.',
+  application: 'Application layer: use cases orchestrate only, never call other use cases, keep infrastructure concepts such as s3_prefix out of commands, queries, results, and secondary port contracts, load required domain objects before secondary ports, and pass semantic domain types or capability contracts instead of naked domain primitives.',
   adapters: 'Adapter layer: keep infrastructure concepts such as s3_prefix out of request and response models, implement semantic port contracts, unwrap values only during external mapping, handle external complexity, and perform no hidden repository loading.',
   infrastructure: 'Infrastructure layer: implement semantic port contracts, keep tech-specific models here, and confine primitives to persistence, serialization, configuration, and private mapping.',
 };
